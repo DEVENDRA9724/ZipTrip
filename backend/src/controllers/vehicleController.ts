@@ -101,7 +101,7 @@ export const createBooking = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(401).json({ error: 'Unauthenticated' });
     }
 
-    const { vehicle_id, pickup_time, dropoff_time } = req.body;
+    const { vehicle_id, pickup_time, dropoff_time, esign_completed } = req.body;
 
     if (!vehicle_id || !pickup_time || !dropoff_time) {
       return res.status(400).json({ error: 'vehicle_id, pickup_time, and dropoff_time are required' });
@@ -170,7 +170,8 @@ export const createBooking = async (req: AuthenticatedRequest, res: Response) =>
           pickup_time: pickupDate,
           dropoff_time: dropoffDate,
           total_price: pricing.totalPrice,
-          status: 'CONFIRMED'
+          status: 'CONFIRMED',
+          esign_completed: esign_completed === true
         }
       });
 

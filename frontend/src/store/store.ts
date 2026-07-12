@@ -102,7 +102,7 @@ interface AppState {
   fetchLocations: () => Promise<void>;
   searchVehicles: (locationId: string, pickupTime: string, dropoffTime: string) => Promise<void>;
   verifyKYC: (formData: FormData) => Promise<boolean>;
-  createBooking: (vehicleId: string, pickupTime: string, dropoffTime: string) => Promise<boolean>;
+  createBooking: (vehicleId: string, pickupTime: string, dropoffTime: string, esignCompleted?: boolean) => Promise<boolean>;
   extendBooking: (bookingId: string, additionalHours: number) => Promise<{ success: boolean; fare?: number; error?: string }>;
   completeHandover: (bookingId: string, fuelLevel: number, scratches: string[]) => Promise<boolean>;
   esignBooking: (bookingId: string, aadhaarNumber: string, otp: string) => Promise<boolean>;
@@ -235,7 +235,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  createBooking: async (vehicleId, pickupTime, dropoffTime) => {
+  createBooking: async (vehicleId, pickupTime, dropoffTime, esignCompleted) => {
     set({ loading: true, error: null });
     const { token } = get();
     try {
@@ -245,7 +245,12 @@ export const useStore = create<AppState>((set, get) => ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ vehicle_id: vehicleId, pickup_time: pickupTime, dropoff_time: dropoffTime })
+        body: JSON.stringify({
+          vehicle_id: vehicleId,
+          pickup_time: pickupTime,
+          dropoff_time: dropoffTime,
+          esign_completed: esignCompleted
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Booking creation failed');

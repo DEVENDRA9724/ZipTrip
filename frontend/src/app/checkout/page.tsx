@@ -15,7 +15,11 @@ import {
   Calendar,
   Lock,
   ArrowRight,
-  Loader2
+  Loader2,
+  Fingerprint,
+  Check,
+  PenTool,
+  XCircle
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -51,6 +55,70 @@ export default function Checkout() {
   // Sign contract State
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [eSignStep, setESignStep] = useState<'checkout' | 'signing' | 'success'>('checkout');
+
+  // Checkout Aadhaar e-Sign States
+  const [showCheckoutEsignModal, setShowCheckoutEsignModal] = useState(false);
+  const [esignAadhaarNumber, setEsignAadhaarNumber] = useState('');
+  const [esignOtp, setEsignOtp] = useState('');
+  const [esignConsent, setEsignConsent] = useState(false);
+  const [esignError, setEsignError] = useState<string | null>(null);
+  const [esignStep, setEsignStep] = useState<'aadhaar' | 'otp' | 'success'>('aadhaar');
+  const [esignLoading, setEsignLoading] = useState(false);
+
+  const handleStartCheckoutEsign = () => {
+    if (!agreeTerms) {
+      alert("Please agree to the contract terms before signing.");
+      return;
+    }
+    setEsignAadhaarNumber('');
+    setEsignOtp('');
+    setEsignStep('aadhaar');
+    setEsignConsent(false);
+    setEsignError(null);
+    setEsignLoading(false);
+    setShowCheckoutEsignModal(true);
+  };
+
+  const handleRequestCheckoutOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (esignAadhaarNumber.length !== 12) {
+      setEsignError('Please enter a valid 12-digit Aadhaar number.');
+      return;
+    }
+    if (!esignConsent) {
+      setEsignError('You must consent to the e-sign authorization.');
+      return;
+    }
+    setEsignError(null);
+    setEsignLoading(true);
+    setTimeout(() => {
+      setEsignStep('otp');
+      setEsignLoading(false);
+    }, 800);
+  };
+
+  const handleVerifyCheckoutEsign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVehicle || !searchParams) return;
+    if (esignOtp !== '123456') {
+      setEsignError('Invalid Aadhaar OTP. Enter testing code: 123456');
+      return;
+    }
+    setEsignError(null);
+    setEsignLoading(true);
+    const success = await createBooking(
+      selectedVehicle.id,
+      searchParams.pickupTime,
+      searchParams.dropoffTime,
+      true // esignCompleted
+    );
+    setEsignLoading(false);
+    if (success) {
+      setShowCheckoutEsignModal(false);
+    } else {
+      setEsignError('Booking reservation failed. Please verify your connection.');
+    }
+  };
 
   // Sync state for booking success
   useEffect(() => {
@@ -424,19 +492,11 @@ export default function Checkout() {
 
                   <button
                     type="button"
-                    onClick={handleCreateBooking}
-                    disabled={!agreeTerms || eSignStep === 'signing'}
+                    onClick={handleStartCheckoutEsign}
+                    disabled={!agreeTerms}
                     className="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
                   >
-                    {eSignStep === 'signing' ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> OTP Verification & e-Stamping in progress...
-                      </>
-                    ) : (
-                      <>
-                        Confirm Booking & Aadhaar e-Sign <CreditCard size={16} />
-                      </>
-                    )}
+                    Confirm Booking & Aadhaar e-Sign <CreditCard size={16} />
                   </button>
                 </div>
               </div>
@@ -521,6 +581,155 @@ export default function Checkout() {
             <p className="text-[10px] text-slate-500 leading-tight">
               Includes unlimited kilometers, state taxes, general third party insurance, and dynamic surges.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Aadhaar e-Sign Gateway Modal (NSDL Style) */}
+      {showCheckoutEsignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in-up">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl relative border border-slate-100 flex flex-col md:flex-row min-h-[460px]">
+            <button
+              onClick={() => setShowCheckoutEsignModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer z-10 p-1 bg-slate-50 hover:bg-slate-100 rounded-full"
+            >
+              <XCircle size={20} className="text-slate-400" />
+            </button>
+
+            {/* Left Column: NSDL certified provider banner */}
+            <div className="md:w-5/12 bg-slate-900 text-white p-6 flex flex-col justify-between border-r border-slate-800">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-black text-xs text-brand-300">
+                    NSDL
+                  </div>
+                  <div>
+                    <h5 className="font-extrabold text-[10px] uppercase tracking-wider text-slate-400 leading-none">e-Sign Gateway</h5>
+                    <p className="text-[8px] text-slate-500 font-semibold mt-0.5 leading-none">CCA CERTIFIED PROVIDER</p>
+                  </div>
+                </div>
+
+                <div className="pt-6 space-y-3">
+                  <span className="text-[9px] bg-brand-500/20 text-brand-300 font-bold px-2 py-0.5 rounded uppercase tracking-wider">Document for Signing</span>
+                  <h4 className="font-extrabold text-sm leading-snug">ZipTrip Vehicle Bailment & Rental Agreement</h4>
+                  <div className="flex items-center gap-2 text-xs text-slate-400">
+                    <FileText size={14} className="shrink-0" />
+                    <span className="font-mono text-[9px] truncate">Ref: PENDING_CONFIRMATION</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-800 text-[10px] text-slate-400 leading-relaxed">
+                <p>This e-Sign gateway utilizes NSDL e-Governance services to authenticate identity and execute legal signatures in accordance with Section 3A of the Information Technology Act.</p>
+              </div>
+            </div>
+
+            {/* Right Column: OTP Form */}
+            <div className="md:w-7/12 p-8 flex flex-col justify-between">
+              {esignStep === 'aadhaar' && (
+                <form onSubmit={handleRequestCheckoutOtp} className="space-y-6 my-auto">
+                  <div className="text-center md:text-left">
+                    <Fingerprint className="w-10 h-10 text-brand-600 mx-auto md:mx-0 mb-3" />
+                    <h3 className="text-lg font-black text-slate-900 leading-tight">Verify Aadhaar Identity</h3>
+                    <p className="text-xs text-slate-500 mt-1">Authenticate using your 12-digit Aadhaar number to place your digital signature certificate on the rental agreement.</p>
+                  </div>
+
+                  {esignError && (
+                    <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-xl p-3 text-xs font-semibold">
+                      {esignError}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Aadhaar Card Number</label>
+                      <input
+                        type="text"
+                        maxLength={12}
+                        required
+                        placeholder="e.g. 5432 9876 1234"
+                        value={esignAadhaarNumber}
+                        onChange={(e) => setEsignAadhaarNumber(e.target.value.replace(/\D/g, ''))}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold tracking-widest focus:border-brand-600 focus:outline-none bg-slate-50 text-slate-700"
+                      />
+                    </div>
+
+                    <label className="flex items-start gap-2.5 cursor-pointer text-slate-600 select-none">
+                      <input
+                        type="checkbox"
+                        checked={esignConsent}
+                        onChange={(e) => setEsignConsent(e.target.checked)}
+                        className="rounded text-brand-600 focus:ring-brand-500 mt-0.5 border-slate-300"
+                      />
+                      <span className="text-[10px] leading-relaxed font-bold">
+                        I hereby authorize NSDL e-Sign Gateway to verify my credentials with UIDAI and generate my digital signature certificate for this ZipTrip Rental Agreement.
+                      </span>
+                    </label>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={esignLoading || esignAadhaarNumber.length !== 12 || !esignConsent}
+                    className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold py-3 rounded-2xl text-xs transition-all shadow-md shadow-brand-500/10 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {esignLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying Credentials...
+                      </>
+                    ) : (
+                      'Request Aadhaar OTP'
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {esignStep === 'otp' && (
+                <form onSubmit={handleVerifyCheckoutEsign} className="space-y-6 my-auto">
+                  <div className="text-center md:text-left">
+                    <h3 className="text-lg font-black text-slate-900 leading-tight">Enter Aadhaar OTP</h3>
+                    <p className="text-xs text-slate-500 mt-1">A 6-digit verification code has been dispatched to the mobile number associated with your Aadhaar ending in <strong>******8890</strong>.</p>
+                  </div>
+
+                  {esignError && (
+                    <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-xl p-3 text-xs font-semibold">
+                      {esignError}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Aadhaar OTP (6-digits)</label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        required
+                        placeholder="Enter 6-digit OTP code"
+                        value={esignOtp}
+                        onChange={(e) => setEsignOtp(e.target.value.replace(/\D/g, ''))}
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold tracking-widest text-center focus:border-brand-600 focus:outline-none bg-slate-50 text-slate-700"
+                      />
+                    </div>
+                    <p className="text-[10px] text-brand-600 font-bold bg-brand-50 px-3 py-1.5 rounded-lg text-center">
+                      🔐 Testing Bypass: Enter code <strong>123456</strong>
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={esignLoading || esignOtp.length !== 6}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-2xl text-xs transition-all shadow-md shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {esignLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying OTP & Generating Lease...
+                      </>
+                    ) : (
+                      'Verify & Confirm Booking'
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}
