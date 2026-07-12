@@ -611,4 +611,45 @@ export const verifyUserKYC = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
+/**
+ * Simulated Aadhaar e-Sign verification flow
+ */
+export const esignBooking = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { bookingId, aadhaarNumber, otp } = req.body;
+
+    if (!bookingId || !aadhaarNumber || !otp) {
+      return res.status(400).json({ error: 'bookingId, aadhaarNumber, and otp are required' });
+    }
+
+    if (otp !== '123456') {
+      return res.status(400).json({ error: 'Invalid Aadhaar OTP entered. Please enter 123456 to sign.' });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { user: true, vehicle: true }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking details not found' });
+    }
+
+    // Update booking state
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { esign_completed: true }
+    });
+
+    return res.status(200).json({
+      message: 'Aadhaar e-Sign Completed successfully!',
+      booking: updated
+    });
+  } catch (error: any) {
+    console.error('Aadhaar e-sign error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+
 

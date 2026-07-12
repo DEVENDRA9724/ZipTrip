@@ -19,7 +19,8 @@ import {
   addHostVehicle,
   getVehiclesGPS,
   getUsersKYC,
-  verifyUserKYC
+  verifyUserKYC,
+  esignBooking
 } from './controllers/vehicleController';
 import {
   extendBooking,
@@ -63,6 +64,7 @@ app.post('/api/bookings/create', authenticateJWT, createBooking);
 app.get('/api/bookings/my', authenticateJWT, getMyBookings);
 app.post('/api/bookings/extend', authenticateJWT, extendBooking);
 app.post('/api/bookings/handover', authenticateJWT, completeBookingHandover);
+app.post('/api/bookings/esign', authenticateJWT, esignBooking);
 
 // Host Vehicle & Dashboard Routes
 app.post('/api/host/vehicles/add', authenticateJWT, addHostVehicle);

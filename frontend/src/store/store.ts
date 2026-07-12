@@ -69,6 +69,7 @@ export interface Booking {
   total_price: number;
   status: 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   agreement_pdf_url?: string;
+  esign_completed?: boolean;
 }
 
 interface AppState {
@@ -104,6 +105,7 @@ interface AppState {
   createBooking: (vehicleId: string, pickupTime: string, dropoffTime: string) => Promise<boolean>;
   extendBooking: (bookingId: string, additionalHours: number) => Promise<{ success: boolean; fare?: number; error?: string }>;
   completeHandover: (bookingId: string, fuelLevel: number, scratches: string[]) => Promise<boolean>;
+  esignBooking: (bookingId: string, aadhaarNumber: string, otp: string) => Promise<boolean>;
   dispatchTelemetryCommand: (vehicleId: string, command: string, speedLimit?: number) => Promise<boolean>;
   fetchHostDashboard: () => Promise<any>;
   uploadAdminUserDocument: (userId: string, docName: string, file: File) => Promise<boolean>;
@@ -292,6 +294,28 @@ export const useStore = create<AppState>((set, get) => ({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Handover checklist submission failed');
+      set({ loading: false });
+      return true;
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      return false;
+    }
+  },
+
+  esignBooking: async (bookingId, aadhaarNumber, otp) => {
+    set({ loading: true, error: null });
+    const { token } = get();
+    try {
+      const res = await fetch(`${API_BASE_URL}/bookings/esign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ bookingId, aadhaarNumber, otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Aadhaar signing failed');
       set({ loading: false });
       return true;
     } catch (err: any) {

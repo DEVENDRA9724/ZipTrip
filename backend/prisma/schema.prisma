@@ -1,6 +1,6 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -91,6 +91,7 @@ model Booking {
   pickup_fuel        Int?                               // Handover fuel percentage logged
   pickup_scratches   String        @default("[]")       // Logged scratches list at pickup
   handover_completed Boolean       @default(false)      // Completed check-in / unlock state
+  esign_completed    Boolean       @default(false)      // Aadhaar e-Sign Completed state
 
   user               User          @relation(fields: [user_id], references: [id])
   vehicle            Vehicle       @relation(fields: [vehicle_id], references: [id])

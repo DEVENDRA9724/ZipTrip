@@ -27,3 +27,8 @@ lerna-debug.log*
 # System files
 .DS_Store
 Thumbs.db
+
+# Database files
+*.db
+*.db-journal
+
