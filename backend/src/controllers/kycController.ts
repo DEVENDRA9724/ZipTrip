@@ -34,8 +34,6 @@ export const uploadKYC = multer({
     cb(new Error('Only JPEG, JPG, PNG, and PDF files are allowed (max 5MB)'));
   }
 }).fields([
-  { name: 'aadhaar_file', maxCount: 1 },
-  { name: 'pan_file', maxCount: 1 },
   { name: 'dl_file', maxCount: 1 },
   { name: 'selfie_file', maxCount: 1 }
 ]);
@@ -50,15 +48,15 @@ export const verifyKYC = async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'User session not authenticated' });
     }
 
-    const { aadhaar_number, pan_number, dl_number } = req.body;
+    const { aadhaar_number, dl_number } = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
-    if (!aadhaar_number || !pan_number || !dl_number) {
-      return res.status(400).json({ error: 'Aadhaar, PAN, and Driving License numbers are required' });
+    if (!aadhaar_number || !dl_number) {
+      return res.status(400).json({ error: 'Aadhaar and Driving License numbers are required' });
     }
 
-    if (!files || !files['selfie_file'] || !files['aadhaar_file'] || !files['pan_file'] || !files['dl_file']) {
-      return res.status(400).json({ error: 'All physical documents (Aadhaar, PAN, DL, and Selfie) are required for KYC' });
+    if (!files || !files['selfie_file'] || !files['dl_file']) {
+      return res.status(400).json({ error: 'Driving License file and Selfie capture are required for KYC' });
     }
 
     const selfieFile = files['selfie_file'][0];
@@ -66,7 +64,7 @@ export const verifyKYC = async (req: AuthenticatedRequest, res: Response) => {
     const selfieUrl = `/uploads/kyc/${selfieFile.filename}`;
 
     console.log(`[KYC Pipeline] Initiating verification for User ID: ${userId}`);
-    console.log(`[KYC Pipeline] Aadhaar: ${aadhaar_number}, PAN: ${pan_number}, DL: ${dl_number}`);
+    console.log(`[KYC Pipeline] Aadhaar: ${aadhaar_number}, DL: ${dl_number}`);
 
     // Mimic calling Digio/Signzy FaceMatch API
     // Let's create an HTTP Basic Authentication configuration like real providers
@@ -87,7 +85,7 @@ export const verifyKYC = async (req: AuthenticatedRequest, res: Response) => {
     let kyc_status: 'VERIFIED' | 'REJECTED' | 'UNKNOWN' = 'VERIFIED';
     let errorMessage = '';
 
-    if (aadhaar_number === '000000000000' || pan_number === 'FAIL0000P') {
+    if (aadhaar_number === '000000000000') {
       score = 42.1;
       kyc_status = 'REJECTED';
       errorMessage = 'FaceMatch similarity check failed. Driving license photo did not match selfie.';
@@ -107,7 +105,6 @@ export const verifyKYC = async (req: AuthenticatedRequest, res: Response) => {
         data: {
           kyc_status: 'VERIFIED',
           aadhaar_number,
-          pan_number,
           dl_number,
           selfie_url: selfieUrl
         }
@@ -131,7 +128,6 @@ export const verifyKYC = async (req: AuthenticatedRequest, res: Response) => {
         data: {
           kyc_status: nextStatus,
           aadhaar_number,
-          pan_number,
           dl_number
         }
       });

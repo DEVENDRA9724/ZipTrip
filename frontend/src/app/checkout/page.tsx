@@ -45,12 +45,42 @@ export default function Checkout() {
 
   // KYC Inputs
   const [aadhaarNum, setAadhaarNum] = useState('');
-  const [panNum, setPanNum] = useState('');
   const [dlNum, setDlNum] = useState('');
-  const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
-  const [panFile, setPanFile] = useState<File | null>(null);
   const [dlFile, setDlFile] = useState<File | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
+
+  // e-KYC Verification States
+  const [isKycAadhaarVerified, setIsKycAadhaarVerified] = useState(false);
+  const [showKycOtpModal, setShowKycOtpModal] = useState(false);
+  const [kycOtpCode, setKycOtpCode] = useState('');
+  const [kycOtpError, setKycOtpError] = useState<string | null>(null);
+  const [kycOtpLoading, setKycOtpLoading] = useState(false);
+
+  const handleStartKycEsign = () => {
+    if (aadhaarNum.length !== 12) {
+      alert("Please enter a valid 12-digit Aadhaar number first.");
+      return;
+    }
+    setKycOtpCode('');
+    setKycOtpError(null);
+    setKycOtpLoading(false);
+    setShowKycOtpModal(true);
+  };
+
+  const handleVerifyKycOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (kycOtpCode !== '123456') {
+      setKycOtpError('Invalid Aadhaar OTP. Enter testing code: 123456');
+      return;
+    }
+    setKycOtpError(null);
+    setKycOtpLoading(true);
+    setTimeout(() => {
+      setIsKycAadhaarVerified(true);
+      setShowKycOtpModal(false);
+      setKycOtpLoading(false);
+    }, 600);
+  };
 
   // Sign contract State
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -178,17 +208,19 @@ export default function Checkout() {
     e.preventDefault();
     clearError();
 
-    if (!aadhaarFile || !panFile || !dlFile || !selfieFile) {
-      alert('Please upload all required files (Aadhaar, PAN, DL, and Selfie)');
+    if (!isKycAadhaarVerified) {
+      alert('Please verify your Aadhaar number via NSDL e-KYC OTP first.');
+      return;
+    }
+
+    if (!dlFile || !selfieFile) {
+      alert('Please upload your Driving License and capture/select a Selfie.');
       return;
     }
 
     const formData = new FormData();
     formData.append('aadhaar_number', aadhaarNum);
-    formData.append('pan_number', panNum);
     formData.append('dl_number', dlNum);
-    formData.append('aadhaar_file', aadhaarFile);
-    formData.append('pan_file', panFile);
     formData.append('dl_file', dlFile);
     formData.append('selfie_file', selfieFile);
 
@@ -347,65 +379,64 @@ export default function Checkout() {
                 )}
 
                 <form onSubmit={handleKYCSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Aadhaar Number</label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={12}
-                        value={aadhaarNum}
-                        onChange={(e) => setAadhaarNum(e.target.value.replace(/\D/g, ''))}
-                        placeholder="12-digit number"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
-                      />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-end">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">Aadhaar Card Number</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          required
+                          disabled={isKycAadhaarVerified}
+                          maxLength={12}
+                          value={aadhaarNum}
+                          onChange={(e) => setAadhaarNum(e.target.value.replace(/\D/g, ''))}
+                          placeholder="12-digit number"
+                          className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-brand-600 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500 font-bold"
+                        />
+                        {isKycAadhaarVerified ? (
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1">
+                            <Check size={14} /> Verified
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleStartKycEsign}
+                            disabled={aadhaarNum.length !== 12}
+                            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer shrink-0"
+                          >
+                            Verify via OTP
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">PAN Number</label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={10}
-                        value={panNum}
-                        onChange={(e) => setPanNum(e.target.value.toUpperCase())}
-                        placeholder="ABCDE1234F"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Driving License No</label>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">Driving License No</label>
                       <input
                         type="text"
                         required
                         value={dlNum}
                         onChange={(e) => setDlNum(e.target.value)}
                         placeholder="GJ0120220034567"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:border-brand-600 focus:outline-none"
                       />
                     </div>
                   </div>
 
+                  {isKycAadhaarVerified && (
+                    <div className="p-3 bg-brand-50 border border-brand-100 rounded-xl text-[11px] text-brand-700 space-y-1">
+                      <p className="font-bold flex items-center gap-1">
+                        <CheckCircle size={14} className="text-brand-600" /> e-KYC Data Retrieved from UIDAI:
+                      </p>
+                      <p className="font-mono text-[10px] pl-5">
+                        Name: Devendra Kumar | DOB: 15-08-1995 | Address: Ahmedabad, Gujarat, India
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-slate-100 pt-6">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Aadhaar Front (Image/PDF)</label>
-                      <input
-                        type="file"
-                        required
-                        onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)}
-                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">PAN Card (Image/PDF)</label>
-                      <input
-                        type="file"
-                        required
-                        onChange={(e) => setPanFile(e.target.files?.[0] || null)}
-                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Driving License (Image/PDF)</label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Driving License Front (Image/PDF)</label>
                       <input
                         type="file"
                         required
@@ -414,7 +445,7 @@ export default function Checkout() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-1">Real-Time Selfie Capture</label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">Real-Time Selfie Capture</label>
                       <input
                         type="file"
                         required
@@ -425,12 +456,12 @@ export default function Checkout() {
                   </div>
 
                   <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg leading-relaxed">
-                    <strong>Demo Alert:</strong> Entering Aadhaar <strong>000000000000</strong> or PAN <strong>FAIL0000P</strong> will trigger a mock FaceMatch failure (score &lt; 85) to demonstrate reject cases. Standard input will match successfully (score &ge; 85).
+                    <strong>Demo Alert:</strong> Entering Aadhaar <strong>000000000000</strong> will trigger a mock FaceMatch failure (score &lt; 85) to demonstrate reject cases. Standard input will match successfully (score &ge; 85).
                   </div>
 
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !isKycAadhaarVerified}
                     className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
@@ -730,6 +761,66 @@ export default function Checkout() {
                 </form>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* KYC Aadhaar e-KYC OTP Gateway Modal */}
+      {showKycOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in-up">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl relative p-6 border border-slate-100 space-y-6">
+            <button
+              onClick={() => setShowKycOtpModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer p-1 bg-slate-50 hover:bg-slate-100 rounded-full"
+            >
+              <XCircle size={18} />
+            </button>
+
+            <div className="text-center">
+              <Fingerprint className="w-12 h-12 text-brand-600 mx-auto mb-3" />
+              <h3 className="text-lg font-black text-slate-900 leading-tight">NSDL e-KYC Authentication</h3>
+              <p className="text-xs text-slate-500 mt-1.5">
+                We have dispatched a simulated 6-digit e-KYC OTP to the mobile registered with your Aadhaar Card.
+              </p>
+            </div>
+
+            {kycOtpError && (
+              <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-xl p-3 text-xs font-semibold">
+                {kycOtpError}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyKycOtp} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Enter OTP Code</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  required
+                  placeholder="Enter 6-digit OTP code"
+                  value={kycOtpCode}
+                  onChange={(e) => setKycOtpCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold tracking-widest text-center focus:border-brand-600 focus:outline-none bg-slate-50 text-slate-700"
+                />
+              </div>
+              
+              <p className="text-[10px] text-brand-600 font-bold bg-brand-50 px-3 py-1.5 rounded-lg text-center">
+                🔐 Testing Bypass: Enter code <strong>123456</strong>
+              </p>
+
+              <button
+                type="submit"
+                disabled={kycOtpLoading || kycOtpCode.length !== 6}
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md shadow-brand-500/10 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {kycOtpLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying OTP...
+                  </>
+                ) : (
+                  'Verify Aadhaar OTP'
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}
