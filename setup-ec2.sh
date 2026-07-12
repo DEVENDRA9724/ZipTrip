@@ -43,8 +43,12 @@ DATABASE_URL="file:./dev.db"
 JWT_SECRET="ZipTripSuperSecretProductionKey2026!"
 EOF
 
-# Run Prisma migrations & seed database
-npx prisma migrate deploy
+# Convert Prisma schema to PostgreSQL for production AWS RDS
+node -e "const fs = require('fs'); let schema = fs.readFileSync('prisma/schema.prisma', 'utf8'); schema = schema.replace('provider = \"sqlite\"', 'provider = \"postgresql\"').replace('url = \"file:./dev.db\"', 'url = env(\"DATABASE_URL\")'); fs.writeFileSync('prisma/schema.prisma', schema);"
+
+# Regenerate client and push database schema to RDS
+npx prisma generate
+npx prisma db push
 npm run db:seed
 
 # Build & Start backend process under PM2 daemon
