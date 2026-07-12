@@ -1,0 +1,101 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password_hash   String
+  role            String    @default("CUSTOMER") // "ADMIN", "CUSTOMER"
+  full_name       String
+  phone           String
+  kyc_status      String    @default("PENDING") // "PENDING", "VERIFIED", "REJECTED", "UNKNOWN"
+  aadhaar_number  String?
+  pan_number      String?
+  dl_number       String?
+  selfie_url      String?
+  admin_documents String    @default("[]") // JSON-stringified array of document objects uploaded by admin
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  bookings        Booking[]
+  hosted_vehicles Vehicle[] @relation("HostVehicles")
+
+  @@map("users")
+}
+
+model VehicleType {
+  id                  String    @id @default(uuid())
+  category_name       String    // Hatchback, Sedan, SUV
+  base_price_per_hour Float
+  base_price_per_day  Float
+  seating_capacity    Int
+  transmission        String    // Manual, Automatic
+  vehicles            Vehicle[]
+
+  @@map("vehicle_types")
+}
+
+model Location {
+  id              String    @id @default(uuid())
+  hub_name        String    // e.g. "SG Highway Hub", "AMD Airport Arrivals", etc.
+  address         String
+  latitude        Float
+  longitude       Float
+  capacity        Int
+  vehicles        Vehicle[]
+
+  @@map("locations")
+}
+
+model Vehicle {
+  id              String        @id @default(uuid())
+  type_id         String
+  location_id     String
+  host_id         String?       // Associated host if vehicle is privately owned
+  license_plate   String        @unique
+  make            String
+  model           String
+  year            Int
+  features        String        // JSON-stringified array of strings, e.g. ["Sunroof", "GPS"]
+  images          String        // JSON-stringified array of image URLs
+  status          String        @default("AVAILABLE") // "AVAILABLE", "BOOKED", "MAINTENANCE"
+  is_locked       Boolean       @default(true)       // IoT simulated Lock State
+  engine_disabled Boolean       @default(false)      // IoT simulated Immobilizer State
+  speed_limit     Int           @default(120)        // Speed limit cap
+  current_fuel    Int           @default(100)        // Fuel gauge percentage
+  scratches       String        @default("[]")       // JSON string list of pre-existing scratches
+
+  type            VehicleType   @relation(fields: [type_id], references: [id])
+  location        Location      @relation(fields: [location_id], references: [id])
+  host            User?         @relation("HostVehicles", fields: [host_id], references: [id])
+  bookings        Booking[]
+
+  @@map("vehicles")
+}
+
+model Booking {
+  id                 String        @id @default(uuid())
+  user_id            String
+  vehicle_id         String
+  pickup_time        DateTime
+  dropoff_time       DateTime
+  total_price        Float
+  status             String        @default("CONFIRMED") // "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED"
+  agreement_pdf_url  String?
+  extended_hours     Int           @default(0)          // Extension hours accumulator
+  pickup_fuel        Int?                               // Handover fuel percentage logged
+  pickup_scratches   String        @default("[]")       // Logged scratches list at pickup
+  handover_completed Boolean       @default(false)      // Completed check-in / unlock state
+
+  user               User          @relation(fields: [user_id], references: [id])
+  vehicle            Vehicle       @relation(fields: [vehicle_id], references: [id])
+
+  @@index([pickup_time])
+  @@index([dropoff_time])
+  @@map("bookings")
+}

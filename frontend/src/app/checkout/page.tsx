@@ -1,0 +1,529 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useStore } from '../../store/store';
+import {
+  ShieldAlert,
+  CheckCircle,
+  FileText,
+  UserCheck,
+  CreditCard,
+  Download,
+  AlertCircle,
+  MapPin,
+  Calendar,
+  Lock,
+  ArrowRight,
+  Loader2
+} from 'lucide-react';
+import Link from 'next/link';
+
+export default function Checkout() {
+  const router = useRouter();
+  const {
+    user,
+    selectedVehicle,
+    searchParams,
+    currentBooking,
+    createBooking,
+    verifyKYC,
+    loading,
+    error,
+    clearError,
+    setAuthModalOpen
+  } = useStore();
+
+  // Delivery options
+  const [deliveryType, setDeliveryType] = useState<'hub' | 'doorstep'>('hub');
+  const [deliveryArea, setDeliveryArea] = useState('bopal');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+
+  // KYC Inputs
+  const [aadhaarNum, setAadhaarNum] = useState('');
+  const [panNum, setPanNum] = useState('');
+  const [dlNum, setDlNum] = useState('');
+  const [aadhaarFile, setAadhaarFile] = useState<File | null>(null);
+  const [panFile, setPanFile] = useState<File | null>(null);
+  const [dlFile, setDlFile] = useState<File | null>(null);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+
+  // Sign contract State
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [eSignStep, setESignStep] = useState<'checkout' | 'signing' | 'success'>('checkout');
+
+  // Sync state for booking success
+  useEffect(() => {
+    if (currentBooking) {
+      setESignStep('success');
+    }
+  }, [currentBooking]);
+
+  if (!selectedVehicle || !searchParams) {
+    return (
+      <div className="max-w-md mx-auto mt-20 p-6 bg-white border border-slate-200 rounded-xl text-center shadow-sm">
+        <ShieldAlert className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+        <h3 className="text-lg font-bold text-slate-800">No Booking Active</h3>
+        <p className="text-slate-500 text-sm mt-2">Please go back to search and select a vehicle to rent.</p>
+        <Link href="/" className="mt-4 inline-flex items-center gap-1.5 text-sm bg-brand-600 hover:bg-brand-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition-all">
+          Find Cars
+        </Link>
+      </div>
+    );
+  }
+
+  // Auth Wall
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto mt-20 p-8 bg-white border border-slate-200 rounded-2xl text-center shadow-lg animate-fade-in-up">
+        <Lock className="w-12 h-12 text-brand-600 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-slate-800">Authentication Required</h3>
+        <p className="text-slate-500 text-sm mt-2 leading-relaxed">
+          You must be logged in to reserve a self-drive car and submit your documents for KYC clearance.
+        </p>
+        <button
+          onClick={() => setAuthModalOpen(true)}
+          className="mt-6 w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md shadow-brand-500/10 cursor-pointer"
+        >
+          Sign In / Sign Up
+        </button>
+      </div>
+    );
+  }
+
+  // Delivery Fee Calculation
+  const getDeliveryFee = () => {
+    if (deliveryType === 'hub') return 0;
+    switch (deliveryArea) {
+      case 'bopal': return 300;
+      case 'chandkheda': return 250;
+      case 'naroda': return 350;
+      default: return 0;
+    }
+  };
+
+  const getFinalTotal = () => {
+    return selectedVehicle.pricing!.totalPrice + getDeliveryFee();
+  };
+
+  const handleKYCSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+
+    if (!aadhaarFile || !panFile || !dlFile || !selfieFile) {
+      alert('Please upload all required files (Aadhaar, PAN, DL, and Selfie)');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('aadhaar_number', aadhaarNum);
+    formData.append('pan_number', panNum);
+    formData.append('dl_number', dlNum);
+    formData.append('aadhaar_file', aadhaarFile);
+    formData.append('pan_file', panFile);
+    formData.append('dl_file', dlFile);
+    formData.append('selfie_file', selfieFile);
+
+    await verifyKYC(formData);
+  };
+
+  const handleCreateBooking = async () => {
+    if (!agreeTerms) return;
+    clearError();
+    setESignStep('signing');
+
+    // Simulate digital stamping and certificate procurement
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const success = await createBooking(
+      selectedVehicle.id,
+      searchParams.pickupTime,
+      searchParams.dropoffTime
+    );
+
+    if (!success) {
+      setESignStep('checkout');
+    }
+  };
+
+  return (
+    <div className="max-width-container py-10">
+      <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-8">Confirm Booking & Checkout</h2>
+
+      {eSignStep === 'success' && currentBooking ? (
+        /* Booking Confirmation Panel */
+        <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden p-8 text-center">
+          <div className="w-16 h-16 bg-success-50 text-success-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-success-500/20">
+            <CheckCircle size={36} />
+          </div>
+          <h3 className="text-2xl font-extrabold text-slate-900">Booking Confirmed!</h3>
+          <p className="text-slate-600 mt-2">
+            Your vehicle has been successfully reserved. A legally binding car rental agreement has been compiled and executed.
+          </p>
+
+          <div className="my-8 bg-slate-50 border border-slate-200 rounded-xl p-5 text-left max-w-lg mx-auto text-sm space-y-3">
+            <div className="flex justify-between border-b border-slate-200/60 pb-2">
+              <span className="text-slate-500">Booking Ref ID:</span>
+              <span className="font-mono font-semibold text-slate-800">{currentBooking.id}</span>
+            </div>
+            <div className="flex justify-between border-b border-slate-200/60 pb-2">
+              <span className="text-slate-500">Legal Stamping ID:</span>
+              <span className="font-mono font-semibold text-slate-800">IN-GJ92837492837492U</span>
+            </div>
+            <div className="flex justify-between border-b border-slate-200/60 pb-2">
+              <span className="text-slate-500">Vehicle Registered:</span>
+              <span className="font-semibold text-slate-800">{selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.license_plate})</span>
+            </div>
+            <div className="flex justify-between pb-1">
+              <span className="text-slate-500">Total Fare Paid:</span>
+              <span className="font-bold text-slate-900">₹{getFinalTotal()}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {currentBooking.agreement_pdf_url && (
+              <a
+                href={`http://localhost:5000${currentBooking.agreement_pdf_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Download size={16} /> Open Rental Agreement PDF
+              </a>
+            )}
+            <Link
+              href="/"
+              className="w-full sm:w-auto border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold px-6 py-3 rounded-lg transition-all"
+            >
+              Go to Homepage
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Main Form Area */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Step 1: Doorstep Delivery Settings */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <MapPin size={18} className="text-brand-600" /> 1. Delivery & Fulfillment Mode
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryType('hub')}
+                  className={`border p-4 rounded-xl text-left transition-all ${deliveryType === 'hub' ? 'border-brand-600 bg-brand-50/50 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}
+                >
+                  <p className="font-bold text-slate-800 text-sm">Self Pickup</p>
+                  <p className="text-xs text-slate-500 mt-1">Collect vehicle directly from the operational hub.</p>
+                  <p className="text-xs font-bold text-brand-600 mt-2">Free</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryType('doorstep')}
+                  className={`border p-4 rounded-xl text-left transition-all ${deliveryType === 'doorstep' ? 'border-brand-600 bg-brand-50/50 shadow-sm' : 'border-slate-200 hover:bg-slate-50'}`}
+                >
+                  <p className="font-bold text-slate-800 text-sm">Doorstep Delivery</p>
+                  <p className="text-xs text-slate-500 mt-1">Delivered to your home, office, or residential address.</p>
+                  <p className="text-xs font-bold text-brand-600 mt-2">Starts from ₹250</p>
+                </button>
+              </div>
+
+              {deliveryType === 'doorstep' && (
+                <div className="space-y-4 border-t border-slate-100 pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Select Delivery Hub Zone</label>
+                      <select
+                        value={deliveryArea}
+                        onChange={(e) => setDeliveryArea(e.target.value)}
+                        className="w-full h-11 border border-slate-200 rounded-lg px-3 text-sm focus:border-brand-600 focus:outline-none bg-white font-medium"
+                      >
+                        <option value="bopal">Bopal Area (₹300 fee)</option>
+                        <option value="chandkheda">Chandkheda Area (₹250 fee)</option>
+                        <option value="naroda">Naroda Area (₹350 fee)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Exact Delivery Address</label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder="Flat/House number, Building name, Sector, Neighborhood, Ahmedabad"
+                      className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:border-brand-600 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: KYC Identity Verification */}
+            {user.kyc_status !== 'VERIFIED' ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                  <UserCheck size={18} className="text-amber-600" /> 2. KYC Document Verification (Required)
+                </h3>
+                <p className="text-xs text-slate-500 mb-6">
+                  In compliance with RBI regulations and self-drive leasing laws in India. Identity is analyzed via facial recognition mapping comparing selfie streams to official driving license uploads.
+                </p>
+
+                {error && (
+                  <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-lg p-3 text-sm mb-6 flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleKYCSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Aadhaar Number</label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={12}
+                        value={aadhaarNum}
+                        onChange={(e) => setAadhaarNum(e.target.value.replace(/\D/g, ''))}
+                        placeholder="12-digit number"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">PAN Number</label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={10}
+                        value={panNum}
+                        onChange={(e) => setPanNum(e.target.value.toUpperCase())}
+                        placeholder="ABCDE1234F"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Driving License No</label>
+                      <input
+                        type="text"
+                        required
+                        value={dlNum}
+                        onChange={(e) => setDlNum(e.target.value)}
+                        placeholder="GJ0120220034567"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-slate-100 pt-6">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Aadhaar Front (Image/PDF)</label>
+                      <input
+                        type="file"
+                        required
+                        onChange={(e) => setAadhaarFile(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">PAN Card (Image/PDF)</label>
+                      <input
+                        type="file"
+                        required
+                        onChange={(e) => setPanFile(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Driving License (Image/PDF)</label>
+                      <input
+                        type="file"
+                        required
+                        onChange={(e) => setDlFile(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Real-Time Selfie Capture</label>
+                      <input
+                        type="file"
+                        required
+                        onChange={(e) => setSelfieFile(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg leading-relaxed">
+                    <strong>Demo Alert:</strong> Entering Aadhaar <strong>000000000000</strong> or PAN <strong>FAIL0000P</strong> will trigger a mock FaceMatch failure (score &lt; 85) to demonstrate reject cases. Standard input will match successfully (score &ge; 85).
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Verifying Biometrics (FaceMatch API)...
+                      </>
+                    ) : (
+                      <>
+                        Submit Documents & Verify Identity <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              /* Step 3: E-Sign Contract */
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                  <FileText size={18} className="text-brand-600" /> 2. e-Sign Car Rental Agreement
+                </h3>
+                <p className="text-xs text-slate-500 mb-6">
+                  Please review the legal terms of bailment and authorize electronically. This digital signature is legally binding under Section 10-A of the IT Act, 2000.
+                </p>
+
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 text-xs text-slate-600 space-y-4 max-h-60 overflow-y-auto mb-6 leading-relaxed">
+                  <p className="font-bold text-slate-800 uppercase tracking-wider text-[10px]">Legal Terms of Bailment (Sections 148-181 of Indian Contract Act, 1872)</p>
+                  <p>
+                    <strong>1. Scope of Use:</strong> The Renter agrees that they are the primary driver of the vehicle. Under no circumstances shall the vehicle be sub-leased, hired, or lent to another driver. The driver warrants that they possess a valid license for operating this vehicle category in India.
+                  </p>
+                  <p>
+                    <strong>2. Geographical Boundaries:</strong> The vehicle must remain within the physical borders of India. Operations outside local designated zones without written permit authorizations are strictly prohibited.
+                  </p>
+                  <p>
+                    <strong>3. Indemnification:</strong> The Renter agrees to indemnify, save, and hold harmless ZipTrip and the host vehicle owner from any and all damages, claims, traffic fines, legal proceedings, and towage charges incurred during the booking period.
+                  </p>
+                  <p>
+                    <strong>4. Stamping & Executions:</strong> This contract is digitally stamped with INR 100 denomination. The OTP verification constitutes Aadhaar-linked electronic signature consent.
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      className="mt-1 rounded text-brand-600 focus:ring-brand-500"
+                    />
+                    <span className="text-sm text-slate-600 select-none">
+                      I agree to the terms of the car rental bailment contract, and authorize ZipTrip to stamp and sign this document using my Aadhaar-linked identity.
+                    </span>
+                  </label>
+
+                  {error && (
+                    <div className="bg-rose-50 text-rose-700 border border-rose-200 rounded-lg p-3 text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleCreateBooking}
+                    disabled={!agreeTerms || eSignStep === 'signing'}
+                    className="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {eSignStep === 'signing' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> OTP Verification & e-Stamping in progress...
+                      </>
+                    ) : (
+                      <>
+                        Confirm Booking & Aadhaar e-Sign <CreditCard size={16} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Booking Summary Sidebar */}
+          <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800">
+            <h3 className="text-lg font-bold border-b border-slate-800 pb-3 mb-4">Rental Summary</h3>
+
+            {/* Vehicle Details */}
+            <div className="flex items-center gap-4 mb-6">
+              <img
+                src={selectedVehicle.images[0]}
+                alt={selectedVehicle.make}
+                className="w-16 h-12 object-cover rounded bg-slate-800"
+              />
+              <div>
+                <p className="font-bold text-sm leading-tight">{selectedVehicle.make} {selectedVehicle.model}</p>
+                <p className="text-xs text-slate-400 mt-1 uppercase font-semibold">{selectedVehicle.license_plate}</p>
+              </div>
+            </div>
+
+            {/* Date Details */}
+            <div className="space-y-4 mb-6 border-b border-slate-800 pb-6 text-sm">
+              <div className="flex items-start gap-3">
+                <MapPin size={16} className="text-brand-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-slate-400 font-semibold uppercase">Pickup Location Hub</p>
+                  <p className="font-medium text-slate-200 mt-0.5">{selectedVehicle.location.hub_name}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Calendar size={16} className="text-brand-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-slate-400 font-semibold uppercase">Commences</p>
+                  <p className="font-medium text-slate-200 mt-0.5">{new Date(searchParams.pickupTime).toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Calendar size={16} className="text-brand-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-slate-400 font-semibold uppercase">Expires</p>
+                  <p className="font-medium text-slate-200 mt-0.5">{new Date(searchParams.dropoffTime).toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Fare Breakdown */}
+            <div className="space-y-2.5 text-xs text-slate-400 border-b border-slate-800 pb-6 mb-6">
+              <div className="flex justify-between text-slate-200 text-sm">
+                <span>Base Fare:</span>
+                <span>₹{selectedVehicle.pricing!.baseFare}</span>
+              </div>
+              {selectedVehicle.pricing!.airportSurge && (
+                <div className="flex justify-between text-brand-300">
+                  <span>Airport Hub Modifer (+15%):</span>
+                  <span>+₹{selectedVehicle.pricing!.airportSurgeAmount}</span>
+                </div>
+              )}
+              {selectedVehicle.pricing!.weekendSurge && (
+                <div className="flex justify-between text-indigo-300">
+                  <span>Weekend Surcharge (+20%):</span>
+                  <span>+₹{selectedVehicle.pricing!.weekendSurgeAmount}</span>
+                </div>
+              )}
+              {deliveryType === 'doorstep' && (
+                <div className="flex justify-between text-emerald-300">
+                  <span>Doorstep Delivery:</span>
+                  <span>+₹{getDeliveryFee()}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-between items-baseline mb-4">
+              <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Total Price:</span>
+              <span className="text-3xl font-black text-white">₹{getFinalTotal()}</span>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Includes unlimited kilometers, state taxes, general third party insurance, and dynamic surges.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
