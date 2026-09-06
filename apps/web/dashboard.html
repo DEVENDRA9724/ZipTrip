@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Host &amp; Admin Dashboard &bull; Safar Self Drive Gujarat</title>
+  <meta name="description" content="Host and Admin management console to view customer bookings, rental agreements, and fleet status." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --brand-purple:       #411945;
+      --brand-orange:       #E37220;
+      --green:              #10843E;
+      --blue:               #1D4ED8;
+      --bg-page:            #F8F9FA;
+      --card-bg:            #FFFFFF;
+      --border:             #E4E7EC;
+      --text-main:          #1A1D20;
+      --text-secondary:     #525866;
+      --text-muted:         #868C98;
+      --radius-sm:          6px;
+      --radius-md:          10px;
+      --radius-lg:          16px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    /* Top Nav */
+    .dash-header {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .dash-header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dash-container {
+      max-width: 1400px;
+      margin: 24px auto 60px;
+      padding: 0 24px;
+    }
+
+    /* Stat Cards */
+    .stat-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .dash-stat-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .stat-label-dash {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .stat-val-dash {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--text-main);
+      margin-top: 4px;
+    }
+    .stat-sub-dash {
+      font-size: 0.76rem;
+      color: var(--green);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    /* Main Table Card */
+    .table-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+
+    .table-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .tab-pills-dash {
+      display: flex;
+      background: #F0F2F5;
+      padding: 3px;
+      border-radius: var(--radius-sm);
+    }
+    .pill-btn-dash {
+      padding: 7px 14px;
+      border: none;
+      background: transparent;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pill-btn-dash.active {
+      background: #FFFFFF;
+      color: var(--brand-purple);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* Table */
+    .bookings-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .bookings-table th {
+      background: #F8F9FA;
+      text-align: left;
+      padding: 12px;
+      border-bottom: 2px solid var(--border);
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .bookings-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .bookings-table tr:hover {
+      background: #FAFAFA;
+    }
+
+    .badge-status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .status-confirmed { background: #E8F5E9; color: var(--green); }
+    .status-active    { background: #EFF6FF; color: var(--blue); }
+    .status-pending   { background: #FFF3E0; color: #E65100; }
+
+    .btn-action-dash {
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      color: var(--text-main);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-action-dash:hover {
+      border-color: var(--brand-orange);
+      color: var(--brand-orange);
+    }
+
+    /* Agreement Viewer Modal */
+    .agr-modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .agr-modal-bg.active { display: flex; }
+    .agr-modal-box {
+      background: #FFFFFF;
+      max-width: 650px;
+      width: 100%;
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .agr-modal-close {
+      position: absolute;
+      top: 14px; right: 18px;
+      background: #F0F2F5;
+      border: none;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  
+    /* UNIFIED HAMBURGER DRAWER STYLES */
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border, #E2E4E8);
+      font-size: 1.25rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-purple, #411945);
+      transition: background 0.2s;
+    }
+    .btn-hamburger:hover {
+      background: #F4F5F7;
+    }
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+  <!-- Top Header -->
+        <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dash-container">
+    <!-- Stat Cards -->
+    <div class="stat-cards-grid">
+      <div class="dash-stat-card">
+        <div class="stat-label-dash">Total Bookings</div>
+        <div class="stat-val-dash" id="total-bookings-count">16</div>
+        <div class="stat-sub-dash">↑ +18% this week</div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="stat-label-dash">Active On Road</div>
+        <div class="stat-val-dash" style="color: var(--blue);">6 Cars</div>
+        <div class="stat-sub-dash">Gujarat Highways</div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="stat-label-dash">Gross Revenue</div>
+        <div class="stat-val-dash" style="color: var(--brand-orange);">₹1,48,500</div>
+        <div class="stat-sub-dash">Zero payment disputes</div>
+      </div>
+      <div class="dash-stat-card">
+        <div class="stat-label-dash">Digitally Signed Agreements</div>
+        <div class="stat-val-dash" style="color: var(--green);">100%</div>
+        <div class="stat-sub-dash">Full legal compliance</div>
+      </div>
+    </div>
+
+    <!-- Bookings Table Card -->
+    <div class="table-card">
+      <div class="table-top-bar">
+        <div>
+          <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800;">
+            Customer Bookings &amp; Rental Agreements
+          </h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            Manage reservations, verify driving licenses, and inspect digitally signed agreements.
+          </p>
+        </div>
+
+        <div class="tab-pills-dash">
+          <button class="pill-btn-dash active" onclick="filterTable('all', this)">All</button>
+          <button class="pill-btn-dash" onclick="filterTable('self-drive', this)">🔑 Self Drive</button>
+          <button class="pill-btn-dash" onclick="filterTable('taxi', this)">🚖 Taxi with Driver</button>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="bookings-table">
+          <thead>
+            <tr>
+              <th>Agreement ID</th>
+              <th>Customer Details</th>
+              <th>Vehicle &amp; Category</th>
+              <th>Service Mode</th>
+              <th>Hub City</th>
+              <th>Tariff</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-tbody">
+            <!-- Populated via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Viewing Agreement & Signature -->
+  <div class="agr-modal-bg" id="agr-modal" onclick="if(event.target === this) closeAgrModal()">
+    <div class="agr-modal-box">
+      <button class="agr-modal-close" onclick="closeAgrModal()">&times;</button>
+      <div style="font-size: 0.75rem; font-weight: 800; color: var(--brand-orange); text-transform: uppercase;">
+        Contract Inspection
+      </div>
+      <h3 style="font-size: 1.2rem; font-weight: 800; margin-top: 2px;">
+        Signed Vehicle Rental Agreement
+      </h3>
+
+      <div style="background: #F9FAFB; border: 1px solid var(--border); border-radius: 6px; padding: 14px; margin: 14px 0; font-size: 0.85rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div><b>Agreement ID:</b> <span id="m-id"></span></div>
+          <div><b>Customer:</b> <span id="m-name"></span></div>
+          <div><b>Driving License:</b> <span id="m-dl"></span></div>
+          <div><b>Phone:</b> <span id="m-phone"></span></div>
+          <div><b>Vehicle:</b> <span id="m-car"></span></div>
+          <div><b>City:</b> <span id="m-city"></span></div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px;">
+        <b>Verified Clauses:</b> Vehicle Rental Custody acknowledged &bull; 100 km/h GPS Speed Governor active &bull; Zero liability damage coverage confirmed &bull; Full Gujarat permit valid.
+      </div>
+
+      <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 6px; padding: 12px; text-align: center;">
+        <div style="color: var(--green); font-weight: 800; font-size: 0.85rem;">✓ DIGITALLY SIGNED BY CUSTOMER</div>
+        <div id="m-sig-preview" style="margin-top: 8px;">
+          <!-- Signature image preview -->
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Legally binding under Information Technology Act 2000</div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 16px;">
+        <button onclick="window.print()" class="btn-action-dash" style="flex: 1; padding: 10px; justify-content: center; background: var(--brand-purple); color: #fff; border: none;">
+          🖨️ Print Agreement Copy
+        </button>
+        <button onclick="closeAgrModal()" class="btn-action-dash" style="flex: 1; padding: 10px; justify-content: center;">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Seed Bookings
+    const SEED_BOOKINGS = [
+      {
+        id: 'AGR-GJ-2026-0814',
+        customerName: 'Deven Patel',
+        phone: '+91 98765 43210',
+        dl: 'GJ01-2022-009412',
+        vehicle: 'Mahindra Thar 4x4 Automatic',
+        city: 'Ahmedabad',
+        service: 'Self Drive',
+        dates: '06 Sep - 08 Sep (2 Days)',
+        price: '₹7,000',
+        status: 'CONFIRMED',
+        signed: true
+      },
+      {
+        id: 'AGR-GJ-2026-0815',
+        customerName: 'Priya Mehta',
+        phone: '+91 99250 11223',
+        dl: 'GJ05-2021-008123',
+        vehicle: 'Mercedes-Benz E-Class Luxury',
+        city: 'Ahmedabad',
+        service: 'Taxi with Chauffeur (Per KM)',
+        dates: '07 Sep (Airport & City Tour)',
+        price: '₹8,500',
+        status: 'ACTIVE',
+        signed: true
+      },
+      {
+        id: 'AGR-GJ-2026-0816',
+        customerName: 'Ravi Kachhiya',
+        phone: '+91 98240 77889',
+        dl: 'GJ06-2023-004455',
+        vehicle: 'Hyundai Creta SX Panoramic',
+        city: 'Vadodara',
+        service: 'Self Drive',
+        dates: '08 Sep - 10 Sep (3 Days)',
+        price: '₹7,200',
+        status: 'CONFIRMED',
+        signed: true
+      },
+      {
+        id: 'AGR-GJ-2026-0817',
+        customerName: 'Amit Shah',
+        phone: '+91 97230 44556',
+        dl: 'GJ03-2020-001290',
+        vehicle: 'Toyota Innova Crysta 7-Seater',
+        city: 'Rajkot',
+        service: 'Self Drive',
+        dates: '09 Sep - 12 Sep (Somnath Tour)',
+        price: '₹9,600',
+        status: 'PENDING',
+        signed: true
+      },
+      {
+        id: 'AGR-GJ-2026-0818',
+        customerName: 'Karan Desai',
+        phone: '+91 98980 33221',
+        dl: 'GJ05-2024-006789',
+        vehicle: 'BMW 5 Series 530d',
+        city: 'Surat',
+        service: 'Taxi with Chauffeur (Per KM)',
+        dates: '07 Sep (Surat to Mumbai)',
+        price: '₹12,400',
+        status: 'ACTIVE',
+        signed: true
+      }
+    ];
+
+    let currentFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check logged in user
+      const userStr = localStorage.getItem('safar_user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          document.getElementById('user-display-name').innerText = `${user.name} (${user.role})`;
+        } catch(e) {}
+      }
+
+      loadBookings();
+    });
+
+    function loadBookings() {
+      // Merge seeded + any saved user bookings
+      const localBookings = JSON.parse(localStorage.getItem('safar_bookings') || '[]');
+      const allBookings = [...localBookings, ...SEED_BOOKINGS];
+
+      document.getElementById('total-bookings-count').innerText = allBookings.length;
+
+      const tbody = document.getElementById('bookings-tbody');
+      tbody.innerHTML = '';
+
+      const filtered = allBookings.filter(b => {
+        if (currentFilter === 'self-drive') return b.service.includes('Self Drive');
+        if (currentFilter === 'taxi') return b.service.includes('Taxi');
+        return true;
+      });
+
+      filtered.forEach(b => {
+        const isSelf = b.service.includes('Self Drive');
+        const statusClass = b.status === 'CONFIRMED' ? 'status-confirmed' : (b.status === 'ACTIVE' ? 'status-active' : 'status-pending');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${b.id}</b></td>
+          <td>
+            <b>${b.customerName}</b><br />
+            <span style="font-size: 0.74rem; color: var(--text-muted);">${b.phone} &bull; DL: ${b.dl}</span>
+          </td>
+          <td><b>${b.vehicle}</b></td>
+          <td>
+            <span style="font-size: 0.75rem; font-weight: 700; color: ${isSelf ? 'var(--brand-orange)' : 'var(--brand-purple)'};">
+              ${b.service}
+            </span>
+          </td>
+          <td>📍 ${b.city}</td>
+          <td><b>${b.price}</b></td>
+          <td><span class="badge-status ${statusClass}">${b.status}</span></td>
+          <td>
+            <button class="btn-action-dash" onclick="viewAgrModal('${b.id}', '${b.customerName}', '${b.phone}', '${b.dl}', '${b.vehicle}', '${b.city}')">
+              📜 View Signed Agreement
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterTable(type, elem) {
+      currentFilter = type;
+      document.querySelectorAll('.pill-btn-dash').forEach(b => b.classList.remove('active'));
+      elem.classList.add('active');
+      loadBookings();
+    }
+
+    function viewAgrModal(id, name, phone, dl, car, city) {
+      document.getElementById('m-id').innerText = id;
+      document.getElementById('m-name').innerText = name;
+      document.getElementById('m-phone').innerText = phone;
+      document.getElementById('m-dl').innerText = dl;
+      document.getElementById('m-car').innerText = car;
+      document.getElementById('m-city').innerText = city;
+
+      // Check if real canvas signature exists in localStorage
+      const localBookings = JSON.parse(localStorage.getItem('safar_bookings') || '[]');
+      const match = localBookings.find(x => x.id === id);
+      const preview = document.getElementById('m-sig-preview');
+      preview.innerHTML = '';
+
+      if (match && match.signatureData) {
+        const img = document.createElement('img');
+        img.src = match.signatureData;
+        img.style.height = '50px';
+        preview.appendChild(img);
+      } else {
+        preview.innerHTML = `<span style="font-family: cursive; font-size: 1.4rem; color: #1D2939;">${name}</span>`;
+      }
+
+      document.getElementById('agr-modal').classList.add('active');
+    }
+
+    function closeAgrModal() {
+      document.getElementById('agr-modal').classList.remove('active');
+    }
+  </script>
+
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+  <script src="safar-auth.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { SafarAuth.protectPage(['HOST', 'ADMIN', 'CUSTOMER']); });</script>
+</body>
+</html>

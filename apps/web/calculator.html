@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gujarat Outstation Taxi Fare Calculator &bull; Safar Self Drive</title>
+  <meta name="description" content="Calculate exact per-kilometer taxi rates, toll charges, and travel time for any route across Gujarat with Safar Self Drive." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --brand-purple:       #411945;
+      --brand-purple-pale:  #F8F1F9;
+      --brand-orange:       #E37220;
+      --brand-orange-pale:  #FFF5EB;
+      --green:              #10843E;
+      --bg-page:            #F5F6F8;
+      --card-bg:            #FFFFFF;
+      --border:             #E2E4E8;
+      --text-main:          #1A1A1A;
+      --text-secondary:     #555555;
+      --text-muted:         #8E94A0;
+      --radius-sm:          6px;
+      --radius-md:          12px;
+      --radius-lg:          18px;
+      --shadow-card:        0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Header */
+    .calc-header {
+      background: #FFFFFF;
+      border-bottom: 2px solid var(--brand-purple);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .calc-header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .calc-container {
+      max-width: 1200px;
+      margin: 40px auto 70px;
+      padding: 0 20px;
+    }
+
+    .calc-title-box {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .calc-title-box h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      font-weight: 900;
+      color: var(--brand-purple);
+    }
+    .calc-title-box p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      margin-top: 6px;
+    }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 30px;
+    }
+
+    .calc-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      outline: none;
+      background: #FFFFFF;
+      color: var(--text-main);
+    }
+    .form-input:focus {
+      border-color: var(--brand-orange);
+    }
+
+    /* Popular Circuits Chips */
+    .circuit-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .c-chip {
+      background: var(--bg-page);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .c-chip:hover, .c-chip.active {
+      background: var(--brand-orange-pale);
+      border-color: var(--brand-orange);
+      color: var(--brand-orange);
+      font-weight: 700;
+    }
+
+    /* Output Summary Card */
+    .summary-card {
+      background: #FFFFFF;
+      border: 2px solid var(--brand-purple);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      box-shadow: var(--shadow-card);
+      position: sticky;
+      top: 100px;
+    }
+
+    .fare-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    .fare-metric-row.total-row {
+      border-bottom: none;
+      border-top: 2px dashed var(--border);
+      margin-top: 10px;
+      padding-top: 14px;
+    }
+
+    .total-fare-amount {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--brand-orange);
+    }
+
+    .btn-calc-action {
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      text-decoration: none;
+    }
+    .btn-calc-wa {
+      background: #25D366;
+      color: #FFFFFF;
+    }
+    .btn-calc-book {
+      background: var(--brand-purple);
+      color: #FFFFFF;
+    }
+
+    @media (max-width: 992px) {
+      .calc-grid { grid-template-columns: 1fr; }
+      .summary-card { position: static; }
+    }
+  
+    /* UNIFIED HAMBURGER DRAWER STYLES */
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border, #E2E4E8);
+      font-size: 1.25rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-purple, #411945);
+      transition: background 0.2s;
+    }
+    .btn-hamburger:hover {
+      background: #F4F5F7;
+    }
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+  <!-- Header -->
+        <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="calc-container">
+    <div class="calc-title-box">
+      <div style="font-size: 0.8rem; font-weight: 800; color: var(--brand-orange); text-transform: uppercase;">
+        Transparent Gujarat Highway Billing
+      </div>
+      <h1>Outstation Kilometer Fare Calculator</h1>
+      <p>Instant exact estimates for inter-city, outstation tours &amp; pilgrimage circuits across Gujarat.</p>
+    </div>
+
+    <div class="calc-grid">
+      <!-- Input Side -->
+      <div class="calc-card">
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; margin-bottom: 20px; color: var(--brand-purple);">
+          Trip Parameters
+        </h3>
+
+        <!-- Popular Circuits Shortcut -->
+        <div style="margin-bottom: 18px;">
+          <label class="form-label">Popular Gujarat Circuits</label>
+          <div class="circuit-chips">
+            <span class="c-chip" onclick="setPresetRoute('Ahmedabad', 'Statue of Unity (Kevadia)', 198, 350)">Statue of Unity</span>
+            <span class="c-chip" onclick="setPresetRoute('Ahmedabad', 'Somnath Jyotirlinga', 410, 480)">Somnath Temple</span>
+            <span class="c-chip" onclick="setPresetRoute('Ahmedabad', 'Dwarka (Dwarkadhish)', 440, 520)">Dwarka Pilgrimage</span>
+            <span class="c-chip" onclick="setPresetRoute('Rajkot', 'Gir Forest Safari', 160, 200)">Gir Forest Safari</span>
+            <span class="c-chip" onclick="setPresetRoute('Surat', 'Mumbai Outstation', 285, 450)">Surat &harr; Mumbai</span>
+            <span class="c-chip" onclick="setPresetRoute('Ahmedabad', 'Rann of Kutch (Bhuj)', 340, 420)">Rann of Kutch</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label">Origin City (Pickup)</label>
+            <select id="origin-city" class="form-input" onchange="calculateFare()">
+              <option value="Ahmedabad">Ahmedabad</option>
+              <option value="Surat">Surat</option>
+              <option value="Vadodara">Vadodara</option>
+              <option value="Rajkot">Rajkot</option>
+              <option value="Gandhinagar">Gandhinagar</option>
+              <option value="Bhavnagar">Bhavnagar</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Destination City</label>
+            <input type="text" id="dest-city" class="form-input" value="Statue of Unity (Kevadia)" oninput="calculateFare()" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label">Trip Type</label>
+            <select id="trip-type" class="form-input" onchange="calculateFare()">
+              <option value="round">Round Trip (Return)</option>
+              <option value="oneway">One-Way Drop</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Estimated Distance (One-Way KM)</label>
+            <input type="number" id="distance-km" class="form-input" value="198" min="20" max="2000" oninput="calculateFare()" />
+          </div>
+        </div>
+
+        <!-- Vehicle Category Selection -->
+        <div class="form-group">
+          <label class="form-label">Select Vehicle Category</label>
+          <select id="vehicle-cat" class="form-input" onchange="calculateFare()">
+            <option value="12|Executive Sedan (Honda City / Ciaz)">Executive Sedan (Honda City / Ciaz) &bull; ₹12 / km</option>
+            <option value="18|Innova Crysta 7-Seater Luxury MUV">Innova Crysta 7-Seater &bull; ₹18 / km</option>
+            <option value="24|Toyota Fortuner Legender 4x4">Toyota Fortuner Legender 4x4 VIP &bull; ₹24 / km</option>
+            <option value="35|Mercedes-Benz E-Class Luxury">Mercedes-Benz E-Class Luxury &bull; ₹35 / km</option>
+            <option value="35|BMW 5 Series 530d M-Sport">BMW 5 Series 530d &bull; ₹35 / km</option>
+            <option value="22|Force Tempo Traveller Luxury (17 Seater)">Force Tempo Traveller 17-Seater &bull; ₹22 / km</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label">Trip Duration (Days)</label>
+            <input type="number" id="trip-days" class="form-input" value="1" min="1" max="15" oninput="calculateFare()" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Estimated Fastag Tolls (₹)</label>
+            <input type="number" id="toll-est" class="form-input" value="350" min="0" oninput="calculateFare()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Fare Breakdown Side -->
+      <div class="summary-card">
+        <div style="font-size: 0.75rem; font-weight: 800; color: var(--brand-purple); text-transform: uppercase;">
+          Live Quotation
+        </div>
+        <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 800; margin-top: 2px;">
+          Fare Summary
+        </h3>
+
+        <div style="margin-top: 18px;">
+          <div class="fare-metric-row">
+            <span>Route</span>
+            <b id="summary-route">Ahmedabad &rarr; Statue of Unity</b>
+          </div>
+          <div class="fare-metric-row">
+            <span>Billable Distance</span>
+            <b id="summary-km">396 KM (Round Trip)</b>
+          </div>
+          <div class="fare-metric-row">
+            <span>Base Rate / KM</span>
+            <b id="summary-rate">₹12 / km</b>
+          </div>
+          <div class="fare-metric-row">
+            <span>Base Running Charge</span>
+            <b id="summary-base">₹4,752</b>
+          </div>
+          <div class="fare-metric-row">
+            <span>Driver Highway Allowance</span>
+            <b id="summary-driver">₹400 (1 Day)</b>
+          </div>
+          <div class="fare-metric-row">
+            <span>Estimated FASTag Tolls</span>
+            <b id="summary-toll">₹350</b>
+          </div>
+          <div class="fare-metric-row total-row">
+            <div>
+              <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Estimated Tariff</div>
+              <div class="total-fare-amount" id="summary-total">₹5,502</div>
+            </div>
+            <div style="text-align: right; font-size: 0.75rem; color: var(--green); font-weight: 700;">
+              ✓ All Tax Inclusive<br />✓ Chauffeur Included
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-calc-action btn-calc-wa" onclick="bookCalculatedTripWhatsApp()">
+          💬 Book This Route on WhatsApp &rarr;
+        </button>
+        <a href="cars.html" class="btn-calc-action btn-calc-book">
+          🚗 Reserve Vehicle in Fleet
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setPresetRoute(origin, dest, km, toll) {
+      document.getElementById('origin-city').value = origin;
+      document.getElementById('dest-city').value = dest;
+      document.getElementById('distance-km').value = km;
+      document.getElementById('toll-est').value = toll;
+      calculateFare();
+    }
+
+    function calculateFare() {
+      const origin = document.getElementById('origin-city').value;
+      const dest = document.getElementById('dest-city').value;
+      const tripType = document.getElementById('trip-type').value;
+      const oneWayKm = parseFloat(document.getElementById('distance-km').value) || 100;
+      const days = parseInt(document.getElementById('trip-days').value) || 1;
+      const toll = parseFloat(document.getElementById('toll-est').value) || 0;
+
+      const vehicleVal = document.getElementById('vehicle-cat').value;
+      const ratePerKm = parseFloat(vehicleVal.split('|')[0]);
+      const vehicleName = vehicleVal.split('|')[1];
+
+      // Total KM
+      const totalKm = tripType === 'round' ? (oneWayKm * 2) : (oneWayKm * 1.25); // one way has return deadhead allowance
+      const minDailyKm = 250 * days;
+      const billableKm = Math.max(totalKm, minDailyKm);
+
+      // Base fare
+      const baseFare = billableKm * ratePerKm;
+      // Driver allowance ₹400/day
+      const driverAllowance = 400 * days;
+      // Total
+      const total = baseFare + driverAllowance + toll;
+
+      // Update summary
+      document.getElementById('summary-route').innerText = `${origin} ➔ ${dest}`;
+      document.getElementById('summary-km').innerText = `${Math.round(billableKm)} KM (${tripType === 'round' ? 'Round Trip' : 'One-Way'})`;
+      document.getElementById('summary-rate').innerText = `₹${ratePerKm} / km`;
+      document.getElementById('summary-base').innerText = `₹${Number(baseFare.toFixed(0)).toLocaleString('en-IN')}`;
+      document.getElementById('summary-driver').innerText = `₹${driverAllowance} (${days} Day${days > 1 ? 's' : ''})`;
+      document.getElementById('summary-toll').innerText = `₹${toll.toLocaleString('en-IN')}`;
+      document.getElementById('summary-total').innerText = `₹${Number(total.toFixed(0)).toLocaleString('en-IN')}`;
+    }
+
+    function bookCalculatedTripWhatsApp() {
+      const origin = document.getElementById('origin-city').value;
+      const dest = document.getElementById('dest-city').value;
+      const vehicleVal = document.getElementById('vehicle-cat').value.split('|')[1];
+      const km = document.getElementById('summary-km').innerText;
+      const total = document.getElementById('summary-total').innerText;
+
+      const msg = `*Outstation Taxi Booking Inquiry - Safar Self Drive*\n\n` +
+        `*Route:* ${origin} to ${dest}\n` +
+        `*Vehicle:* ${vehicleVal}\n` +
+        `*Distance:* ${km}\n` +
+        `*Estimated Fare:* ${total} (All inclusive)\n\n` +
+        `Please confirm chauffeur availability and pickup schedule.`;
+
+      window.open(`https://wa.me/919999999999?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      calculateFare();
+    });
+  </script>
+
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+  <script src="safar-auth.js"></script>
+</body>
+</html>

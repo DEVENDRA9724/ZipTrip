@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Safar Self Drive &bull; Gujarat's Premier Self-Drive &amp; Taxi Portal</title>
+  <meta name="description" content="Rent clean self-drive vehicles on self-drive or hire premium luxury chauffeur cars on transparent kilometer rate across Gujarat." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    
+:root {
+  --brand-purple:       #411945;
+  --brand-purple-light: #5E2564;
+  --brand-purple-pale:  #F7F1F8;
+  --brand-orange:       #E37220;
+  --brand-orange-light: #F47B20;
+  --brand-orange-pale:  #FFF5EB;
+  --green:              #10843E;
+  --green-pale:         #E8F5E9;
+  --bg-page:            #F8F9FA;
+  --bg-card:            #FFFFFF;
+  --border:             #E4E7EC;
+  --text-main:          #1A1D20;
+  --text-secondary:     #525866;
+  --text-muted:         #868C98;
+  --radius-sm:          6px;
+  --radius-md:          12px;
+  --radius-lg:          20px;
+  --shadow-sm:          0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-card:        0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-hover:       0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ─── SHARED NAVBAR ─── */
+.site-header {
+  position: sticky;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+.header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+}
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  list-style: none;
+}
+.nav-menu a {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  padding: 6px 0;
+  position: relative;
+}
+.nav-menu a:hover, .nav-menu a.active {
+  color: var(--brand-orange);
+}
+.nav-menu a.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--brand-orange);
+  border-radius: 2px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-header-wa {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: #25D366;
+  color: #FFFFFF;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: opacity 0.2s;
+}
+.btn-header-wa:hover { opacity: 0.9; }
+
+.btn-header-cars {
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: var(--brand-orange);
+  color: #FFFFFF;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: background 0.2s;
+}
+.btn-header-cars:hover { background: var(--brand-orange-light); }
+
+/* ─── SHARED FOOTER ─── */
+.site-footer {
+  background: #FFFFFF;
+  border-top: 1px solid var(--border);
+  padding: 60px 0 24px;
+  margin-top: 60px;
+}
+.footer-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+.footer-brand p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+.footer-col h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 16px;
+}
+.footer-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-col ul li a {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+.footer-col ul li a:hover {
+  color: var(--brand-orange);
+}
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ─── FLOATING WHATSAPP ─── */
+.wa-float {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  background: #25D366;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4);
+  z-index: 999;
+  transition: transform 0.2s;
+}
+.wa-float:hover { transform: scale(1.08); }
+
+
+    /* Hero */
+    .hero-section {
+      background: linear-gradient(180deg, #FFFFFF 0%, var(--bg-page) 100%);
+      padding: 60px 0 80px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: center;
+      gap: 50px;
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--brand-orange-pale);
+      border: 1px solid rgba(227, 114, 32, 0.25);
+      color: var(--brand-orange);
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+    .hero-heading {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.12;
+      color: var(--text-main);
+      margin-bottom: 16px;
+    }
+    .hero-heading span.orange { color: var(--brand-orange); }
+    .hero-heading span.purple { color: var(--brand-purple); }
+
+    .hero-desc {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      max-width: 540px;
+      line-height: 1.7;
+    }
+
+    /* Booking Search Box */
+    .search-card-hero {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+    }
+    .service-tabs-hero {
+      display: flex;
+      background: #F2F4F7;
+      border-radius: var(--radius-md);
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .s-tab-btn {
+      flex: 1;
+      padding: 10px 14px;
+      border: none;
+      background: transparent;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .s-tab-btn.active {
+      background: #FFFFFF;
+      color: var(--brand-purple);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .form-group-hero {
+      margin-bottom: 14px;
+    }
+    .form-group-hero label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .form-select-hero, .form-input-hero {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+      outline: none;
+      background: #FFFFFF;
+    }
+    .form-select-hero:focus, .form-input-hero:focus {
+      border-color: var(--brand-orange);
+    }
+
+    .btn-search-hero {
+      width: 100%;
+      padding: 14px;
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background 0.2s;
+    }
+    .btn-search-hero:hover {
+      background: var(--brand-orange-light);
+    }
+
+    /* Core Dual Services Section */
+    .services-overview {
+      max-width: 1280px;
+      margin: 80px auto;
+      padding: 0 20px;
+    }
+    .section-header-center {
+      text-align: center;
+      margin-bottom: 45px;
+    }
+    .section-header-center h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+    }
+    .section-header-center p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 8px auto 0;
+    }
+
+    .services-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    .svc-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .svc-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-hover);
+      border-color: var(--brand-orange);
+    }
+    .svc-icon-wrap {
+      width: 60px; height: 60px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    .svc-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .svc-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .svc-perks {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .svc-perks li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+    .svc-perks li span.check {
+      color: var(--green);
+      font-weight: 800;
+    }
+    .btn-svc-action {
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-align: center;
+      display: inline-block;
+      text-decoration: none;
+    }
+
+    /* Featured Cars preview */
+    .featured-section {
+      background: #FFFFFF;
+      padding: 70px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .featured-grid {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .f-cars-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 30px;
+    }
+    .f-car-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s;
+    }
+    .f-car-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-card);
+      border-color: var(--brand-orange);
+    }
+    .f-car-img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .f-car-body {
+      padding: 16px;
+    }
+    .f-car-name {
+      font-weight: 800;
+      font-size: 1.05rem;
+      margin-bottom: 4px;
+    }
+    .f-car-meta {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+    .f-car-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    .f-car-price {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .f-car-btn {
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 992px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .services-cards-grid { grid-template-columns: 1fr; }
+      .nav-menu { display: none; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+  
+    /* UNIFIED HAMBURGER DRAWER STYLES */
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border, #E2E4E8);
+      font-size: 1.25rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-purple, #411945);
+      transition: background 0.2s;
+    }
+    .btn-hamburger:hover {
+      background: #F4F5F7;
+    }
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── HERO SECTION ─── -->
+  <section class="hero-section">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-eyebrow">Gujarat's #1 Car Rental &amp; Taxi Portal</div>
+        <h1 class="hero-heading">
+          Your Journey.<br />
+          <span class="orange">Your Rules.</span>
+        </h1>
+        <p class="hero-desc">
+          Rent spotless <strong>clean self-drive vehicles</strong> on self-drive, or travel in executive comfort with our 
+          <strong>premium &amp; luxury chauffeur taxi cars</strong> on transparent kilometer rates across all of Gujarat.
+        </p>
+
+        <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+          <a href="cars.html" class="btn-header-cars" style="padding: 12px 24px; font-size: 0.95rem;">
+            Explore All Cars &rarr;
+          </a>
+          <a href="services.html" style="padding: 12px 24px; border: 1px solid var(--border); border-radius: 20px; font-weight: 700; font-size: 0.95rem; background: #FFFFFF; color: var(--text-main);">
+            Our Services &amp; Rates
+          </a>
+        </div>
+
+        <div style="display: flex; gap: 30px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border);">
+          <div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: var(--brand-purple);">50+</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Cars Available</div>
+          </div>
+          <div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: var(--brand-orange);">15+</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Gujarat Cities</div>
+          </div>
+          <div>
+            <div style="font-size: 1.8rem; font-weight: 900; color: var(--green);">100%</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Zero Deposit Option</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Search Box -->
+      <div class="search-card-hero">
+        <div style="font-weight: 800; font-size: 1.2rem; margin-bottom: 14px; color: var(--text-main);">
+          Reserve Your Car in Gujarat
+        </div>
+
+        <div class="service-tabs-hero">
+          <button class="s-tab-btn active" onclick="selectHeroService('self-drive', this)">🔑 Self Drive</button>
+          <button class="s-tab-btn" onclick="selectHeroService('taxi', this)">🚖 Taxi with Driver</button>
+        </div>
+
+        <div class="form-group-hero">
+          <label>Pickup Location</label>
+          <select id="hero-city" class="form-select-hero">
+            <option value="Ahmedabad">Ahmedabad (Airport, SG Highway, Ellis Bridge)</option>
+            <option value="Surat">Surat (Vesu, Dumas Road, Railway Station)</option>
+            <option value="Vadodara">Vadodara (Alkapuri, Sayaji Hub)</option>
+            <option value="Rajkot">Rajkot (Kalawad Road, Airport)</option>
+            <option value="Gandhinagar">Gandhinagar (GIFT City, Infocity)</option>
+            <option value="All">All Over Gujarat</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group-hero">
+            <label>Pickup Date</label>
+            <input type="date" id="hero-start-date" class="form-input-hero" />
+          </div>
+          <div class="form-group-hero">
+            <label>Drop Date</label>
+            <input type="date" id="hero-end-date" class="form-input-hero" />
+          </div>
+        </div>
+
+        <button class="btn-search-hero" onclick="submitHeroSearch()">
+          Find Available Cars &rarr;
+        </button>
+
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 10px;">
+          ✓ Free doorstep delivery &bull; Zero security deposit available
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── DUAL CORE SERVICES ─── -->
+  <section class="services-overview">
+    <div class="section-header-center">
+      <h2>Two Tailored Travel Experiences</h2>
+      <p>Whether you want complete self-drive independence or an executive chauffeur on fair per-km billing.</p>
+    </div>
+
+    <div class="services-cards-grid">
+      <!-- Self Drive Card -->
+      <div class="svc-card">
+        <div>
+          <div class="svc-icon-wrap" style="background: var(--brand-orange-pale); color: var(--brand-orange);">
+            🔑
+          </div>
+          <h3 class="svc-title">Self Drive Rentals</h3>
+          <p class="svc-desc">
+            Drive with total privacy and dignity. Every self-drive car carries <strong>Clean Verified Fleet</strong> &mdash; zero commercial taxi branding or tourist harassment.
+          </p>
+
+          <ul class="svc-perks">
+            <li><span class="check">✓</span> 100% Verified Clean & Sanitized Fleet</li>
+            <li><span class="check">✓</span> Flat Daily &amp; Weekly Plans (Unlimited KM Options)</li>
+            <li><span class="check">✓</span> Thar 4x4, Creta, Swift, Innova Crysta &amp; i20</li>
+            <li><span class="check">✓</span> Doorstep Delivery to Home, Hotel, or Airport</li>
+          </ul>
+        </div>
+
+        <a href="cars.html?service=self-drive" class="btn-svc-action" style="background: var(--brand-orange); color: #FFFFFF;">
+          Browse Self Drive Cars &rarr;
+        </a>
+      </div>
+
+      <!-- Taxi Card -->
+      <div class="svc-card">
+        <div>
+          <div class="svc-icon-wrap" style="background: var(--brand-purple-pale); color: var(--brand-purple);">
+            👑
+          </div>
+          <h3 class="svc-title">Taxi &amp; Chauffeur Service</h3>
+          <p class="svc-desc">
+            Travel in elegance with our fleet of <strong>premium &amp; luxury cars with verified professional chauffeurs</strong>. Transparent kilometer-rate billing across all Gujarat cities.
+          </p>
+
+          <ul class="svc-perks">
+            <li><span class="check">✓</span> Mercedes-Benz, BMW, Audi, Fortuner Legender &amp; Tempo</li>
+            <li><span class="check">✓</span> Transparent Metered Kilometer Billing from ₹12/km</li>
+            <li><span class="check">✓</span> Uniformed, Courteous &amp; Highway-Expert Drivers</li>
+            <li><span class="check">✓</span> Outstation Tours, Pilgrimages (Somnath/Dwarka) &amp; Airport</li>
+          </ul>
+        </div>
+
+        <a href="cars.html?service=taxi" class="btn-svc-action" style="background: var(--brand-purple); color: #FFFFFF;">
+          Browse Luxury Taxi Fleet &rarr;
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FEATURED CARS PREVIEW ─── -->
+  <section class="featured-section">
+    <div class="featured-grid">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <h2 style="font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 800;">Featured Cars in Gujarat</h2>
+          <p style="color: var(--text-secondary); font-size: 0.95rem;">Top rated models available for immediate reservation.</p>
+        </div>
+        <a href="cars.html" style="font-weight: 700; color: var(--brand-orange); font-size: 0.92rem;">
+          View All 12 Vehicles &rarr;
+        </a>
+      </div>
+
+      <div class="f-cars-row">
+        <!-- Car 1 -->
+        <div class="f-car-card">
+          <img src="./cars/thar.jpg" alt="Mahindra Thar 4x4" class="f-car-img" />
+          <div class="f-car-body">
+            <div class="f-car-name">Mahindra Thar 4x4 Auto</div>
+            <div class="f-car-meta">Self-Drive &bull; Automatic &bull; Diesel</div>
+            <div class="f-car-footer">
+              <div class="f-car-price">₹3,500<span style="font-size: 0.75rem; color: var(--text-muted);">/day</span></div>
+              <a href="cars.html" class="f-car-btn">Book Now</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Car 2 -->
+        <div class="f-car-card">
+          <img src="./cars/creta.jpg" alt="Hyundai Creta" class="f-car-img" />
+          <div class="f-car-body">
+            <div class="f-car-name">Hyundai Creta SX Panoramic</div>
+            <div class="f-car-meta">Self-Drive &bull; Automatic &bull; Diesel</div>
+            <div class="f-car-footer">
+              <div class="f-car-price">₹2,400<span style="font-size: 0.75rem; color: var(--text-muted);">/day</span></div>
+              <a href="cars.html" class="f-car-btn">Book Now</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Car 3 -->
+        <div class="f-car-card">
+          <img src="./cars/mercedes.jpg" alt="Mercedes-Benz E-Class" class="f-car-img" />
+          <div class="f-car-body">
+            <div class="f-car-name">Mercedes-Benz E-Class</div>
+            <div class="f-car-meta">🚖 Taxi with Chauffeur &bull; Luxury</div>
+            <div class="f-car-footer">
+              <div class="f-car-price">₹35<span style="font-size: 0.75rem; color: var(--text-muted);">/km</span></div>
+              <a href="cars.html" class="f-car-btn" style="background: var(--brand-purple);">Book Taxi</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Car 4 -->
+        <div class="f-car-card">
+          <img src="./cars/innova.jpg" alt="Innova Crysta" class="f-car-img" />
+          <div class="f-car-body">
+            <div class="f-car-name">Toyota Innova Crysta 7-Seater</div>
+            <div class="f-car-meta">Self-Drive &bull; Automatic &bull; Diesel</div>
+            <div class="f-car-footer">
+              <div class="f-car-price">₹3,200<span style="font-size: 0.75rem; color: var(--text-muted);">/day</span></div>
+              <a href="cars.html" class="f-car-btn">Book Now</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img src="./logo_clean.png" alt="Safar Self Drive" style="height: 52px;" />
+          <p>
+            Safar Self Drive &mdash; Gujarat's premier car rental portal. Premium vehicles for self-drive and luxury chauffeur taxis on honest kilometer rates.
+          </p>
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--brand-purple);">
+            Tagline: "Your Journey. Your Rules."
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="cars.html">Find Cars &amp; Book</a></li>
+            <li><a href="services.html">Our Services</a></li>
+            <li><a href="about.html">About &amp; Info</a></li>
+            <li><a href="contact.html">Contact Us</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Gujarat Hubs</h4>
+          <ul>
+            <li><a href="cars.html?city=Ahmedabad">Car Rental Ahmedabad</a></li>
+            <li><a href="cars.html?city=Surat">Car Rental Surat</a></li>
+            <li><a href="cars.html?city=Vadodara">Car Rental Vadodara</a></li>
+            <li><a href="cars.html?city=Rajkot">Car Rental Rajkot</a></li>
+            <li><a href="cars.html?city=Gandhinagar">Car Rental Gandhinagar</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>24/7 Support</h4>
+          <ul>
+            <li>📞 <a href="tel:+919999999999">+91 99999 99999</a></li>
+            <li>💬 <a href="https://wa.me/919999999999" target="_blank">Chat on WhatsApp</a></li>
+            <li>✉️ <a href="mailto:support@safarselfdrive.com">support@safarselfdrive.com</a></li>
+            <li>📍 SG Highway, Ahmedabad, Gujarat</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 Safar Self Drive. All Rights Reserved. Safar Self Drive &amp; Taxi Services Across Gujarat.</div>
+        <div>Zero Security Deposit Option &bull; Verified Host Network</div>
+      </div>
+    </div>
+  </footer>
+
+  <a href="https://wa.me/919999999999" class="wa-float" title="Chat on WhatsApp">💬</a>
+
+  <script>
+    let selectedHeroServiceType = 'self-drive';
+
+    function selectHeroService(type, elem) {
+      selectedHeroServiceType = type;
+      document.querySelectorAll('.s-tab-btn').forEach(b => b.classList.remove('active'));
+      elem.classList.add('active');
+    }
+
+    function submitHeroSearch() {
+      const city = document.getElementById('hero-city').value;
+      window.location.href = `cars.html?service=${selectedHeroServiceType}&city=${city}`;
+    }
+
+    // Set default dates to today & tomorrow
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      document.getElementById('hero-start-date').value = today.toISOString().split('T')[0];
+      document.getElementById('hero-end-date').value = tomorrow.toISOString().split('T')[0];
+    });
+  </script>
+
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+  <script src="safar-auth.js"></script>
+</body>
+</html>

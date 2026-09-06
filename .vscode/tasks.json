@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Safar Portal",
+      "type": "shell",
+      "command": "node start-portal.js",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "runOptions": {
+        "runOn": "default"
+      }
+    },
+    {
+      "label": "Stop Safar Portal",
+      "type": "shell",
+      "command": "node stop-portal.js",
+      "problemMatcher": []
+    }
+  ]
+}

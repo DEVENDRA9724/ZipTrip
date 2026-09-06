@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Safar Self Drive &bull; Car Rental &amp; Taxi Booking Across Gujarat</title>
+  <meta name="description" content="Safar Self Drive - Book premium self-drive cars and luxury chauffeur taxis across Ahmedabad, Surat, Vadodara, Rajkot, and all Gujarat." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════
+       ZOOMCAR DESIGN SYSTEM (WITH SAFAR PURPLE & ORANGE BRANDING)
+    ═══════════════════════════════════════ */
+    :root {
+      --brand-purple:       #411945; /* Deep Royal Plum from Safar Logo */
+      --brand-purple-light: #6B2A70;
+      --brand-purple-pale:  #F8F1F9;
+      --brand-orange:       #E37220; /* Sunburst Orange from Safar Logo */
+      --brand-orange-light: #F47B20;
+      --brand-orange-pale:  #FFF5EB;
+      --green:              #10843E;
+      --green-bg:           #E8F5E9;
+      --bg-light:           #F5F6F8;
+      --card-bg:            #FFFFFF;
+      --border:             #E2E4E8;
+      --border-dark:        #D0D4DC;
+      --text-main:          #1A1A1A;
+      --text-secondary:     #555555;
+      --text-muted:         #8E94A0;
+      --radius-sm:          6px;
+      --radius-md:          10px;
+      --radius-lg:          16px;
+      --shadow-sm:          0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-card:        0 4px 14px rgba(0, 0, 0, 0.07);
+      --shadow-hover:       0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-main);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════
+       HEADER (ZOOMCAR STYLE WITH PURPLE/ORANGE ACCENTS)
+    ═══════════════════════════════════════ */
+    #zoom-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 2px solid var(--brand-purple);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .header-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      height: 70px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .btn-menu-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid #E2E4E8;
+      background: #F8F9FA;
+      color: var(--brand-purple);
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-menu-trigger:hover {
+      background: var(--brand-purple-pale);
+      border-color: var(--brand-purple);
+    }
+
+    .brand-logo-wrap {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .brand-logo-img {
+      height: 46px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    .brand-tag-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+    .badge-white-plate {
+      background: #FFF5EB;
+      color: var(--brand-orange);
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(227, 114, 32, 0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .badge-taxi-km {
+      background: var(--brand-purple-pale);
+      color: var(--brand-purple);
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(65, 25, 69, 0.2);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    /* Modern Unified Search Capsule */
+    .header-search-capsule {
+      display: flex;
+      align-items: center;
+      background: #FFFFFF;
+      border: 1.5px solid #E2E4E8;
+      border-radius: 50px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      padding: 4px 6px 4px 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      max-width: 580px;
+      flex: 1;
+    }
+    .header-search-capsule:hover, .header-search-capsule:focus-within {
+      border-color: var(--brand-orange);
+      box-shadow: 0 4px 16px rgba(227, 114, 32, 0.12);
+    }
+
+    .capsule-loc {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-right: 14px;
+      border-right: 1px solid #E2E4E8;
+      flex: 1.2;
+    }
+    .capsule-loc select {
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+      outline: none;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .capsule-dates {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      flex: 1.3;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .capsule-dates b {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .capsule-search-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 15px;
+      transition: background 0.2s;
+    }
+    .capsule-search-btn:hover {
+      background: #D06316;
+    }
+
+    /* Right Utility Links */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .header-quick-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .header-quick-link:hover {
+      color: var(--brand-purple);
+      background: var(--brand-purple-pale);
+    }
+
+    .btn-login-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 50px;
+      border: none;
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(227, 114, 32, 0.25);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-login-top:hover {
+      background: #D06316;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 1250px) {
+      .brand-tag-pills { display: none; }
+      .header-quick-link { display: none; }
+    }
+    @media (max-width: 820px) {
+      .header-search-capsule { display: none; }
+    }
+
+    /* ═══════════════════════════════════════
+       SLIDE-OUT MENU DRAWER (HAMBURGER ☰)
+    ═══════════════════════════════════════ */
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active {
+      display: block;
+    }
+
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active {
+      transform: translateX(0);
+    }
+
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drawer-links-list {
+      list-style: none;
+      padding: 16px 12px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .drawer-links-list li {
+      margin-bottom: 4px;
+    }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .drawer-links-list a:hover {
+      background: var(--brand-orange-pale);
+      color: var(--brand-orange);
+    }
+    .drawer-links-list a.highlight-purple {
+      background: var(--brand-purple-pale);
+      color: var(--brand-purple);
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.2rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .drawer-footer {
+      border-top: 1px solid var(--border);
+      padding: 16px 20px;
+      background: #F9FAFB;
+      font-size: 0.8rem;
+    }
+
+    /* ═══════════════════════════════════════
+       PROMO TOP BANNER (DUAL COLOR CODING)
+    ═══════════════════════════════════════ */
+    .promo-banner {
+      background: linear-gradient(135deg, var(--brand-purple) 0%, #301034 50%, var(--brand-orange) 100%);
+      color: #FFFFFF;
+      padding: 20px 24px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      box-shadow: 0 4px 18px rgba(65, 25, 69, 0.2);
+    }
+    .promo-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .promo-tag {
+      background: #FFFFFF;
+      color: var(--brand-purple);
+      font-size: 0.72rem;
+      font-weight: 900;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .promo-sub {
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.95);
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════════════
+       LAYOUT: SIDEBAR + CARS GRID
+    ═══════════════════════════════════════ */
+    .main-wrapper {
+      max-width: 1440px;
+      margin: 16px auto;
+      padding: 0 20px 60px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .sidebar-filters {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 16px;
+      position: sticky;
+      top: 85px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+
+    .filter-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .filter-header-top h3 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--brand-purple);
+    }
+    .filter-reset-btn {
+      background: none;
+      border: none;
+      color: var(--brand-orange);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Service Mode Switcher with Dual Colors */
+    .service-switch-box {
+      display: flex;
+      background: #F0F2F5;
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 18px;
+    }
+    .service-switch-btn {
+      flex: 1;
+      padding: 8px 6px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .service-switch-btn.active.self-drive {
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(227, 114, 32, 0.3);
+    }
+    .service-switch-btn.active.taxi {
+      background: var(--brand-purple);
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(65, 25, 69, 0.3);
+    }
+    .service-switch-btn.active.all {
+      background: #FFFFFF;
+      color: var(--text-main);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+
+    .filter-group {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .filter-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      color: var(--text-main);
+    }
+
+    .range-slider {
+      width: 100%;
+      accent-color: var(--brand-orange);
+      cursor: pointer;
+    }
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .distance-badge {
+      background: var(--brand-purple);
+      color: #FFFFFF;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-size: 0.84rem;
+      color: var(--text-main);
+      user-select: none;
+    }
+    .checkbox-item input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--brand-orange);
+      cursor: pointer;
+    }
+
+    /* ═══════════════════════════════════════
+       RIGHT CONTENT AREA
+  ═══════════════════════════════════════ */
+    .content-area {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .search-sort-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .search-bar-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .search-bar-wrap input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: 0.88rem;
+      margin-left: 10px;
+      color: var(--text-main);
+    }
+
+    .sort-dropdown {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* Quick Filter Chips (Zoomcar Pill Row with Purple / Orange highlights) */
+    .quick-chips-scroll {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: none;
+    }
+    .quick-chips-scroll::-webkit-scrollbar { display: none; }
+
+    .quick-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .quick-chip:hover {
+      border-color: var(--brand-purple);
+      background: var(--brand-purple-pale);
+    }
+    .quick-chip.active {
+      background: var(--brand-purple);
+      color: #FFFFFF;
+      border-color: var(--brand-purple);
+    }
+    .quick-chip.active.chip-orange {
+      background: var(--brand-orange);
+      border-color: var(--brand-orange);
+    }
+
+    .results-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════════════
+       CAR CARDS GRID (REAL CAR PHOTOGRAPHY & DUAL BRANDING)
+  ═══════════════════════════════════════ */
+    .car-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 20px;
+    }
+
+    .zoom-car-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .zoom-car-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-4px);
+    }
+    .zoom-car-card.border-orange:hover {
+      border-color: var(--brand-orange);
+    }
+    .zoom-car-card.border-purple:hover {
+      border-color: var(--brand-purple);
+    }
+
+    .card-photo-wrapper {
+      position: relative;
+      height: 200px;
+      width: 100%;
+      background: #ECEFF1;
+      overflow: hidden;
+    }
+    .card-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .zoom-car-card:hover .card-photo {
+      transform: scale(1.05);
+    }
+
+    .card-heart-btn {
+      position: absolute;
+      top: 10px; right: 12px;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      color: #666;
+      border: none;
+      transition: transform 0.2s;
+    }
+    .card-heart-btn:hover {
+      transform: scale(1.1);
+      color: #E53935;
+    }
+
+    .photo-bottom-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 26px 14px 10px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 100%);
+      color: #FFFFFF;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    .photo-car-info h4 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 2px;
+    }
+    .photo-car-info span {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .rating-pill-zoom {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--green);
+      color: #FFFFFF;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .rating-pill-zoom span.excellent {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    .card-content-body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .service-badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .service-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-selfdrive {
+      background: var(--brand-orange-pale);
+      color: var(--brand-orange);
+      border: 1px solid rgba(227, 114, 32, 0.3);
+    }
+    .badge-taxi {
+      background: var(--brand-purple-pale);
+      color: var(--brand-purple);
+      border: 1px solid rgba(65, 25, 69, 0.3);
+    }
+
+    .distance-price-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #F0F0F2;
+    }
+    .distance-text {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .price-text-block {
+      text-align: right;
+    }
+    .rate-per-unit {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+    .rate-total-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .card-host-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .host-avatar {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      color: #FFFFFF;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 800;
+      margin-right: 6px;
+    }
+    .avatar-orange { background: var(--brand-orange); }
+    .avatar-purple { background: var(--brand-purple); }
+
+    .btn-book-card {
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-book-card.btn-orange {
+      background: var(--brand-orange);
+    }
+    .btn-book-card.btn-purple {
+      background: var(--brand-purple);
+    }
+    .btn-book-card:hover {
+      opacity: 0.9;
+    }
+
+    .empty-state-box {
+      background: #FFFFFF;
+      border-radius: var(--radius-md);
+      padding: 60px 20px;
+      text-align: center;
+      border: 1px solid var(--border);
+      display: none;
+    }
+
+    /* ═══════════════════════════════════════
+       BOOKING & SIGNATURE WORKFLOW MODAL
+  ═══════════════════════════════════════ */
+    .checkout-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .checkout-overlay.active {
+      display: flex;
+    }
+
+    .checkout-card {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      max-width: 520px;
+      width: 100%;
+      padding: 26px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .checkout-close-btn {
+      position: absolute;
+      top: 16px; right: 18px;
+      background: #F0F2F5;
+      border: none;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .checkout-car-preview {
+      display: flex;
+      gap: 14px;
+      background: #F9FAFB;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      margin: 14px 0;
+    }
+    .checkout-car-preview img {
+      width: 90px; height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .fare-breakdown-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin: 14px 0;
+      font-size: 0.84rem;
+    }
+    .fare-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+    .fare-row.total {
+      border-top: 1px dashed var(--border);
+      padding-top: 8px;
+      margin-top: 8px;
+      font-weight: 800;
+      color: var(--text-main);
+      font-size: 0.95rem;
+    }
+
+    .checkout-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    .checkout-input:focus {
+      border-color: var(--brand-orange);
+    }
+
+    @media (max-width: 992px) {
+      .main-wrapper { grid-template-columns: 1fr; }
+      .sidebar-filters { position: static; max-height: none; }
+      .header-middle { display: none; }
+      .top-nav-links { display: none; }
+    }
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT: SIDEBAR + CAR LISTINGS
+  ═══════════════════════════════════════ -->
+  <div class="main-wrapper">
+
+    <!-- ─── LEFT SIDEBAR (FILTERS) ─── -->
+    <aside class="sidebar-filters">
+      <div class="filter-header-top">
+        <h3>Filters</h3>
+        <button class="filter-reset-btn" onclick="resetAllFilters()">Reset All</button>
+      </div>
+
+      <!-- Service Mode Switcher (Dual Brand Colors) -->
+      <div style="font-size: 0.75rem; font-weight: 800; color: var(--lux-text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.04em;">
+        Service Type
+      </div>
+      <div class="service-switch-box">
+        <button class="service-switch-btn active all" data-service="all" onclick="setServiceFilter('all', this)">All Fleet</button>
+        <button class="service-switch-btn" data-service="self-drive" onclick="setServiceFilter('self-drive', this)">Self-Drive</button>
+        <button class="service-switch-btn" data-service="taxi" onclick="setServiceFilter('taxi', this)">Chauffeur Taxi</button>
+      </div>
+
+      <!-- Distance Slider -->
+      <div class="filter-group">
+        <div class="filter-title">
+          <span>Distance from Hub</span>
+          <span class="distance-badge" id="distance-val-badge">25 km</span>
+        </div>
+        <div class="range-box">
+          <input type="range" min="5" max="60" value="25" class="range-slider" id="distance-slider" oninput="updateDistance(this.value)" />
+          <div class="range-labels">
+            <span>Near</span>
+            <span>Far</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Type Checkboxes -->
+      <div class="filter-group">
+        <div class="filter-title">Delivery Type</div>
+        <label class="checkbox-item">
+          <input type="checkbox" id="deliv-home" checked onchange="applyFilters()" />
+          <span>Home / Hotel Delivery</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="deliv-airport" onchange="applyFilters()" />
+          <span>Airport Pickup &amp; Drop</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="deliv-hub" checked onchange="applyFilters()" />
+          <span>Self Pickup at Hub (Free)</span>
+        </label>
+      </div>
+
+      <!-- Price Slider -->
+      <div class="filter-group">
+        <div class="filter-title">
+          <span>Daily Budget</span>
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--brand-orange);" id="price-val-label">&le; ₹8,500</span>
+        </div>
+        <input type="range" min="1000" max="8500" step="500" value="8500" class="range-slider" id="price-slider" oninput="updatePriceLimit(this.value)" />
+        <div class="range-labels">
+          <span>₹1,000</span>
+          <span>₹8,500+</span>
+        </div>
+      </div>
+
+      <!-- Car Type (Category) -->
+      <div class="filter-group">
+        <div class="filter-title">Car Type</div>
+        <label class="checkbox-item">
+          <input type="checkbox" class="cat-cb" value="hatchback" checked onchange="applyFilters()" />
+          <span>Hatchback (Swift, i20)</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" class="cat-cb" value="sedan" checked onchange="applyFilters()" />
+          <span>Sedan (Dzire, Honda City)</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" class="cat-cb" value="suv" checked onchange="applyFilters()" />
+          <span>SUV / MUV (Thar 4x4, Creta, Innova)</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" class="cat-cb" value="luxury" checked onchange="applyFilters()" />
+          <span>Luxury (Mercedes, BMW, Audi)</span>
+        </label>
+      </div>
+
+      <!-- Transmission -->
+      <div class="filter-group">
+        <div class="filter-title">Transmission</div>
+        <label class="checkbox-item">
+          <input type="checkbox" class="trans-cb" value="Automatic" checked onchange="applyFilters()" />
+          <span>Automatic</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" class="trans-cb" value="Manual" checked onchange="applyFilters()" />
+          <span>Manual</span>
+        </label>
+      </div>
+
+      <!-- Fuel Type -->
+      <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+        <div class="filter-title">Fuel Type</div>
+        <label class="checkbox-item">
+          <input type="checkbox" class="fuel-cb" value="Diesel" checked onchange="applyFilters()" />
+          <span>Diesel</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" class="fuel-cb" value="Petrol" checked onchange="applyFilters()" />
+          <span>Petrol</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" class="fuel-cb" value="CNG" checked onchange="applyFilters()" />
+          <span>CNG</span>
+        </label>
+      </div>
+    </aside>
+
+    <!-- ─── RIGHT CONTENT AREA ─── -->
+    <section class="content-area">
+
+      <!-- Promo Banner (Dual Colors: Purple to Orange) -->
+      <div class="promo-banner">
+        <div>
+          <div class="promo-title">
+            <span>SAFAR SELF DRIVE &amp; GUJARAT TAXI</span>
+            <span class="promo-tag">Gujarat's #1</span>
+          </div>
+          <div class="promo-sub">
+            <b>Self-Drive Cars</b> &bull; 🚖 <b>Luxury Chauffeur Taxi</b> on Transparent Kilometer Rates
+          </div>
+        </div>
+        <a href="https://wa.me/919999999999" target="_blank" class="btn-login-top" style="white-space: nowrap; background: #FFFFFF; color: var(--brand-purple); font-weight: 800; border: none;">
+          Book in 2 Mins &rarr;
+        </a>
+      </div>
+
+      <!-- Search & Sort Row -->
+      <div class="search-sort-row">
+        <div class="search-bar-wrap">
+          <span style="color: var(--brand-purple);">🔍</span>
+          <input type="text" id="search-input" placeholder="Search for car model, brand, features (e.g. Thar, Creta, BMW, 7 Seater)..." oninput="applyFilters()" />
+        </div>
+
+        <select class="sort-dropdown" id="sort-select" onchange="applyFilters()">
+          <option value="relevance">Sort: Relevance</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+          <option value="rating">Top Rated (4.8+)</option>
+        </select>
+      </div>
+
+      <!-- Quick Chips Scroll (Luxury Design) -->
+      <div class="quick-chips-scroll">
+        <div class="quick-chip chip-orange" data-quick="self-drive" onclick="toggleQuickChip(this, 'self-drive')">
+          Self-Drive
+        </div>
+        <div class="quick-chip" data-quick="taxi" onclick="toggleQuickChip(this, 'taxi')">
+          Chauffeur Taxi (Per KM)
+        </div>
+        <div class="quick-chip" data-quick="7seater" onclick="toggleQuickChip(this, '7seater')">
+          7-Seater MPV
+        </div>
+        <div class="quick-chip" data-quick="diesel" onclick="toggleQuickChip(this, 'diesel')">
+          Diesel Engines
+        </div>
+        <div class="quick-chip" data-quick="automatic" onclick="toggleQuickChip(this, 'automatic')">
+          Automatic Transmission
+        </div>
+        <div class="quick-chip" data-quick="luxury" onclick="toggleQuickChip(this, 'luxury')">
+          Luxury (Mercedes / BMW)
+        </div>
+        <div class="quick-chip" data-quick="top-rated" onclick="toggleQuickChip(this, 'top-rated')">
+          Top Rated (4.8+)
+        </div>
+        <div class="quick-chip" data-quick="near" onclick="toggleQuickChip(this, 'near')">
+          Near Hub (&lt; 10km)
+        </div>
+      </div>
+
+      <!-- Results info row -->
+      <div class="results-info-row">
+        <div>
+          Showing <b id="cars-count-val" style="color: var(--text-main);">12</b> vehicles available in <span id="current-city-label" style="font-weight: 700; color: var(--brand-purple);">Ahmedabad, Gujarat</span>
+        </div>
+        <div style="color: var(--green); font-weight: 700; font-size: 0.8rem;">
+          ✓ All Cars Insured, GPS Monitored &amp; Sanitized
+        </div>
+      </div>
+
+      <!-- Cars Grid (Cards) -->
+      <div class="car-cards-grid" id="cars-container">
+        <!-- Javascript renders real car cards here -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state-box" id="empty-state">
+        <div style="font-size: 3rem; margin-bottom: 12px;">🚗🔍</div>
+        <h3 style="font-size: 1.2rem; font-weight: 800;">No cars match your exact filter selection</h3>
+        <p style="color: var(--text-muted); font-size: 0.88rem; margin: 6px 0 16px;">Try adjusting the distance radius, daily budget, or resetting filters.</p>
+        <button class="btn-login-top" onclick="resetAllFilters()">Reset All Filters</button>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       BOOKING & SIGNATURE WORKFLOW MODAL
+  ═══════════════════════════════════════ -->
+  <div class="checkout-overlay" id="checkout-drawer" onclick="if(event.target === this) closeCheckout()">
+    <div class="checkout-card">
+      <button class="checkout-close-btn" onclick="closeCheckout()">&times;</button>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.2rem;">📝</span>
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--brand-purple);">Review &amp; Reserve Vehicle</h3>
+      </div>
+
+      <div class="checkout-car-preview">
+        <img id="co-img" src="" alt="Car" />
+        <div style="flex: 1;">
+          <h4 id="co-name" style="font-size: 1rem; font-weight: 800;">Car Name</h4>
+          <div id="co-specs" style="font-size: 0.76rem; color: var(--text-secondary);">Manual &bull; Petrol</div>
+          <div id="co-badge" style="margin-top: 4px;"></div>
+        </div>
+      </div>
+
+      <div class="fare-breakdown-box">
+        <div class="fare-row">
+          <span>Base Rental Tariff</span>
+          <span id="co-base-rate" style="font-weight: 700;">₹1,200</span>
+        </div>
+        <div class="fare-row">
+          <span>Doorstep Delivery to Hub / Hotel</span>
+          <span style="color: var(--green); font-weight: 700;">FREE</span>
+        </div>
+        <div class="fare-row">
+          <span>Zero Liability Insurance Protection</span>
+          <span style="color: var(--green); font-weight: 700;">Included</span>
+        </div>
+        <div class="fare-row">
+          <span>Refundable Security Deposit</span>
+          <span style="color: var(--green); font-weight: 700;">₹0 (Zero Deposit Scheme)</span>
+        </div>
+        <div class="fare-row total">
+          <span>Total Estimated Amount</span>
+          <span id="co-total-rate" style="color: var(--brand-orange); font-size: 1.15rem;">₹1,200</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">YOUR FULL NAME *</label>
+        <input type="text" id="co-user-name" class="checkout-input" placeholder="e.g. Deven Patel" />
+
+        <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">WHATSAPP MOBILE NUMBER *</label>
+        <input type="tel" id="co-user-phone" class="checkout-input" placeholder="+91 98765 XXXXX" />
+
+        <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">DRIVING LICENSE (DL) NUMBER</label>
+        <input type="text" id="co-user-dl" class="checkout-input" placeholder="e.g. GJ012022009842" />
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button class="btn-login-top" style="padding: 13px; font-size: 0.95rem; background: var(--brand-orange); border-color: var(--brand-orange); color: #fff;" onclick="proceedToPayment()">
+          💳 Pay Online via Instant UPI / Card &rarr;
+        </button>
+        <button class="btn-login-top" style="padding: 12px; font-size: 0.92rem; background: var(--brand-purple); border-color: var(--brand-purple);" onclick="proceedToRentalAgreement()">
+          ✍️ Proceed to Sign Rental Agreement &rarr;
+        </button>
+        <button class="btn-login-top" style="padding: 11px; font-size: 0.88rem; background: #25D366; border-color: #25D366;" onclick="confirmBooking('whatsapp')">
+          💬 Instant Booking via WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       JAVASCRIPT: FLEET & DRAWER ENGINE
+  ═══════════════════════════════════════ -->
+  <script>
+    // Drawer toggle handler
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      drawer.classList.toggle('active');
+      backdrop.classList.toggle('active');
+    }
+
+    // Curated Real Automotive Photography for Gujarat Fleet
+        // Real Verified Automotive Fleet Photography
+    const VEHICLES = [
+      {
+        id: 'dzire-2024',
+        make: 'Maruti Suzuki',
+        model: 'Dzire VXi 2024',
+        year: 2024,
+        category: 'sedan',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Ahmedabad',
+        hub: 'Ellis Bridge, Ahmedabad',
+        distanceKm: 3.2,
+        seats: 5,
+        transmission: 'Manual',
+        fuel: 'Petrol',
+        rating: '5.00',
+        reviewsCount: 18,
+        priceHr: 125,
+        priceDay: 1200,
+        rateLabel: '₹125/hr',
+        subPriceLabel: '₹1,200/day excluding fuel',
+        host: 'Manoj Kumar',
+        hostTrips: 9,
+        image: './cars/dzire.jpg'
+      },
+      {
+        id: 'carens-2023',
+        make: 'Kia',
+        model: 'Carens Luxury 7-Seater',
+        year: 2023,
+        category: 'suv',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Ahmedabad',
+        hub: 'SG Highway, Ahmedabad',
+        distanceKm: 4.8,
+        seats: 7,
+        transmission: 'Manual',
+        fuel: 'Diesel',
+        rating: '5.00',
+        reviewsCount: 22,
+        priceHr: 220,
+        priceDay: 2400,
+        rateLabel: '₹220/hr',
+        subPriceLabel: '₹2,400/day excluding fuel',
+        host: 'Rahul Dungariya',
+        hostTrips: 15,
+        image: './cars/carens.jpg'
+      },
+      {
+        id: 'thar-4x4',
+        make: 'Mahindra',
+        model: 'Thar 4x4 Automatic Hardtop',
+        year: 2024,
+        category: 'suv',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Ahmedabad',
+        hub: 'Prahlad Nagar, Ahmedabad',
+        distanceKm: 6.1,
+        seats: 4,
+        transmission: 'Automatic',
+        fuel: 'Diesel',
+        rating: '4.98',
+        reviewsCount: 34,
+        priceHr: 350,
+        priceDay: 3500,
+        rateLabel: '₹350/hr',
+        subPriceLabel: '₹3,500/day excluding fuel',
+        host: 'Safar Fleet VIP',
+        hostTrips: 42,
+        image: './cars/thar.jpg'
+      },
+      {
+        id: 'creta-sx',
+        make: 'Hyundai',
+        model: 'Creta SX(O) Panoramic',
+        year: 2024,
+        category: 'suv',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Ahmedabad',
+        hub: 'Airport Road, Ahmedabad',
+        distanceKm: 8.5,
+        seats: 5,
+        transmission: 'Automatic',
+        fuel: 'Diesel',
+        rating: '4.95',
+        reviewsCount: 29,
+        priceHr: 240,
+        priceDay: 2400,
+        rateLabel: '₹240/hr',
+        subPriceLabel: '₹2,400/day excluding fuel',
+        host: 'Bhavin Patel',
+        hostTrips: 20,
+        image: './cars/creta.jpg'
+      },
+      {
+        id: 'innova-crysta',
+        make: 'Toyota',
+        model: 'Innova Crysta 2.4 ZX',
+        year: 2023,
+        category: 'suv',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Vadodara',
+        hub: 'Alkapuri, Vadodara',
+        distanceKm: 12.0,
+        seats: 7,
+        transmission: 'Automatic',
+        fuel: 'Diesel',
+        rating: '5.00',
+        reviewsCount: 45,
+        priceHr: 300,
+        priceDay: 3200,
+        rateLabel: '₹300/hr',
+        subPriceLabel: '₹3,200/day excluding fuel',
+        host: 'Vadodara Hub Manager',
+        hostTrips: 60,
+        image: './cars/innova.jpg'
+      },
+      {
+        id: 'swift-surat',
+        make: 'Maruti Suzuki',
+        model: 'Swift ZXi Plus',
+        year: 2023,
+        category: 'hatchback',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Surat',
+        hub: 'Vesu, Surat',
+        distanceKm: 5.4,
+        seats: 5,
+        transmission: 'Manual',
+        fuel: 'Petrol',
+        rating: '4.90',
+        reviewsCount: 16,
+        priceHr: 110,
+        priceDay: 1200,
+        rateLabel: '₹110/hr',
+        subPriceLabel: '₹1,200/day excluding fuel',
+        host: 'Jignesh Desai',
+        hostTrips: 11,
+        image: './cars/swift.jpg'
+      },
+      {
+        id: 'fortuner-legender',
+        make: 'Toyota',
+        model: 'Fortuner Legender 4x4',
+        year: 2023,
+        category: 'suv',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Ahmedabad',
+        hub: 'Sindhu Bhavan Road, Ahmedabad',
+        distanceKm: 7.2,
+        seats: 7,
+        transmission: 'Automatic',
+        fuel: 'Diesel',
+        rating: '5.00',
+        reviewsCount: 38,
+        priceHr: 450,
+        priceDay: 4800,
+        rateLabel: '₹450/hr',
+        subPriceLabel: '₹4,800/day excluding fuel',
+        host: 'Safar Premium Fleet',
+        hostTrips: 52,
+        image: './cars/fortuner.jpg'
+      },
+      {
+        id: 'scorpio-n',
+        make: 'Mahindra',
+        model: 'Scorpio-N Z8L 4x4',
+        year: 2024,
+        category: 'suv',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Rajkot',
+        hub: 'Kalawad Road, Rajkot',
+        distanceKm: 9.0,
+        seats: 7,
+        transmission: 'Automatic',
+        fuel: 'Diesel',
+        rating: '4.92',
+        reviewsCount: 24,
+        priceHr: 280,
+        priceDay: 2900,
+        rateLabel: '₹280/hr',
+        subPriceLabel: '₹2,900/day excluding fuel',
+        host: 'Ketan Trivedi',
+        hostTrips: 18,
+        image: './cars/scorpio.jpg'
+      },
+      {
+        id: 'city-sedan',
+        make: 'Honda',
+        model: 'City ZX 5th Gen (Sunroof)',
+        year: 2023,
+        category: 'sedan',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Ahmedabad',
+        hub: 'Navrangpura, Ahmedabad',
+        distanceKm: 4.1,
+        seats: 5,
+        transmission: 'Automatic',
+        fuel: 'Petrol',
+        rating: '4.94',
+        reviewsCount: 31,
+        priceHr: 160,
+        priceDay: 1700,
+        rateLabel: '₹160/hr',
+        subPriceLabel: '₹1,700/day excluding fuel',
+        host: 'Parthiv Shah',
+        hostTrips: 27,
+        image: './cars/city.jpg'
+      },
+      {
+        id: 'venue-turbo',
+        make: 'Hyundai',
+        model: 'Venue SX Turbo',
+        year: 2023,
+        category: 'suv',
+        service: 'self-drive',
+        serviceTitle: 'Self-Drive',
+        city: 'Gandhinagar',
+        hub: 'Infocity, Gandhinagar',
+        distanceKm: 14.5,
+        seats: 5,
+        transmission: 'Manual',
+        fuel: 'Petrol',
+        rating: '4.88',
+        reviewsCount: 19,
+        priceHr: 140,
+        priceDay: 1500,
+        rateLabel: '₹140/hr',
+        subPriceLabel: '₹1,500/day excluding fuel',
+        host: 'Gandhinagar Hub Desk',
+        hostTrips: 22,
+        image: './cars/venue.jpg'
+      },
+      {
+        id: 'mercedes-e',
+        make: 'Mercedes-Benz',
+        model: 'E-Class Exclusive Luxury',
+        year: 2023,
+        category: 'luxury',
+        service: 'taxi',
+        serviceTitle: '🚖 Taxi with Chauffeur',
+        city: 'Ahmedabad',
+        hub: 'Ahmedabad Airport & Taj Skyline',
+        distanceKm: 1.5,
+        seats: 4,
+        transmission: 'Automatic',
+        fuel: 'Diesel',
+        rating: '5.00',
+        reviewsCount: 50,
+        priceHr: 750,
+        priceDay: 8500,
+        rateLabel: '₹35/km',
+        subPriceLabel: '₹8,500/day chauffeur included',
+        host: 'Safar Chauffeur Wing',
+        hostTrips: 85,
+        image: './cars/mercedes.jpg'
+      },
+      {
+        id: 'bmw-5',
+        make: 'BMW',
+        model: '5 Series 530d M-Sport',
+        year: 2023,
+        category: 'luxury',
+        service: 'taxi',
+        serviceTitle: '🚖 Taxi with Chauffeur',
+        city: 'Surat',
+        hub: 'Surat Airport / Dumas Road',
+        distanceKm: 3.8,
+        seats: 4,
+        transmission: 'Automatic',
+        fuel: 'Diesel',
+        rating: '5.00',
+        reviewsCount: 41,
+        priceHr: 800,
+        priceDay: 9500,
+        rateLabel: '₹40/km',
+        subPriceLabel: '₹9,500/day chauffeur included',
+        host: 'Gujarat VIP Fleet',
+        hostTrips: 63,
+        image: './cars/bmw.jpg'
+      }
+    ];
+
+    // State Variables
+    let currentService = 'all';
+    let maxDistance = 25;
+    let maxPrice = 8500;
+    let currentCity = 'Ahmedabad';
+    let activeQuickChips = new Set();
+    let selectedCar = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check user session
+      const userStr = localStorage.getItem('safar_user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          document.getElementById('top-auth-btn').innerText = `👤 ${user.name.split(' ')[0]}`;
+          document.getElementById('drawer-user-status').innerHTML = `👋 Logged in as <b>${user.name}</b> (${user.role})`;
+          document.getElementById('co-user-name').value = user.name;
+          document.getElementById('co-user-phone').value = user.phone;
+          if (user.dlNumber) document.getElementById('co-user-dl').value = user.dlNumber;
+        } catch(e) {}
+      }
+
+      // Read query params from index.html search
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('service')) {
+        currentService = params.get('service');
+        document.querySelectorAll('.service-switch-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.service === currentService);
+        });
+      }
+      if (params.get('city')) {
+        currentCity = params.get('city');
+        const citySelect = document.getElementById('header-city-select');
+        if (citySelect) citySelect.value = currentCity;
+        const cityLabel = document.getElementById('current-city-label');
+        if (cityLabel) cityLabel.innerText = currentCity === 'All' ? 'All Gujarat Cities' : currentCity + ', Gujarat';
+      }
+
+      applyFilters();
+    });
+
+    function updateDistance(val) {
+      maxDistance = parseInt(val);
+      document.getElementById('distance-val-badge').innerText = val + ' km';
+      applyFilters();
+    }
+
+    function updatePriceLimit(val) {
+      maxPrice = parseInt(val);
+      document.getElementById('price-val-label').innerText = '≤ ₹' + Number(val).toLocaleString('en-IN');
+      applyFilters();
+    }
+
+    function setServiceFilter(service, elem) {
+      currentService = service;
+      document.querySelectorAll('.service-switch-btn').forEach(b => {
+        b.classList.remove('active', 'self-drive', 'taxi', 'all');
+      });
+      elem.classList.add('active', service);
+      applyFilters();
+    }
+
+    function onCityDropdownChange(val) {
+      currentCity = val;
+      document.getElementById('current-city-label').innerText = val === 'All' ? 'All Gujarat Cities' : val + ', Gujarat';
+      applyFilters();
+    }
+
+    function toggleQuickChip(elem, key) {
+      if (activeQuickChips.has(key)) {
+        activeQuickChips.delete(key);
+        elem.classList.remove('active');
+      } else {
+        activeQuickChips.add(key);
+        elem.classList.add('active');
+      }
+      applyFilters();
+    }
+
+    function resetAllFilters() {
+      currentService = 'all';
+      maxDistance = 60;
+      maxPrice = 8500;
+      activeQuickChips.clear();
+      document.getElementById('distance-slider').value = 60;
+      document.getElementById('distance-val-badge').innerText = '60 km';
+      document.getElementById('price-slider').value = 8500;
+      document.getElementById('price-val-label').innerText = '≤ ₹8,500';
+      document.getElementById('search-input').value = '';
+      document.querySelectorAll('.quick-chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.service-switch-btn').forEach(b => b.classList.remove('active', 'self-drive', 'taxi', 'all'));
+      document.querySelector('.service-switch-btn[data-service="all"]').classList.add('active', 'all');
+      document.querySelectorAll('.cat-cb, .trans-cb, .fuel-cb').forEach(cb => cb.checked = true);
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('search-input').value.toLowerCase().trim();
+      const sort = document.getElementById('sort-select').value;
+
+      const checkedCats = Array.from(document.querySelectorAll('.cat-cb:checked')).map(cb => cb.value);
+      const checkedTrans = Array.from(document.querySelectorAll('.trans-cb:checked')).map(cb => cb.value);
+      const checkedFuels = Array.from(document.querySelectorAll('.fuel-cb:checked')).map(cb => cb.value);
+
+      const filtered = VEHICLES.filter(car => {
+        if (currentService !== 'all' && car.service !== currentService) return false;
+        if (currentCity !== 'All' && car.city.toLowerCase() !== currentCity.toLowerCase()) return false;
+        if (car.distanceKm > maxDistance) return false;
+        if (car.priceDay > maxPrice) return false;
+        if (!checkedCats.includes(car.category)) return false;
+        if (!checkedTrans.includes(car.transmission)) return false;
+        if (!checkedFuels.includes(car.fuel)) return false;
+
+        if (search) {
+          const haystack = `${car.make} ${car.model} ${car.hub} ${car.category} ${car.fuel}`.toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+
+        if (activeQuickChips.has('self-drive') && car.service !== 'self-drive') return false;
+        if (activeQuickChips.has('taxi') && car.service !== 'taxi') return false;
+        if (activeQuickChips.has('7seater') && car.seats < 6) return false;
+        if (activeQuickChips.has('diesel') && car.fuel !== 'Diesel') return false;
+        if (activeQuickChips.has('automatic') && car.transmission !== 'Automatic') return false;
+        if (activeQuickChips.has('luxury') && car.category !== 'luxury') return false;
+        if (activeQuickChips.has('top-rated') && parseFloat(car.rating) < 4.95) return false;
+        if (activeQuickChips.has('near') && car.distanceKm > 10) return false;
+
+        return true;
+      });
+
+      if (sort === 'price-low') {
+        filtered.sort((a, b) => a.priceDay - b.priceDay);
+      } else if (sort === 'price-high') {
+        filtered.sort((a, b) => b.priceDay - a.priceDay);
+      } else if (sort === 'rating') {
+        filtered.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+      }
+
+      renderCarCards(filtered);
+    }
+
+    function renderCarCards(cars) {
+      const container = document.getElementById('cars-container');
+      const emptyState = document.getElementById('empty-state');
+      document.getElementById('cars-count-val').innerText = cars.length;
+
+      container.innerHTML = '';
+
+      if (cars.length === 0) {
+        emptyState.style.display = 'block';
+        return;
+      } else {
+        emptyState.style.display = 'none';
+      }
+
+      cars.forEach(car => {
+        const isSelf = car.service === 'self-drive';
+        const card = document.createElement('div');
+        card.className = `zoom-car-card ${isSelf ? 'border-orange' : 'border-purple'}`;
+
+        card.innerHTML = `
+          <div class="card-photo-wrapper">
+            <img src="${car.image}" alt="${car.make} ${car.model}" class="card-photo" loading="lazy" />
+            <span class="glass-service-pill ${isSelf ? 'self-drive' : 'taxi'}">
+              ${isSelf ? 'Self-Drive' : 'Chauffeur Taxi'}
+            </span>
+            <span class="glass-rating-pill">
+              <span class="glass-rating-star">&#9733;</span> ${car.rating}
+            </span>
+            <button class="glass-heart-btn" title="Save to wishlist">&hearts;</button>
+          </div>
+
+          <div class="card-content-body">
+            <div>
+              <div class="card-car-title">${car.make} ${car.model}</div>
+              <div class="card-car-subtitle">${car.transmission} &bull; ${car.fuel} &bull; ${car.seats} Seats &bull; ${car.year}</div>
+            </div>
+
+            <div class="card-chips-row">
+              <span class="micro-chip green">&#10003; Zero Deposit</span>
+              <span class="micro-chip green">&#10003; Sanitized</span>
+              <span class="micro-chip">${car.category.toUpperCase()}</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #64748B;">
+              <span style="color: ${isSelf ? 'var(--lux-orange)' : 'var(--lux-purple)'}; font-weight: 900;">&#10148;</span>
+              <span><b>${car.distanceKm} km</b> away &bull; ${car.hub.split(',')[0]}</span>
+            </div>
+
+            <div class="card-bottom-action-row">
+              <div>
+                <div class="card-price-val">${car.rateLabel}</div>
+                <div class="card-price-sub">${car.subPriceLabel}</div>
+              </div>
+
+              <button class="btn-clay-book ${isSelf ? 'self-drive' : 'taxi'}" onclick="openCheckoutModal('${car.id}')">
+                Book Now &rarr;
+              </button>
+            </div>
+
+            <div style="font-size: 0.72rem; color: #94A3B8; display: flex; align-items: center; justify-content: space-between; padding-top: 4px;">
+              <span>Host: <b style="color: #475569;">${car.host}</b> (${car.hostTrips} cars)</span>
+              <span style="color: #059669; font-weight: 800;">Instant Confirm</span>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function openCheckoutModal(carId) {
+      selectedCar = VEHICLES.find(c => c.id === carId);
+      if (!selectedCar) return;
+
+      document.getElementById('co-name').innerText = `${selectedCar.make} ${selectedCar.model} (${selectedCar.year})`;
+      document.getElementById('co-specs').innerText = `${selectedCar.transmission} • ${selectedCar.fuel} • ${selectedCar.seats} Seats • ${selectedCar.hub}`;
+      document.getElementById('co-img').src = selectedCar.image;
+      document.getElementById('co-base-rate').innerText = selectedCar.subPriceLabel.split(' ')[0];
+      document.getElementById('co-total-rate').innerText = selectedCar.subPriceLabel.split(' ')[0];
+      
+      const badgeElem = document.getElementById('co-badge');
+      badgeElem.innerHTML = `<span class="service-type-badge ${selectedCar.service === 'self-drive' ? 'badge-selfdrive' : 'badge-taxi'}">${selectedCar.serviceTitle}</span>`;
+
+      document.getElementById('checkout-drawer').classList.add('active');
+    }
+
+    function closeCheckout() {
+      document.getElementById('checkout-drawer').classList.remove('active');
+      selectedCar = null;
+    }
+
+    function proceedToPayment() {
+      const name = document.getElementById('co-user-name').value.trim();
+      const phone = document.getElementById('co-user-phone').value.trim();
+      const dl = document.getElementById('co-user-dl').value.trim();
+
+      if (!name || !phone) {
+        alert('Please enter your Full Name and WhatsApp Mobile Number to proceed with payment.');
+        return;
+      }
+
+      const user = {
+        name: name,
+        phone: phone,
+        dlNumber: dl || 'GJ01-2023-PENDING',
+        city: selectedCar ? selectedCar.city : 'Ahmedabad',
+        role: 'CUSTOMER'
+      };
+      localStorage.setItem('safar_user', JSON.stringify(user));
+
+      const carName = selectedCar ? `${selectedCar.make} ${selectedCar.model}` : 'Hyundai Creta';
+      const rawPrice = selectedCar ? selectedCar.subPriceLabel.replace(/[^0-9]/g, '') : '4500';
+
+      localStorage.setItem('safar_selected_car', carName);
+      localStorage.setItem('safar_selected_fare', rawPrice);
+
+      window.location.href = `payment.html?car=${encodeURIComponent(carName)}&fare=${encodeURIComponent(rawPrice)}`;
+    }
+
+    // Step 2: Proceed to Sign Rental Agreement
+    function proceedToRentalAgreement() {
+      const name = document.getElementById('co-user-name').value.trim();
+      const phone = document.getElementById('co-user-phone').value.trim();
+      const dl = document.getElementById('co-user-dl').value.trim();
+
+      if (!name || !phone) {
+        alert('Please enter your Full Name and WhatsApp Mobile Number to generate the rental agreement.');
+        return;
+      }
+
+      // Save user details to session
+      const user = {
+        name: name,
+        phone: phone,
+        dlNumber: dl || 'GJ01-2023-PENDING',
+        city: selectedCar ? selectedCar.city : 'Ahmedabad',
+        role: 'CUSTOMER'
+      };
+      localStorage.setItem('safar_user', JSON.stringify(user));
+
+      const carName = selectedCar ? `${selectedCar.make} ${selectedCar.model}` : 'Car';
+      const price = selectedCar ? selectedCar.subPriceLabel.split(' ')[0] : '₹1,200';
+      const city = selectedCar ? selectedCar.city : 'Ahmedabad';
+
+      // Redirect to Agreement Page with E-Signature Canvas pre-filled
+      window.location.href = `agreement.html?car=${encodeURIComponent(carName)}&price=${encodeURIComponent(price)}&city=${encodeURIComponent(city)}`;
+    }
+
+    function confirmBooking(type) {
+      const name = document.getElementById('co-user-name').value.trim();
+      const phone = document.getElementById('co-user-phone').value.trim();
+
+      if (!name || !phone) {
+        alert('Please enter your Full Name and WhatsApp Mobile Number.');
+        return;
+      }
+
+      const carTitle = `${selectedCar.make} ${selectedCar.model}`;
+      const carService = selectedCar.serviceTitle;
+      const carPrice = selectedCar.subPriceLabel;
+
+      if (type === 'whatsapp') {
+        const msg = `*Booking Request - Safar Self Drive Gujarat*\n\n` +
+          `*Vehicle:* ${carTitle}\n` +
+          `*Service Type:* ${carService}\n` +
+          `*Hub Location:* ${selectedCar.hub}\n` +
+          `*Tariff:* ${carPrice}\n` +
+          `*Customer Name:* ${name}\n` +
+          `*Phone:* ${phone}\n\n` +
+          `Please confirm my vehicle availability and agreement link.`;
+
+        window.open(`https://wa.me/919999999999?text=${encodeURIComponent(msg)}`, '_blank');
+        closeCheckout();
+      }
+    }
+  </script>
+  <script src="safar-auth.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { SafarAuth.protectPage(['CUSTOMER', 'HOST', 'ADMIN']); });</script>
+</body>
+</html>

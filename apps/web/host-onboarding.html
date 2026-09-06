@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Host Your Car &amp; Earn ₹35k - ₹75k/mo &bull; Safar Self Drive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --brand-purple:       #411945;
+      --brand-purple-pale:  #F8F1F9;
+      --brand-orange:       #E37220;
+      --brand-orange-pale:  #FFF5EB;
+      --green:              #10843E;
+      --bg-page:            #F5F6F8;
+      --card-bg:            #FFFFFF;
+      --border:             #E2E4E8;
+      --text-main:          #1A1A1A;
+      --text-secondary:     #555555;
+      --text-muted:         #8E94A0;
+      --radius-sm:          8px;
+      --radius-md:          12px;
+      --radius-lg:          18px;
+      --shadow-card:        0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    
+    /* UNIFIED HAMBURGER MENU DRAWER CSS */
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+
+    .nav-header {
+      background: #FFFFFF;
+      border-bottom: 2px solid var(--brand-purple);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border);
+      font-size: 1.3rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hero-banner {
+      background: linear-gradient(135deg, var(--brand-purple) 0%, #290B2C 100%);
+      color: #FFFFFF;
+      padding: 60px 20px;
+      text-align: center;
+    }
+    .hero-inner {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .hero-inner h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900;
+      line-height: 1.2;
+    }
+    .hero-inner p {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.85);
+      margin-top: 14px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: -40px auto 80px;
+      padding: 0 20px;
+    }
+    .calc-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+      margin-bottom: 40px;
+    }
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 32px;
+      align-items: center;
+    }
+    .earnings-display {
+      background: var(--brand-purple-pale);
+      border: 2px solid var(--brand-purple);
+      border-radius: var(--radius-md);
+      padding: 26px;
+      text-align: center;
+    }
+    .earning-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: var(--brand-orange);
+    }
+
+    .form-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      box-shadow: var(--shadow-card);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      font-weight: 600;
+      outline: none;
+      background: #FFFFFF;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--brand-orange);
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 15px;
+      border-radius: var(--radius-sm);
+      font-size: 1.05rem;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      margin-top: 14px;
+      transition: all 0.2s;
+    }
+    .btn-submit:hover {
+      background: #D06316;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .f-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+    }
+    .f-icon { font-size: 2.2rem; margin-bottom: 10px; }
+    .f-box h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--brand-purple);
+      margin-bottom: 6px;
+    }
+    .f-box p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 860px) {
+      .calc-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+    }
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero-banner">
+    <div class="hero-inner">
+      <div style="font-size: 0.82rem; font-weight: 800; color: #FFA14A; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">
+        Turn Your Idle Car Into a Gujarat Profit Machine
+      </div>
+      <h1>Host Your Car on Safar &amp; Earn Up To ₹75,000 / Month</h1>
+      <p>
+        Zero listing fee. Free GPS hardware installed. 100% verified KYC customers. Hassle-free car rentals across Gujarat.
+      </p>
+    </div>
+  </section>
+
+  <div class="container">
+    <!-- Calculator Card -->
+    <div class="calc-box">
+      <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 900; color: var(--brand-purple); margin-bottom: 22px;">
+        📊 Calculate Your Estimated Monthly Earnings
+      </h2>
+      <div class="calc-grid">
+        <div>
+          <div class="form-group">
+            <label class="form-label">Select Your Car Segment</label>
+            <select class="form-select" id="host-car-tier" onchange="updateEarnings()">
+              <option value="1200">Premium Hatchback (Swift, Baleno, i20) &bull; ₹1,200/day</option>
+              <option value="1800" selected>Compact SUV (Brezza, Nexon, Venue) &bull; ₹1,800/day</option>
+              <option value="2500">Executive SUV (Creta, Seltos, Grand Vitara) &bull; ₹2,500/day</option>
+              <option value="3800">4x4 &amp; 7-Seater (Thar 4x4, Scorpio-N, Carens) &bull; ₹3,800/day</option>
+              <option value="5500">Luxury Tier (Fortuner Legender, Innova Crysta) &bull; ₹5,500/day</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <label class="form-label" style="margin-bottom: 0;">Days Available Per Month</label>
+              <b style="color: var(--brand-orange); font-weight: 800;" id="days-val">20 Days</b>
+            </div>
+            <input type="range" min="5" max="30" value="20" id="days-slider" style="width: 100%; accent-color: var(--brand-orange);" oninput="updateEarnings()" />
+          </div>
+
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 10px;">
+            💡 Safar shares <b>70% net revenue</b> directly with car owners via automated weekly NEFT/UPI settlement.
+          </div>
+        </div>
+
+        <div class="earnings-display">
+          <div style="font-size: 0.8rem; font-weight: 800; color: var(--brand-purple); text-transform: uppercase;">
+            Your Net Monthly Payout
+          </div>
+          <div class="earning-val" id="earning-amount">₹25,200</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px;">
+            Annual Potential: <b style="color: var(--green);" id="annual-amount">₹3,02,400 / year</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Host Benefits -->
+    <div class="features-grid">
+      <div class="f-box">
+        <div class="f-icon">🛰️</div>
+        <h3>Free GPS &amp; Immobilizer</h3>
+        <p>We install enterprise 4G GPS tracking &amp; speed governors for zero theft risk across Gujarat.</p>
+      </div>
+      <div class="f-box">
+        <div class="f-icon">🛡️</div>
+        <h3>Verified Drivers Only</h3>
+        <p>Aadhaar OTP + Driving License + Live Facial biometric verification before key handover.</p>
+      </div>
+      <div class="f-box">
+        <div class="f-icon">💵</div>
+        <h3>Weekly Payouts</h3>
+        <p>Direct bank transfer every Tuesday. Transparent dashboard logs every trip &amp; kilometer.</p>
+      </div>
+    </div>
+
+    <!-- Listing Form -->
+    <div class="form-card">
+      <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 900; color: var(--brand-purple); margin-bottom: 6px;">
+        Register Your Car on Safar
+      </h2>
+      <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 24px;">
+        Fill in your vehicle details below. Our Gujarat onboarding team will inspect the car and install GPS within 24 hours.
+      </p>
+
+      <form id="host-form" onsubmit="handleHostSubmit(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full Name of Car Owner</label>
+            <input type="text" class="form-input" required placeholder="e.g., Hardik Patel" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone (WhatsApp for alerts)</label>
+            <input type="tel" class="form-input" required placeholder="+91 98765 43210" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Gujarat City Hub</label>
+            <select class="form-select" required>
+              <option value="Ahmedabad">Ahmedabad (SG Highway / Airport)</option>
+              <option value="Vadodara">Vadodara (Alkapuri / Station)</option>
+              <option value="Surat">Surat (Dumas Rd / Vesu)</option>
+              <option value="Rajkot">Rajkot (Kalawad Rd / Yagnik Rd)</option>
+              <option value="Gandhinagar">Gandhinagar (Infocity)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Car Model &amp; Year</label>
+            <input type="text" class="form-input" required placeholder="e.g., Hyundai Creta SX (2023)" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vehicle Registration Number</label>
+            <input type="text" class="form-input" required placeholder="e.g., GJ-01-XX-9821" style="font-family: monospace; font-weight: 700;" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fuel &amp; Transmission</label>
+            <select class="form-select" required>
+              <option>Petrol &bull; Manual</option>
+              <option>Petrol &bull; Automatic</option>
+              <option>Diesel &bull; Manual</option>
+              <option>Diesel &bull; Automatic</option>
+              <option>CNG / Hybrid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Upload RC Book (Photo / PDF)</label>
+            <input type="file" class="form-input" accept="image/*,.pdf" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Upload Insurance Copy</label>
+            <input type="file" class="form-input" accept="image/*,.pdf" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Bank Account Number (For Weekly Deposits)</label>
+          <input type="text" class="form-input" required placeholder="Account Number &amp; IFSC Code" />
+        </div>
+
+        <button type="submit" class="btn-submit">
+          🚀 Submit Vehicle for Onboarding Inspection
+        </button>
+      </form>
+    </div>
+  </div>
+
+  
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+
+  <script>
+    function updateEarnings() {
+      const daily = parseInt(document.getElementById('host-car-tier').value);
+      const days = parseInt(document.getElementById('days-slider').value);
+      document.getElementById('days-val').innerText = days + ' Days';
+
+      const gross = daily * days;
+      const hostShare = Math.round(gross * 0.70);
+      const annual = hostShare * 12;
+
+      document.getElementById('earning-amount').innerText = '₹' + hostShare.toLocaleString('en-IN');
+      document.getElementById('annual-amount').innerText = '₹' + annual.toLocaleString('en-IN') + ' / year';
+    }
+
+    function handleHostSubmit(e) {
+      e.preventDefault();
+      alert('🎉 Vehicle submitted successfully! Our Ahmedabad hub coordinator will contact you in 2 business hours for free GPS tracker fitment.');
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+  <script src="safar-auth.js"></script>
+</body>
+</html>

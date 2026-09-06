@@ -1,0 +1,11 @@
+{
+  "name": "safar-self-drive-portal",
+  "version": "2.0.0",
+  "description": "Safar Self Drive and Gujarat Taxi Portal",
+  "scripts": {
+    "start": "node start-portal.js",
+    "portal": "node start-portal.js",
+    "web": "python -m http.server 8000 --directory apps/web",
+    "stop": "node stop-portal.js"
+  }
+}

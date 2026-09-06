@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure Booking Payment &bull; Safar Self Drive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --brand-purple:       #411945;
+      --brand-purple-pale:  #F8F1F9;
+      --brand-orange:       #E37220;
+      --brand-orange-pale:  #FFF5EB;
+      --green:              #10843E;
+      --bg-page:            #F5F6F8;
+      --card-bg:            #FFFFFF;
+      --border:             #E2E4E8;
+      --text-main:          #1A1A1A;
+      --text-secondary:     #555555;
+      --text-muted:         #8E94A0;
+      --radius-sm:          8px;
+      --radius-md:          12px;
+      --radius-lg:          18px;
+      --shadow-card:        0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    
+    /* UNIFIED HAMBURGER MENU DRAWER CSS */
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+
+    .nav-header {
+      background: #FFFFFF;
+      border-bottom: 2px solid var(--brand-purple);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border);
+      font-size: 1.3rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 36px auto 70px;
+      padding: 0 20px;
+    }
+    .page-title {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .page-title h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+      font-weight: 900;
+      color: var(--brand-purple);
+    }
+    .checkout-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 28px;
+    }
+    .pay-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+    }
+    .tab-pills {
+      display: flex;
+      gap: 8px;
+      background: #F0F2F5;
+      padding: 5px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+    }
+    .tab-pill {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-pill.active {
+      background: #FFFFFF;
+      color: var(--brand-purple);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .qr-box {
+      text-align: center;
+      padding: 24px;
+      background: #FAFBFD;
+      border: 2px dashed #D5DAE2;
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+    }
+    .qr-code-img {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 14px;
+      display: block;
+      border-radius: 10px;
+      border: 4px solid #FFFFFF;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .btn-pay {
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+    .btn-pay:hover {
+      background: #D06316;
+      box-shadow: 0 4px 12px rgba(227, 114, 32, 0.3);
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      font-weight: 600;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--brand-orange); }
+
+    /* Summary items */
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .summary-row.total {
+      border-bottom: none;
+      border-top: 2px dashed var(--brand-purple);
+      margin-top: 14px;
+      padding-top: 16px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--brand-purple);
+    }
+    .badge-deposit {
+      background: #E8F5E9;
+      color: #2E7D32;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    /* Success modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(5px);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .success-card {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      max-width: 500px;
+      width: 100%;
+      padding: 34px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    @media (max-width: 820px) {
+      .checkout-layout { grid-template-columns: 1fr; }
+    }
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="page-title">
+      <div style="font-size: 0.8rem; font-weight: 800; color: var(--brand-orange); text-transform: uppercase; letter-spacing: 0.05em;">
+        100% Encrypted &bull; 0% Convenience Fee
+      </div>
+      <h1>Complete Your Reservation</h1>
+      <p style="color: var(--text-secondary); margin-top: 4px;">Pay advance token / full tariff to secure your vehicle reservation.</p>
+    </div>
+
+    <div class="checkout-layout">
+      <!-- Payment Options Column -->
+      <div class="pay-card">
+        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; color: var(--brand-purple); margin-bottom: 16px;">
+          Select Payment Mode
+        </h2>
+
+        <div class="tab-pills">
+          <div class="tab-pill active" id="tab-upi" onclick="switchPayTab('upi')">
+            ⚡ Instant UPI QR / Apps
+          </div>
+          <div class="tab-pill" id="tab-card" onclick="switchPayTab('card')">
+            💳 Credit / Debit Card
+          </div>
+        </div>
+
+        <!-- UPI Tab Content -->
+        <div id="content-upi">
+          <div class="qr-box">
+            <div style="font-size: 0.78rem; font-weight: 800; color: var(--brand-purple); text-transform: uppercase; margin-bottom: 8px;">
+              Scan with Any UPI App
+            </div>
+            <!-- Dynamic QR using QuickChart QR API -->
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=safarselfdrive@icici%26pn=Safar%20Self%20Drive%20Gujarat%26am=4500%26cu=INR" alt="UPI QR Code" class="qr-code-img" id="upi-qr-image" />
+            <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 10px;">
+              <span style="font-weight: 700; font-size: 0.82rem; color: #5F259F;">🟣 PhonePe</span>
+              <span style="font-weight: 700; font-size: 0.82rem; color: #4285F4;">🔵 Google Pay</span>
+              <span style="font-weight: 700; font-size: 0.82rem; color: #00BAF2;">💠 Paytm</span>
+            </div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);">
+              UPI ID: <b style="color: var(--text-main);">safarselfdrive@icici</b>
+            </div>
+            <div style="font-size: 0.8rem; color: #D9534F; font-weight: 700; margin-top: 10px;" id="qr-timer">
+              ⏱️ QR expires in <span id="countdown">04:59</span>
+            </div>
+          </div>
+
+          <button class="btn-pay" onclick="simulatePayment('UPI')">
+            <span>✅ I Have Completed UPI Payment</span>
+          </button>
+        </div>
+
+        <!-- Card Tab Content -->
+        <div id="content-card" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Cardholder Name</label>
+            <input type="text" class="form-input" id="card-name" placeholder="Name as printed on card" value="Hardik Patel" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Card Number</label>
+            <input type="text" class="form-input" id="card-number" placeholder="4532 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 8921" maxlength="19" />
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label class="form-label">Expiry (MM/YY)</label>
+              <input type="text" class="form-input" id="card-exp" placeholder="08/29" maxlength="5" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">CVV / CVC</label>
+              <input type="password" class="form-input" id="card-cvv" placeholder="•••" maxlength="4" />
+            </div>
+          </div>
+          <button class="btn-pay" style="margin-top: 10px;" onclick="simulatePayment('CARD')">
+            <span>🔒 Pay Securely Now</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Booking Order Summary Column -->
+      <div class="pay-card" style="border-top: 4px solid var(--brand-orange);">
+        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 800; color: var(--brand-purple); margin-bottom: 16px;">
+          Booking Summary
+        </h2>
+
+        <div style="display: flex; gap: 14px; align-items: center; background: #FAFBFD; padding: 12px; border-radius: var(--radius-sm); margin-bottom: 18px;">
+          <img src="./cars/creta.jpg" id="summary-car-img" style="width: 80px; height: 52px; object-fit: cover; border-radius: 6px; border: 1px solid #E2E4E8;" />
+          <div>
+            <div style="font-weight: 800; font-size: 1rem; color: var(--brand-purple);" id="summary-car-name">
+              Hyundai Creta SX (O)
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);" id="summary-car-plate">
+              Self-Drive &bull; Automatic &bull; Diesel
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-row">
+          <span style="color: var(--text-secondary);">Pickup Hub</span>
+          <b id="summary-hub">Ahmedabad (SG Highway)</b>
+        </div>
+        <div class="summary-row">
+          <span style="color: var(--text-secondary);">Rental Duration</span>
+          <b id="summary-duration">2 Days (Unlimited KM)</b>
+        </div>
+        <div class="summary-row">
+          <span style="color: var(--text-secondary);">Base Rental Fare</span>
+          <b id="summary-base-fare">₹4,500</b>
+        </div>
+        <div class="summary-row">
+          <span style="color: var(--text-secondary);">Refundable Security Deposit <span class="badge-deposit">100% Refundable</span></span>
+          <b>₹3,000</b>
+        </div>
+        <div class="summary-row">
+          <span style="color: var(--text-secondary);">24/7 Gujarat RSA &amp; Damage Cover</span>
+          <b style="color: var(--green);">FREE</b>
+        </div>
+        <div class="summary-row">
+          <span style="color: var(--text-secondary);">GST (5%)</span>
+          <b id="summary-gst">₹225</b>
+        </div>
+
+        <div class="summary-row total">
+          <span>Net Payable Amount</span>
+          <span style="color: var(--brand-orange); font-size: 1.4rem;" id="summary-total-amount">₹7,725</span>
+        </div>
+
+        <div style="background: #F8F9FA; border-radius: var(--radius-sm); padding: 12px; margin-top: 18px; font-size: 0.78rem; color: var(--text-secondary);">
+          🛡️ <b>Safar Guarantee:</b> Security deposit of ₹3,000 is automatically credited back to your original source account within 48 hours of vehicle return.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS RECEIPT MODAL -->
+  <div class="modal-overlay" id="success-modal">
+    <div class="success-card">
+      <div style="font-size: 3.5rem; margin-bottom: 10px;">🎉</div>
+      <div style="display: inline-block; background: #E8F5E9; color: #2E7D32; font-weight: 800; font-size: 0.78rem; padding: 4px 14px; border-radius: 20px; margin-bottom: 12px;">
+        PAYMENT CONFIRMED
+      </div>
+      <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 900; color: var(--brand-purple);">
+        Booking Successfully Reserved!
+      </h2>
+      <p style="color: var(--text-secondary); font-size: 0.88rem; margin: 8px 0 18px;">
+        Your vehicle is secured. Please sign the digital rental agreement before key handover.
+      </p>
+
+      <div style="background: #F9FAFC; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: left; font-size: 0.85rem; margin-bottom: 22px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-secondary);">Transaction ID:</span>
+          <b id="receipt-txnid">TXN-GUJ-891234</b>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-secondary);">Amount Paid:</span>
+          <b style="color: var(--green);" id="receipt-amount">₹7,725</b>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-secondary);">Vehicle:</span>
+          <b id="receipt-car">Hyundai Creta</b>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-secondary);">Booking Status:</span>
+          <b style="color: var(--brand-orange);">Confirmed / Pending E-Sign</b>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <a href="agreement.html" class="btn-pay" style="background: var(--brand-purple);">
+          ✍️ Proceed to Sign Rental Agreement
+        </a>
+        <a href="dashboard.html" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 700; text-decoration: underline; padding: 6px;">
+          Go to Host &amp; Admin Dashboard &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
+  
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+
+  <script>
+    function switchPayTab(tab) {
+      const upiTab = document.getElementById('tab-upi');
+      const cardTab = document.getElementById('tab-card');
+      const upiContent = document.getElementById('content-upi');
+      const cardContent = document.getElementById('content-card');
+
+      if (tab === 'upi') {
+        upiTab.classList.add('active');
+        cardTab.classList.remove('active');
+        upiContent.style.display = 'block';
+        cardContent.style.display = 'none';
+      } else {
+        cardTab.classList.add('active');
+        upiTab.classList.remove('active');
+        cardContent.style.display = 'block';
+        upiContent.style.display = 'none';
+      }
+    }
+
+    // Read Query Params or localStorage
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const car = params.get('car') || localStorage.getItem('safar_selected_car') || 'Hyundai Creta SX (O)';
+      const fare = parseInt(params.get('fare') || localStorage.getItem('safar_selected_fare') || '4500');
+      const days = parseInt(params.get('days') || '2');
+
+      const gst = Math.round(fare * 0.05);
+      const deposit = 3000;
+      const total = fare + deposit + gst;
+
+      document.getElementById('summary-car-name').innerText = car;
+      document.getElementById('summary-base-fare').innerText = '₹' + fare.toLocaleString('en-IN');
+      document.getElementById('summary-gst').innerText = '₹' + gst.toLocaleString('en-IN');
+      document.getElementById('summary-total-amount').innerText = '₹' + total.toLocaleString('en-IN');
+      document.getElementById('receipt-amount').innerText = '₹' + total.toLocaleString('en-IN');
+      document.getElementById('receipt-car').innerText = car;
+
+      // Update QR link
+      const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=safarselfdrive@icici%26pn=Safar%20Self%20Drive%20Gujarat%26am=${total}%26cu=INR`;
+      document.getElementById('upi-qr-image').src = qrApi;
+
+      // Start countdown
+      startTimer(299, document.getElementById('countdown'));
+    });
+
+    function startTimer(duration, display) {
+      let timer = duration, minutes, seconds;
+      const interval = setInterval(function () {
+        minutes = parseInt(timer / 60, 10);
+        seconds = parseInt(timer % 60, 10);
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+        display.textContent = minutes + ":" + seconds;
+        if (--timer < 0) {
+          clearInterval(interval);
+          display.textContent = "EXPIRED";
+        }
+      }, 1000);
+    }
+
+    function simulatePayment(method) {
+      const txnId = 'TXN-GUJ-' + Math.floor(100000 + Math.random() * 900000);
+      document.getElementById('receipt-txnid').innerText = txnId;
+
+      // Save to localStorage
+      const bookingData = {
+        id: 'BK-' + Math.floor(1000 + Math.random() * 9000),
+        carName: document.getElementById('summary-car-name').innerText,
+        customerName: 'Hardik Patel',
+        phone: '+91 98765 43210',
+        amount: document.getElementById('summary-total-amount').innerText,
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        status: 'PAID / PENDING SIGN',
+        txnId: txnId,
+        paymentMethod: method
+      };
+
+      try {
+        let existing = JSON.parse(localStorage.getItem('safar_bookings') || '[]');
+        existing.unshift(bookingData);
+        localStorage.setItem('safar_bookings', JSON.stringify(existing));
+        localStorage.setItem('safar_latest_paid_booking', JSON.stringify(bookingData));
+      } catch(e) {}
+
+      document.getElementById('success-modal').classList.add('active');
+    }
+  </script>
+  <script src="safar-auth.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { SafarAuth.protectPage(['CUSTOMER', 'HOST', 'ADMIN']); });</script>
+</body>
+</html>

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live GPS Telematics &amp; Geofencing &bull; Safar Fleet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --brand-purple:       #411945;
+      --brand-purple-pale:  #F8F1F9;
+      --brand-orange:       #E37220;
+      --brand-orange-pale:  #FFF5EB;
+      --green:              #10843E;
+      --bg-page:            #F5F6F8;
+      --card-bg:            #FFFFFF;
+      --border:             #E2E4E8;
+      --text-main:          #1A1A1A;
+      --text-secondary:     #555555;
+      --text-muted:         #8E94A0;
+      --radius-sm:          8px;
+      --radius-md:          12px;
+      --radius-lg:          18px;
+      --shadow-card:        0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    
+    /* UNIFIED HAMBURGER MENU DRAWER CSS */
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+
+    .nav-header {
+      background: #FFFFFF;
+      border-bottom: 2px solid var(--brand-purple);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border);
+      font-size: 1.3rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .track-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: calc(100vh - 66px);
+    }
+    .sidebar-vehicles {
+      background: #FFFFFF;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .fleet-list {
+      list-style: none;
+      overflow-y: auto;
+      flex: 1;
+      padding: 12px;
+    }
+    .vehicle-item {
+      background: #FAFBFD;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .vehicle-item:hover, .vehicle-item.active {
+      border-color: var(--brand-orange);
+      background: var(--brand-orange-pale);
+      transform: translateY(-1px);
+    }
+    .v-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .v-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: var(--brand-purple);
+    }
+    .v-plate {
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      font-family: monospace;
+      font-weight: 700;
+      background: #FFFFFF;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .speed-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .speed-green { background: #E8F5E9; color: #2E7D32; }
+    .speed-amber { background: #FFF8E1; color: #F57F17; }
+    .speed-red { background: #FFEBEE; color: #C62828; animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    #map-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Floating control box on map */
+    .telemetry-overlay {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-radius: var(--radius-md);
+      padding: 20px;
+      width: 320px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      border: 1px solid var(--border);
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 0.82rem;
+      border-bottom: 1px dashed var(--border);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .btn-immobilize {
+      width: 100%;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 800;
+      border: none;
+      background: #C62828;
+      color: #FFFFFF;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+    .btn-immobilize:hover { background: #B71C1C; }
+
+    @media (max-width: 900px) {
+      .track-layout { grid-template-columns: 1fr; height: auto; }
+      .sidebar-vehicles { height: 350px; }
+      #map-container { height: 500px; }
+      .telemetry-overlay { position: static; width: 100%; margin-top: 10px; }
+    }
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="track-layout">
+    <!-- Vehicles list sidebar -->
+    <aside class="sidebar-vehicles">
+      <div class="sidebar-header">
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--brand-orange); text-transform: uppercase;">
+          Gujarat Telematics Network
+        </div>
+        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 900; color: var(--brand-purple);">
+          Active Fleet (4 Online)
+        </h2>
+        <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px;">
+          Speed governor: Max 100 km/h on Gujarat Expressways
+        </div>
+      </div>
+
+      <ul class="fleet-list" id="fleet-items-container">
+        <!-- Injected via JS -->
+      </ul>
+    </aside>
+
+    <!-- Map container -->
+    <main id="map-container">
+      <div id="map"></div>
+
+      <!-- Live telemetry card -->
+      <div class="telemetry-overlay" id="telemetry-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <b style="font-size: 0.95rem; color: var(--brand-purple);" id="selected-car-title">Hyundai Creta SX (O)</b>
+          <span class="speed-badge speed-green" id="selected-speed-badge">78 km/h</span>
+        </div>
+        <div class="stat-row">
+          <span style="color: var(--text-secondary);">Registration Plate:</span>
+          <b id="selected-plate">GJ-01-WB-9821</b>
+        </div>
+        <div class="stat-row">
+          <span style="color: var(--text-secondary);">Current Highway:</span>
+          <b id="selected-location">SG Highway, Ahmedabad</b>
+        </div>
+        <div class="stat-row">
+          <span style="color: var(--text-secondary);">Odometer Reading:</span>
+          <b id="selected-odo">34,120 km</b>
+        </div>
+        <div class="stat-row">
+          <span style="color: var(--text-secondary);">Fuel Tank Level:</span>
+          <b style="color: var(--green);" id="selected-fuel">82% (Diesel)</b>
+        </div>
+        <div class="stat-row">
+          <span style="color: var(--text-secondary);">Geofence Status:</span>
+          <b style="color: var(--green);" id="selected-geofence">Inside Gujarat State</b>
+        </div>
+        <div class="stat-row">
+          <span style="color: var(--text-secondary);">Engine Ignition:</span>
+          <b style="color: #2E7D32;" id="selected-ignition">RUNNING</b>
+        </div>
+
+        <button class="btn-immobilize" onclick="triggerImmobilizer()">
+          🚨 Emergency Remote Engine Immobilize
+        </button>
+      </div>
+    </main>
+  </div>
+
+  
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const FLEET = [
+      {
+        id: 1,
+        name: "Hyundai Creta SX (O)",
+        plate: "GJ-01-WB-9821",
+        lat: 23.0338,
+        lng: 72.5074,
+        location: "SG Highway (Pakwan Cross Rd), Ahmedabad",
+        speed: 68,
+        fuel: "82%",
+        odo: "34,120 km",
+        ignition: "RUNNING",
+        geofence: "Inside Gujarat State"
+      },
+      {
+        id: 2,
+        name: "Toyota Fortuner Legender 4x4",
+        plate: "GJ-06-ZZ-1100",
+        lat: 22.3072,
+        lng: 73.1812,
+        location: "NE1 Expressway, Vadodara Bypass",
+        speed: 98,
+        fuel: "65%",
+        odo: "41,890 km",
+        ignition: "RUNNING",
+        geofence: "Inside Gujarat State"
+      },
+      {
+        id: 3,
+        name: "Mahindra Thar 4x4 Hard Top",
+        plate: "GJ-27-AA-4422",
+        lat: 21.1702,
+        lng: 72.8311,
+        location: "Dumas Road, Surat",
+        speed: 42,
+        fuel: "91%",
+        odo: "18,450 km",
+        ignition: "RUNNING",
+        geofence: "Inside Gujarat State"
+      },
+      {
+        id: 4,
+        name: "Maruti Suzuki Swift ZXi+",
+        plate: "GJ-03-BB-8811",
+        lat: 22.3039,
+        lng: 70.8022,
+        location: "Kalawad Road, Rajkot",
+        speed: 0,
+        fuel: "75%",
+        odo: "26,300 km",
+        ignition: "IDLE / PARKED",
+        geofence: "Inside Gujarat State"
+      }
+    ];
+
+    let map, markers = {};
+    let activeCarId = 1;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize map centered on Gujarat
+      map = L.map('map').setView([22.5, 72.5], 8);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors | Safar Telematics'
+      }).addTo(map);
+
+      renderFleetList();
+      renderMapMarkers();
+      selectCar(1);
+    });
+
+    function renderFleetList() {
+      const container = document.getElementById('fleet-items-container');
+      container.innerHTML = FLEET.map(car => {
+        let speedClass = 'speed-green';
+        if (car.speed >= 90 && car.speed <= 100) speedClass = 'speed-amber';
+        if (car.speed > 100) speedClass = 'speed-red';
+
+        return `
+          <li class="vehicle-item ${car.id === activeCarId ? 'active' : ''}" id="card-car-${car.id}" onclick="selectCar(${car.id})">
+            <div class="v-header">
+              <div class="v-title">${car.name}</div>
+              <span class="speed-badge ${speedClass}">${car.speed} km/h</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+              <span class="v-plate">${car.plate}</span>
+              <span style="font-size: 0.74rem; color: var(--text-secondary);">${car.ignition}</span>
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px;">
+              📍 ${car.location}
+            </div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    function renderMapMarkers() {
+      FLEET.forEach(car => {
+        const marker = L.marker([car.lat, car.lng]).addTo(map);
+        marker.bindPopup(`<b>${car.name}</b><br>${car.plate}<br>Speed: ${car.speed} km/h`);
+        marker.on('click', () => selectCar(car.id));
+        markers[car.id] = marker;
+      });
+    }
+
+    function selectCar(id) {
+      activeCarId = id;
+      const car = FLEET.find(c => c.id === id);
+      if (!car) return;
+
+      document.querySelectorAll('.vehicle-item').forEach(el => el.classList.remove('active'));
+      const activeEl = document.getElementById('card-car-' + id);
+      if (activeEl) activeEl.classList.add('active');
+
+      document.getElementById('selected-car-title').innerText = car.name;
+      document.getElementById('selected-plate').innerText = car.plate;
+      document.getElementById('selected-location').innerText = car.location;
+      document.getElementById('selected-odo').innerText = car.odo;
+      document.getElementById('selected-fuel').innerText = car.fuel;
+      document.getElementById('selected-ignition').innerText = car.ignition;
+
+      const badge = document.getElementById('selected-speed-badge');
+      badge.innerText = car.speed + ' km/h';
+      badge.className = 'speed-badge ' + (car.speed > 100 ? 'speed-red' : (car.speed >= 90 ? 'speed-amber' : 'speed-green'));
+
+      map.flyTo([car.lat, car.lng], 13, { duration: 1 });
+      if (markers[id]) markers[id].openPopup();
+    }
+
+    function triggerImmobilizer() {
+      const car = FLEET.find(c => c.id === activeCarId);
+      if (confirm(`Are you sure you want to trigger remote engine cutoff for ${car.name} (${car.plate})? Engine will safely cut off once speed drops under 15 km/h.`)) {
+        alert(`🚨 Cutoff command dispatched to Gujarat Telematics Gateway for ${car.plate}. Safe engine kill engaged.`);
+        document.getElementById('selected-ignition').innerText = 'CUTOFF ENGAGED';
+        document.getElementById('selected-ignition').style.color = '#C62828';
+      }
+    }
+  </script>
+  <script src="safar-auth.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { SafarAuth.protectPage(['HOST', 'ADMIN']); });</script>
+</body>
+</html>
