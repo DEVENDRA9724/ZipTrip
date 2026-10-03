@@ -23,7 +23,7 @@ Not completed / launch blockers:
 2. Private cloud storage for permitted KYC originals, retention and access auditing.
    Current DigiLocker files still depend on temporary provider availability.
 3. Full host application, payout details, agreements and review workflow.
-4. Host availability blocks, maintenance periods, turnaround buffers and extensions.
+4. Turnaround buffers, automatic maintenance reminders and extensions.
 5. Payment gateway, deposits, refunds, webhooks, settlements and invoice reconciliation.
 6. Remove unsupported demonstration claims, fixed ratings and deposit statements;
    unify backend pricing with all displayed quotes before accepting real payments.
@@ -45,8 +45,11 @@ Rental operations update — 2 October 2026
   shows recorded distance and excess kilometres without inventing charge rates.
 - Receipts separate rental and deposit. Checkout rejects a changed quote amount.
 - Backed up SQLite before additive schema changes; PostgreSQL migration included.
-- 45 automated tests passed; build and frontend syntax checks passed.
+- 47 automated tests passed; backend build and frontend syntax checks passed.
 - Running API verified: 12-hour quote includes 150 km and INR 2,000 deposit.
+- Added server security headers for production, data-backed vehicle review summaries,
+  Compact SUV validation parity, and honest mobile messaging for unavailable payment
+  and incomplete eight-angle host photo uploads.
 
 Still required: excess-km rate, late-return policy, cancellation policy, confirmed
 hourly-vs-daily pricing policy, deposit settlement/refund workflow, damage-photo

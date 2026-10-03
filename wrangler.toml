@@ -1,0 +1,8 @@
+name = "safar-self-drive-web"
+compatibility_date = "2026-10-03"
+
+# The portal is a multi-page static frontend. The NestJS API is deployed
+# separately and must be routed to the same origin (or configured as an API
+# origin) before authenticated features are used in production.
+[assets]
+directory = "./apps/web"
