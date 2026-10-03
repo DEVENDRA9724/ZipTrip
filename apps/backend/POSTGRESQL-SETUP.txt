@@ -1,0 +1,26 @@
+Safar PostgreSQL cutover checklist
+
+The local portal continues to use its existing SQLite database. PostgreSQL support
+is prepared, but no PostgreSQL server or AWS account has been provisioned.
+
+1. Provision an empty PostgreSQL database. Restrict network access to the app.
+2. Put its connection string in POSTGRES_DATABASE_URL in your local environment.
+   Do not put passwords in source control. Use verified TLS for hosted databases.
+3. Run npm run db:pg:prepare, then npm run db:pg:deploy.
+4. Before transferring existing records, stop writes and take a verified SQLite
+   backup plus a separate backup of uploads and the document encryption key.
+5. Implement and test a separate data import into staging; preserve IDs, password
+   hashes, timestamps, monetary precision and document references. Compare every
+   table's counts and relationships. Schema deployment does NOT transfer data.
+6. Only after validation, set DATABASE_URL to the target PostgreSQL URL, run
+   npm run db:pg:generate and npm run build, then restart the application.
+7. Run booking concurrency, payment, authentication and document access tests
+   against PostgreSQL before switching production traffic.
+
+Rollback: stop the new app, restore the original DATABASE_URL and run
+npm run db:generate followed by npm run build. Reconcile any writes made after
+cutover before using an older database. Never blindly switch back after traffic.
+
+Do not run the demo seed or the root setup script against production.
+Use db:pg:deploy for reviewed migrations, never db push against production.
+Any model change requires regenerating the target schema and a reviewed migration.

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Us &bull; Safar Self Drive Gujarat</title>
+  <meta name="description" content="Learn about Safar Self Drive, Gujarat's premier self-drive and luxury taxi platform. Our mission, rental policies, and transparent billing." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    
+:root {
+  --brand-purple:       #411945;
+  --brand-purple-light: #5E2564;
+  --brand-purple-pale:  #F7F1F8;
+  --brand-orange:       #E37220;
+  --brand-orange-light: #F47B20;
+  --brand-orange-pale:  #FFF5EB;
+  --green:              #10843E;
+  --green-pale:         #E8F5E9;
+  --bg-page:            #F8F9FA;
+  --bg-card:            #FFFFFF;
+  --border:             #E4E7EC;
+  --text-main:          #1A1D20;
+  --text-secondary:     #525866;
+  --text-muted:         #868C98;
+  --radius-sm:          6px;
+  --radius-md:          12px;
+  --radius-lg:          20px;
+  --shadow-sm:          0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-card:        0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-hover:       0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ─── SHARED NAVBAR ─── */
+.site-header {
+  position: sticky;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+.header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+}
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  list-style: none;
+}
+.nav-menu a {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  padding: 6px 0;
+  position: relative;
+}
+.nav-menu a:hover, .nav-menu a.active {
+  color: var(--brand-orange);
+}
+.nav-menu a.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--brand-orange);
+  border-radius: 2px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-header-wa {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: #25D366;
+  color: #FFFFFF;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: opacity 0.2s;
+}
+.btn-header-wa:hover { opacity: 0.9; }
+
+.btn-header-cars {
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: var(--brand-orange);
+  color: #FFFFFF;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: background 0.2s;
+}
+.btn-header-cars:hover { background: var(--brand-orange-light); }
+
+/* ─── SHARED FOOTER ─── */
+.site-footer {
+  background: #FFFFFF;
+  border-top: 1px solid var(--border);
+  padding: 60px 0 24px;
+  margin-top: 60px;
+}
+.footer-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+.footer-brand p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+.footer-col h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 16px;
+}
+.footer-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-col ul li a {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+.footer-col ul li a:hover {
+  color: var(--brand-orange);
+}
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ─── FLOATING WHATSAPP ─── */
+.wa-float {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  background: #25D366;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.4);
+  z-index: 999;
+  transition: transform 0.2s;
+}
+.wa-float:hover { transform: scale(1.08); }
+
+
+    .page-hero {
+      background: #FFFFFF;
+      padding: 50px 0 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-hero-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .page-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .page-sub {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      margin-top: 6px;
+    }
+
+    .info-content-wrap {
+      max-width: 1280px;
+      margin: 50px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 50px;
+    }
+
+    .info-article h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--brand-purple);
+      margin: 30px 0 12px;
+    }
+    .info-article p {
+      color: var(--text-secondary);
+      font-size: 0.96rem;
+      line-height: 1.8;
+      margin-bottom: 18px;
+    }
+
+    .faq-item {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+    .faq-q {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .sidebar-info-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .sidebar-info-card h4 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      color: var(--brand-orange);
+    }
+  
+    /* UNIFIED HAMBURGER DRAWER STYLES */
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border, #E2E4E8);
+      font-size: 1.25rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-purple, #411945);
+      transition: background 0.2s;
+    }
+    .btn-hamburger:hover {
+      background: #F4F5F7;
+    }
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+      <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── PAGE HERO ─── -->
+  <div class="page-hero">
+    <div class="page-hero-inner">
+      <div style="font-size: 0.8rem; font-weight: 800; color: var(--brand-orange); text-transform: uppercase;">Company &bull; Policy &bull; FAQs</div>
+      <h1 class="page-title">About Safar Self Drive</h1>
+      <div class="page-sub">Empowering travelers across Gujarat with top-tier vehicles and honest kilometer pricing.</div>
+    </div>
+  </div>
+
+  <!-- ─── INFO CONTENT ─── -->
+  <div class="info-content-wrap">
+    <div class="info-article">
+      <h3>The Safar Story &amp; Philosophy</h3>
+      <p>
+        Founded in Ahmedabad, <strong>Safar Self Drive</strong> was established to solve the biggest frustration in the car rental industry: awkward yellow-plate commercial taxis, complicated security deposit deductions, and opaque pricing.
+      </p>
+      <p>
+        Our core motto is <strong>"Your Journey. Your Rules."</strong> We believe every road trip should be private, comfortable, and dignified. Whether you want to drive a Mahindra Thar 4x4 with your friends to Gir Forest or hire a chauffeured Mercedes-Benz E-Class to pick up high-profile clients at Ahmedabad Airport, we guarantee spotless execution.
+      </p>
+
+      <h3>The Safar Self-Drive Experience</h3>
+      <p>
+        We believe in providing pristine, sanitized, and top-tier vehicles so you feel completely at home behind the wheel. Drive with complete dignity, peace of mind, and freedom wherever you travel across Gujarat.
+      </p>
+
+      <h3>Transparent Kilometer Rates for Taxi &amp; Chauffeur</h3>
+      <p>
+        Unlike app-based aggregators with surging peak multipliers and hidden driver allowances, our <strong>Taxi and Chauffeur service</strong> operates on transparent, pre-agreed per-kilometer rates. Starting from ₹12/km for sedans to ₹35/km for luxury sedans (Mercedes, BMW, Audi) &mdash; you only pay for what you travel.
+      </p>
+
+      <h3>Frequently Asked Questions (FAQs)</h3>
+
+      <div class="faq-item">
+        <div class="faq-q">1. What documents are required to book a self-drive car?</div>
+        <div class="faq-a">
+          You only need: (1) A valid Original Driving License (min. 1 year old) and (2) Aadhaar Card or Passport for identity and address verification. Upload via WhatsApp or during delivery.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">2. Is there a security deposit?</div>
+        <div class="faq-a">
+          We offer a <strong>Zero Security Deposit Scheme</strong> for verified Gujarat residents. For outstation travelers, a nominal refundable deposit of ₹2,000 to ₹5,000 is processed back to your UPI within 2 hours of vehicle return.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">3. Can I take the car anywhere in Gujarat?</div>
+        <div class="faq-a">
+          Yes! All our cars are registered for statewide travel across Gujarat including Somnath, Dwarka, Diu, Kutch, Statue of Unity, and Gir. Out-of-state permits (Rajasthan/Maharashtra) are also available upon request.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">4. How does the per-kilometer taxi billing work?</div>
+        <div class="faq-a">
+          Our chauffeur tracks the opening and closing odometer readings in front of you. You pay the exact agreed per-km rate plus toll &amp; parking. Zero surge pricing, zero night surcharges.
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Cards -->
+    <aside>
+      <div class="sidebar-info-card">
+        <h4>Need Immediate Help?</h4>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+          Our Gujarat dispatch team is available 24 hours a day, 7 days a week.
+        </p>
+        <a href="tel:+919999999999" style="font-size: 1.1rem; font-weight: 800; color: var(--brand-purple); display: block; margin-bottom: 10px;">
+          📞 +91 99999 99999
+        </a>
+        <a href="https://wa.me/919999999999" target="_blank" style="font-size: 0.9rem; font-weight: 700; color: #25D366;">
+          💬 Chat on WhatsApp &rarr;
+        </a>
+      </div>
+
+      <div class="sidebar-info-card">
+        <h4>Our Gujarat Hubs</h4>
+        <ul style="list-style: none; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
+          <li>📍 <strong>Ahmedabad:</strong> Ellis Bridge &amp; SG Highway</li>
+          <li>📍 <strong>Surat:</strong> Vesu &amp; Ring Road</li>
+          <li>📍 <strong>Vadodara:</strong> Alkapuri Hub</li>
+          <li>📍 <strong>Rajkot:</strong> Kalawad Road</li>
+          <li>📍 <strong>Gandhinagar:</strong> GIFT City Area</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ─── FOOTER ─── -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-bottom">
+        <div>&copy; 2026 Safar Self Drive. All Rights Reserved. Safar Self Drive &amp; Taxi Services Across Gujarat.</div>
+        <div><a href="cars.html" style="color: var(--brand-orange); font-weight: 700;">Find Available Cars &rarr;</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <a href="https://wa.me/919999999999" class="wa-float" title="Chat on WhatsApp">💬</a>
+
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+  <script src="safar-auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+SAFAR IMPLEMENTATION STATUS — 2 October 2026
+
+Technology: TypeScript / NestJS, Prisma, PostgreSQL target database.
+The existing SQLite database remains active and unchanged.
+
+Completed in this implementation:
+- PostgreSQL adapter selection, target schema, versioned initial migration,
+  prepare/generate/deploy commands and cutover checklist.
+- Production startup rejects a SQLite database configuration.
+- Shared date validation and reservation overlap rules used by booking and search.
+- Date-based search excludes confirmed/active overlapping trips, unexpired holds,
+  and vehicles whose RC, insurance or PUC expires before the requested return.
+- Homepage search passes dates/city to results; results preserve dates in car links
+  and login return links; booking fields prefill from the selected dates.
+- Correct button CSS specificity; orange primary and outlined secondary actions.
+- KYC panel/checkbox styling, progress display, expiry-aware personal statuses,
+  latest-document retrieval action and collapsible attempt history.
+- Updated upload/image dependencies and added isolated-database availability tests.
+
+Not completed / launch blockers:
+1. Provision PostgreSQL; perform and verify a data import with backup and rollback.
+   See apps/backend/POSTGRESQL-SETUP.txt. No cloud account or domain exists yet.
+2. Private cloud storage for permitted KYC originals, retention and access auditing.
+   Current DigiLocker files still depend on temporary provider availability.
+3. Full host application, payout details, agreements and review workflow.
+4. Host availability blocks, maintenance periods, turnaround buffers and extensions.
+5. Payment gateway, deposits, refunds, webhooks, settlements and invoice reconciliation.
+6. Remove unsupported demonstration claims, fixed ratings and deposit statements;
+   unify backend pricing with all displayed quotes before accepting real payments.
+7. Email/phone verification, password recovery, admin MFA and notification jobs.
+8. AWS staging/production, HTTPS domain, secrets, backups, monitoring and rollback.
+9. Resolve remaining dependency advisories with reviewed upgrades and regression tests.
+10. PostgreSQL concurrency tests and authenticated end-to-end KYC/host/payment tests.
+
+Validation does not establish production readiness. No live identity verification,
+payment, cloud provisioning or real booking was initiated during this change.
+
+Rental operations update — 2 October 2026
+- Added owner-controlled date blocks and release, audited and checked in search,
+  quotes and booking creation. Existing reservations cannot be displaced.
+- Server-generated rental quotes now include a separate INR 2,000 deposit.
+- New bookings snapshot included distance: 300 km/24 hours, prorated by duration.
+- Existing bookings retain their original pricing; no deposit retroactively added.
+- Pickup/return now records fuel percentage and condition notes; trip history
+  shows recorded distance and excess kilometres without inventing charge rates.
+- Receipts separate rental and deposit. Checkout rejects a changed quote amount.
+- Backed up SQLite before additive schema changes; PostgreSQL migration included.
+- 45 automated tests passed; build and frontend syntax checks passed.
+- Running API verified: 12-hour quote includes 150 km and INR 2,000 deposit.
+
+Still required: excess-km rate, late-return policy, cancellation policy, confirmed
+hourly-vs-daily pricing policy, deposit settlement/refund workflow, damage-photo
+claims, full onboarding, payment gateway, secure cloud documents and deployment.
+Current rental billing remains per started 24-hour day; only kilometre allowance
+is prorated. No automatic damage, late-return or excess-km charges are implemented.

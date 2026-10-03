@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer &amp; Host Portal &bull; Safar Self Drive</title>
+  <meta name="description" content="Sign in or register as a customer or vehicle host with Safar Self Drive Gujarat." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --brand-purple:       #411945;
+      --brand-purple-light: #5E2564;
+      --brand-orange:       #E37220;
+      --brand-orange-light: #F47B20;
+      --green:              #10843E;
+      --bg-page:            #F5F6F8;
+      --card-bg:            #FFFFFF;
+      --border:             #E2E4E8;
+      --text-main:          #1A1A1A;
+      --text-secondary:     #666666;
+      --text-muted:         #8E94A0;
+      --radius-sm:          6px;
+      --radius-md:          10px;
+      --radius-lg:          16px;
+      --shadow-card:        0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .auth-header {
+      background: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+    }
+    .auth-header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .auth-container {
+      max-width: 520px;
+      width: 100%;
+      margin: 40px auto 60px;
+      padding: 0 16px;
+      flex: 1;
+    }
+
+    .auth-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .auth-tabs {
+      display: flex;
+      background: #F0F2F5;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 24px;
+    }
+    .auth-tab-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      background: transparent;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .auth-tab-btn.active {
+      background: #FFFFFF;
+      color: var(--brand-purple);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      letter-spacing: 0.04em;
+    }
+    .form-input {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--brand-orange);
+    }
+
+    .btn-submit-auth {
+      width: 100%;
+      padding: 13px;
+      background: var(--brand-orange);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    .btn-submit-auth:hover {
+      background: var(--brand-orange-light);
+    }
+
+    .auth-footer-text {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 16px;
+    }
+    .auth-footer-text a {
+      color: var(--brand-orange);
+      font-weight: 700;
+      text-decoration: none;
+    }
+  
+    /* UNIFIED HAMBURGER DRAWER STYLES */
+    .btn-hamburger {
+      background: none;
+      border: 1px solid var(--border, #E2E4E8);
+      font-size: 1.25rem;
+      cursor: pointer;
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-purple, #411945);
+      transition: background 0.2s;
+    }
+    .btn-hamburger:hover {
+      background: #F4F5F7;
+    }
+    .menu-drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+    }
+    .menu-drawer-backdrop.active { display: block; }
+    .menu-drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 320px;
+      background: #FFFFFF;
+      box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15);
+      z-index: 2001;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .menu-drawer.active { transform: translateX(0); }
+    .drawer-top-banner {
+      background: linear-gradient(135deg, var(--brand-purple, #411945) 0%, #2B0E2E 100%);
+      color: #FFFFFF;
+      padding: 24px 20px;
+      position: relative;
+    }
+    .drawer-close-btn {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #FFFFFF;
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drawer-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+    .drawer-links-list {
+      list-style: none;
+      padding: 14px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 210px);
+    }
+    .drawer-links-list li { margin-bottom: 3px; }
+    .drawer-links-list a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-main, #1A1A1A);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .drawer-links-list a:hover {
+      background: #FFF5EB;
+      color: #E37220;
+    }
+    .drawer-links-list a.highlight-purple {
+      background: #F8F1F9;
+      color: #411945;
+      font-weight: 700;
+    }
+    .drawer-icon {
+      font-size: 1.15rem;
+      width: 24px;
+      text-align: center;
+    }
+    .drawer-footer {
+      border-top: 1px solid #E2E4E8;
+      padding: 14px 20px;
+      background: #F9FAFB;
+    }
+
+  
+    
+
+  
+    /* ═══════════════════════════════════════════════════════════════
+       PRODUCTION ENTERPRISE HEADER (ZOOMCAR / TURO MINIMALIST DESIGN)
+    ═══════════════════════════════════════════════════════════════ */
+    .site-header, #zoom-header, .dash-header, .nav-header, .calc-header, .auth-header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E5E7EB;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+      height: 68px;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-inner, .header-container, .dash-header-inner, .nav-inner, .calc-header-inner, .auth-header-inner {
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Left Group */
+    .header-left-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-hamburger {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      color: #1F2937;
+      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-nav-hamburger:hover {
+      background: #F9FAFB;
+      border-color: #D1D5DB;
+    }
+
+    .header-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .header-logo-img {
+      height: 42px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Center Nav Links - Clean, spacious, NO childish emojis, strictly NO wrapping */
+    .header-center-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      white-space: nowrap;
+    }
+    .header-center-nav li {
+      display: inline-block;
+    }
+    .header-center-nav a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #4B5563;
+      text-decoration: none;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .header-center-nav a:hover {
+      color: #111827;
+      background: #F3F4F6;
+    }
+    .header-center-nav a.active {
+      color: #E37220;
+      font-weight: 700;
+      background: #FFF7ED;
+    }
+
+    /* Right Utility & Auth */
+    .header-right-box {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-link-host {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .header-link-host:hover {
+      color: #411945;
+      background: #F9FAFB;
+    }
+
+    .header-helpline-num {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #6B7280;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-helpline-num:hover {
+      color: #111827;
+    }
+
+    .header-v-sep {
+      width: 1px;
+      height: 20px;
+      background: #E5E7EB;
+    }
+
+    /* Clean Auth Button / Profile */
+    .btn-auth-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: #E37220;
+      color: #FFFFFF;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid #E37220;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-auth-action:hover {
+      background: #D06316;
+      border-color: #D06316;
+    }
+
+    .auth-profile-logged {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      color: #1F2937;
+      font-size: 0.84rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .auth-profile-logged b {
+      color: #411945;
+    }
+    .auth-role-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #EDE9FE;
+      color: #6D28D9;
+    }
+    .btn-logout-clean {
+      color: #9CA3AF;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 6px;
+      padding-left: 6px;
+      border-left: 1px solid #E5E7EB;
+    }
+    .btn-logout-clean:hover {
+      color: #DC2626;
+    }
+
+    @media (max-width: 1100px) {
+      .header-center-nav { display: none; }
+      .header-helpline-num { display: none; }
+      .header-v-sep { display: none; }
+    }
+
+  </style>
+  <link rel="stylesheet" href="luxury-theme.css">
+</head>
+<body>
+
+  <!-- UNIFIED HAMBURGER MENU DRAWER -->
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <aside class="site-menu-drawer" id="side-menu-drawer">
+    <!-- Populated by safar-auth.js -->
+  </aside>
+
+
+        <!-- ═══════════════════════════════════════════════════════════════
+       SAFAR LUXURY ENTERPRISE HEADER (GLASSMORPHISM & CLAYMORPHISM)
+       All options are under the Hamburger Menu
+  ═══════════════════════════════════════════════════════════════ -->
+  <header class="site-header">
+    <div class="header-inner">
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <div class="header-left-box">
+        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <a href="index.html" class="header-logo-link">
+          <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
+        </a>
+
+        <div class="header-location-badge" title="Active Hubs Across Gujarat">
+          <span class="pulse-dot"></span>
+          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
+        </div>
+      </div>
+
+      <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
+      <div class="header-center-spacer"></div>
+
+      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <div class="header-right-box">
+        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+          <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="helpline-num">+91 99999 99999</span>
+        </a>
+
+        <div id="header-auth-container">
+          <a href="auth.html" class="btn-clay-auth">
+            Sign In
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--brand-purple);">
+          Safar Portal Access
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+          Log in or create your verified customer or host account
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" id="tab-login" onclick="switchAuthMode('login')">Customer Login</button>
+        <button class="auth-tab-btn" id="tab-cust-reg" onclick="switchAuthMode('cust-reg')">Customer Register</button>
+        <button class="auth-tab-btn" id="tab-host-reg" onclick="switchAuthMode('host-reg')">Host / Admin</button>
+      </div>
+
+      <!-- FORM 1: LOGIN -->
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <!-- 1-Click Fast Logins for instant testing -->
+        <div style="background: #F8F9FA; border: 1px solid #E2E4E8; border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+          <div style="font-size: 0.72rem; font-weight: 800; color: #8E94A0; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.04em;">
+            ⚡ Quick 1-Click Instant Login (No Password Required):
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <button type="button" onclick="SafarAuth.quickLogin('CUSTOMER', 'Hardik Patel', 'hardik@gujarat.in')" style="width: 100%; padding: 8px 12px; background: #FFFFFF; border: 1.5px solid #E37220; color: #E37220; border-radius: 6px; font-size: 0.82rem; font-weight: 800; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+              <span>👤 Login as <b>Customer</b> (Hardik Patel)</span>
+              <span>&rarr;</span>
+            </button>
+            <button type="button" onclick="SafarAuth.quickLogin('HOST', 'Rahul Dungariya', 'host.rahul@safar.in')" style="width: 100%; padding: 8px 12px; background: #FFFFFF; border: 1.5px solid #411945; color: #411945; border-radius: 6px; font-size: 0.82rem; font-weight: 800; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+              <span>🤝 Login as <b>Car Host</b> (Rahul Dungariya)</span>
+              <span>&rarr;</span>
+            </button>
+            <button type="button" onclick="SafarAuth.quickLogin('ADMIN', 'Safar Operations Admin', 'admin@safarselfdrive.in')" style="width: 100%; padding: 8px 12px; background: #411945; border: none; color: #FFFFFF; border-radius: 6px; font-size: 0.82rem; font-weight: 800; cursor: pointer; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+              <span>🛡️ Login as <b>Master Admin</b> (Full Access)</span>
+              <span>&rarr;</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin: 12px 0; font-size: 0.76rem; color: #8E94A0; font-weight: 700;">
+          ── OR SIGN IN WITH CREDENTIALS ──
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email or Phone Number</label>
+          <input type="text" id="login-email" class="form-input" placeholder="e.g. customer@example.com or +91..." required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="login-pwd" class="form-input" placeholder="Enter your password" required />
+        </div>
+
+        <button type="submit" class="btn-submit-auth">
+          Sign In to Safar &rarr;
+        </button>
+      </form>
+
+      <!-- FORM 2: CUSTOMER REGISTER -->
+      <form id="form-cust-reg" style="display: none;" onsubmit="handleCustomerRegister(event)">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">First Name *</label>
+            <input type="text" id="cr-fname" class="form-input" placeholder="First Name" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name *</label>
+            <input type="text" id="cr-lname" class="form-input" placeholder="Last Name" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Mobile Number * (For WhatsApp Booking)</label>
+          <input type="tel" id="cr-phone" class="form-input" placeholder="+91 98765 43210" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          <input type="email" id="cr-email" class="form-input" placeholder="name@example.com" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Driving License (DL) Number *</label>
+          <input type="text" id="cr-dl" class="form-input" placeholder="e.g. GJ0120200012345" required />
+          <small style="font-size: 0.7rem; color: var(--text-muted);">Required for rental agreement verification</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">City in Gujarat</label>
+          <select id="cr-city" class="form-input">
+            <option value="Ahmedabad">Ahmedabad</option>
+            <option value="Surat">Surat</option>
+            <option value="Vadodara">Vadodara</option>
+            <option value="Rajkot">Rajkot</option>
+            <option value="Gandhinagar">Gandhinagar</option>
+            <option value="Other Gujarat City">Other Gujarat City</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" id="cr-pwd" class="form-input" placeholder="Create a secure password" required />
+        </div>
+
+        <button type="submit" class="btn-submit-auth">
+          Create Verified Customer Account &rarr;
+        </button>
+      </form>
+
+      <!-- FORM 3: HOST / ADMIN REGISTER -->
+      <form id="form-host-reg" style="display: none;" onsubmit="handleHostRegister(event)">
+        <div class="form-group">
+          <label class="form-label">Portal Role</label>
+          <select id="hr-role" class="form-input">
+            <option value="HOST">Vehicle Host (List cars &amp; earn)</option>
+            <option value="ADMIN">Safar Fleet Admin (Manage bookings &amp; fleet)</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">Full Name *</label>
+            <input type="text" id="hr-name" class="form-input" placeholder="Full name" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">City Base *</label>
+            <input type="text" id="hr-city" class="form-input" placeholder="e.g. Ahmedabad" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Business / Fleet Mobile *</label>
+          <input type="tel" id="hr-phone" class="form-input" placeholder="+91 XXXXX XXXXX" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Official Email *</label>
+          <input type="email" id="hr-email" class="form-input" placeholder="host@fleet.com" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" id="hr-pwd" class="form-input" placeholder="Create password" required />
+        </div>
+
+        <button type="submit" class="btn-submit-auth" style="background: var(--brand-purple);">
+          Register Host / Admin Account &rarr;
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <script>
+    function switchAuthMode(mode) {
+      document.querySelectorAll('.auth-tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('form-login').style.display = 'none';
+      document.getElementById('form-cust-reg').style.display = 'none';
+      document.getElementById('form-host-reg').style.display = 'none';
+
+      if (mode === 'login') {
+        document.getElementById('tab-login').classList.add('active');
+        document.getElementById('form-login').style.display = 'block';
+      } else if (mode === 'cust-reg') {
+        document.getElementById('tab-cust-reg').classList.add('active');
+        document.getElementById('form-cust-reg').style.display = 'block';
+      } else if (mode === 'host-reg') {
+        document.getElementById('tab-host-reg').classList.add('active');
+        document.getElementById('form-host-reg').style.display = 'block';
+      }
+    }
+
+    // Login Handler
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pwd = document.getElementById('login-pwd').value.trim();
+
+      // Check demo credentials or storage
+      let user = {
+        name: email.split('@')[0] || 'Deven Patel',
+        email: email,
+        role: email.includes('admin') ? 'ADMIN' : (email.includes('host') ? 'HOST' : 'CUSTOMER'),
+        phone: '+91 98765 43210',
+        dlNumber: 'GJ01-2023-009842',
+        city: 'Ahmedabad'
+      };
+
+      localStorage.setItem('safar_user', JSON.stringify(user));
+      alert(`Welcome back, ${user.name}! You are logged in as ${user.role}.`);
+
+      const params = new URLSearchParams(window.location.search);
+      const redirectUrl = params.get('redirect');
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else if (user.role === 'ADMIN' || user.role === 'HOST') {
+        window.location.href = 'dashboard.html';
+      } else {
+        window.location.href = 'cars.html';
+      }
+    }
+
+    // Customer Register Handler
+    function handleCustomerRegister(e) {
+      e.preventDefault();
+      const fname = document.getElementById('cr-fname').value.trim();
+      const lname = document.getElementById('cr-lname').value.trim();
+      const phone = document.getElementById('cr-phone').value.trim();
+      const email = document.getElementById('cr-email').value.trim();
+      const dl = document.getElementById('cr-dl').value.trim();
+      const city = document.getElementById('cr-city').value;
+
+      const user = {
+        name: `${fname} ${lname}`,
+        email: email,
+        phone: phone,
+        dlNumber: dl,
+        city: city,
+        role: 'CUSTOMER'
+      };
+
+      localStorage.setItem('safar_user', JSON.stringify(user));
+      alert(`Congratulations ${user.name}! Your Safar Customer account is active and verified.`);
+      window.location.href = 'cars.html';
+    }
+
+    // Host / Admin Register Handler
+    function handleHostRegister(e) {
+      e.preventDefault();
+      const role = document.getElementById('hr-role').value;
+      const name = document.getElementById('hr-name').value.trim();
+      const city = document.getElementById('hr-city').value.trim();
+      const phone = document.getElementById('hr-phone').value.trim();
+      const email = document.getElementById('hr-email').value.trim();
+
+      const user = {
+        name: name,
+        email: email,
+        phone: phone,
+        city: city,
+        role: role
+      };
+
+      localStorage.setItem('safar_user', JSON.stringify(user));
+      alert(`Account created! Welcome to Safar ${role} Management Console.`);
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+
+  <script>
+    function toggleMenuDrawer() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+      }
+    }
+    // Update drawer username if logged in
+    document.addEventListener('DOMContentLoaded', () => {
+      const userStr = localStorage.getItem('safar_user');
+      const statusEl = document.getElementById('drawer-user-status');
+      if (userStr && statusEl) {
+        try {
+          const user = JSON.parse(userStr);
+          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
+        } catch(e) {}
+      }
+    });
+  </script>
+
+  <script src="safar-auth.js"></script>
+</body>
+</html>
