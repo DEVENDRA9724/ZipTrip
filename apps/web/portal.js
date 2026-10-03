@@ -11,7 +11,7 @@ async function renderOriginalEvidence(box, endpoint, title, onEvidence = () => {
       try {
         const url = new URL(file.url, location.origin);
         return !url.username && !url.password && (url.protocol === 'https:' ||
-          (url.origin === location.origin && url.pathname.startsWith('/api/media/')));
+          (url.origin === location.origin && (url.pathname.startsWith('/api/media/') || url.pathname.startsWith('/api/admin/') || url.pathname.startsWith('/api/kyc/'))));
       } catch { return false; }
     });
     if (!files.length) throw new Error('Original document unavailable. Retry or complete DigiLocker verification again.');
@@ -49,7 +49,9 @@ async function renderOriginalEvidence(box, endpoint, title, onEvidence = () => {
       link.rel = 'noopener noreferrer';
       link.referrerPolicy = 'no-referrer';
       link.className = 'button btn-orange btn-sm';
-      link.textContent = evidence.source === 'DIGILOCKER' ? 'Open original document ↗' : 'Open uploaded image ↗';
+      link.textContent = (pathname.includes('/certificate') || file.metadata?.isCertificate)
+        ? 'Open Official Certificate ↗'
+        : (evidence.source === 'DIGILOCKER' ? 'Open original document ↗' : 'Open uploaded image ↗');
       link.onclick = () => onOpen(evidence);
       card.append(name, format, link);
       box.append(card);
@@ -184,8 +186,7 @@ function shell() {
   const links = [
     ['cars.html', 'Explore Cars'],
     ['host-onboarding.html', 'List Your Car'],
-    ['dashboard.html', 'My Trips'],
-    ['kyc.html', 'Verification'],
+    ['dashboard.html', 'Account'],
     ...(user?.role === 'ADMIN' ? [['admin.html', 'Admin']] : []),
   ];
 
@@ -205,10 +206,10 @@ function shell() {
     </div>
 
     <nav class="nav" aria-label="Main Navigation">
-      ${links.map(([href, label]) => `<a class="${page === href ? 'active' : ''}" href="${href}">${label}</a>`).join('')}
+      ${links.map(([href, label]) => `<a class="${page === href || (href === 'dashboard.html' && page === 'kyc.html') ? 'active' : ''}" href="${href}">${label}</a>`).join('')}
     </nav>
 
-    <details class="compact-menu"><summary aria-label="Open navigation menu">Menu <span aria-hidden="true">☰</span></summary><nav aria-label="Compact navigation">${links.map(([href,label]) => `<a href="${href}" ${page === href ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav></details>
+    <details class="compact-menu"><summary aria-label="Open navigation menu">Menu <span aria-hidden="true">☰</span></summary><nav aria-label="Compact navigation">${links.map(([href,label]) => `<a href="${href}" ${page === href || (href === 'dashboard.html' && page === 'kyc.html') ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav></details>
     <div class="account">
       <a href="tel:+919999999999" class="header-phone-pill" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;font-size:12px;font-weight:700;color:#334155;text-decoration:none;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -257,13 +258,9 @@ function shell() {
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 10.8 2 11 2 11.2V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
         <span>Cars</span>
       </a>
-      <a class="bnav-item ${page === 'dashboard.html' ? 'active' : ''}" href="dashboard.html">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span>Trips</span>
-      </a>
-      <a class="bnav-item ${page === 'kyc.html' ? 'active' : ''}" href="kyc.html">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        <span>KYC</span>
+      <a class="bnav-item ${page === 'dashboard.html' || page === 'kyc.html' ? 'active' : ''}" href="dashboard.html">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Account</span>
       </a>
       ${user?.role === 'ADMIN' ? `
       <a class="bnav-item ${page === 'admin.html' ? 'active' : ''}" href="admin.html">
@@ -1115,18 +1112,16 @@ async function carDetails(id) {
   }
 }
 
-/* ─── KYC VERIFICATION CENTRE ────────────────────────────────────────── */
 async function kyc() {
   if (!requireUser()) return;
+  await dashboard('kyc');
+}
+
+function renderKycTabHtml(info) {
   const isNew = new URLSearchParams(location.search).get('new') === '1';
   const vehicleId = new URLSearchParams(location.search).get('vehicle');
 
-  let info;
-  try { info = await api('/kyc'); }
-  catch (e) { $('#app').innerHTML = `<p class="error">${esc(e.message)}</p>`; return; }
-
-  const ownVehicles = ['HOST','ADMIN'].includes(user.role) ? await api('/vehicles/mine').catch(() => []) : [];
-  const personalDocs = info.documents.filter(doc => !doc.vehicleId && doc.source !== 'DIGILOCKER_TEST');
+  const personalDocs = (info.documents || []).filter(doc => !doc.vehicleId && doc.source !== 'DIGILOCKER_TEST');
   const kycApproved = personalDocs.some(doc => doc.kind === 'AADHAAR' && doc.status === 'APPROVED');
   const dlApproved = personalDocs.some(doc => doc.kind === 'DL' && doc.status === 'APPROVED' && doc.validUntil && new Date(doc.validUntil) > new Date());
   const eligible = kycApproved && dlApproved;
@@ -1139,13 +1134,12 @@ async function kyc() {
     return 'Not yet verified';
   };
 
-  $('#app').innerHTML = `
+  return `
     ${isNew ? `
       <div class="kyc-welcome-banner">
         🎉 <strong>Welcome to Safar!</strong> Your account is registered. Please verify your Aadhaar &amp; Driving Licence below to activate self-drive booking privileges.
       </div>` : ''}
 
-    ${sectionHead('Verification Centre', 'Verify your identity and driving licence to get ready for your next journey.', 'IDENTITY & COMPLIANCE')}
     <ol class="verification-steps" aria-label="Verification progress">
       <li class="is-complete"><span>1</span>Account created</li>
       <li class="${personalDocs.length ? 'is-complete' : 'is-current'}"><span>2</span>Share documents</li>
@@ -1203,14 +1197,14 @@ async function kyc() {
           Official gateway: <code>digilocker.meripehchaan.gov.in</code>. Safar never stores your Aadhaar OTP.
         </p>
 
-        ${info.sessions[0] && new Date(info.sessions[0].expiresAt) > new Date() ? `
+        ${info.sessions && info.sessions[0] && new Date(info.sessions[0].expiresAt) > new Date() ? `
           <div class="verification-next-action">
             <strong>Returned from DigiLocker?</strong>
             <p>Your documents must be retrieved before they can be reviewed.</p>
             <button type="button" class="button btn-outline sync-session-btn" data-id="${info.sessions[0].id}">Retrieve latest documents</button>
           </div>` : ''}
 
-        ${info.sessions.length ? `
+        ${info.sessions && info.sessions.length ? `
           <details class="verification-history">
             <summary>Verification attempts (${info.sessions.length})</summary>
             <p class="text-muted">A completed sharing session still requires document retrieval and review.</p>
@@ -1229,14 +1223,7 @@ async function kyc() {
         <p class="text-muted">Upload your Driving Licence for manual officer review, or upload RC, Insurance, and PUC for listed host cars.</p>
 
         <form id="doc-upload-form" class="form-stack">
-          ${sel('kind', 'Document Type', ownVehicles.length ? ['DL','RC','INSURANCE','PUC'] : ['DL'])}
-          ${ownVehicles.length ? `
-            <label>Vehicle (for RC, Insurance, PUC)
-              <select name="vehicleId">
-                <option value="">Not applicable for personal DL</option>
-                ${ownVehicles.map(v => `<option value="${v.id}" ${v.id === vehicleId ? 'selected' : ''}>${esc(v.registrationNumber + ' · ' + v.make + ' ' + v.model)}</option>`).join('')}
-              </select>
-            </label>` : ''}
+          ${sel('kind', 'Document Type', ['DL','RC','INSURANCE','PUC'])}
           <label>Document Image (JPG, PNG, WebP)
             <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
           </label>
@@ -1250,9 +1237,9 @@ async function kyc() {
     </div>
 
     <!-- Submitted Records Table -->
-    <section class="panel">
+    <section class="panel" style="margin-top:24px;">
       <h3>Submitted Verification Records</h3>
-      ${info.documents.length ? `
+      ${info.documents && info.documents.length ? `
         <div class="table-wrap">
           <table>
             <thead>
@@ -1283,8 +1270,9 @@ async function kyc() {
           </table>
         </div>` : empty('No verification records found', 'Complete DigiLocker verification or upload your driving licence to get started.')}
     </section>`;
+}
 
-  // View Document modal for user
+function bindKycEvents(info) {
   $$('.view-user-doc-btn').forEach(btn => {
     btn.onclick = async () => {
       showDialog(`
@@ -1298,30 +1286,18 @@ async function kyc() {
     };
   });
 
-  // DigiLocker Session Launch
   bindForm('#digilocker-form', async () => {
     const session = await post('/kyc/sessions', {consent: true});
     location.assign(session.authorizationUrl);
   });
 
-  // Sync DigiLocker Session
   $$('.sync-session-btn').forEach(btn => {
     btn.onclick = async () => {
       btn.disabled = true; btn.textContent = 'Syncing…';
       try {
         const result = await post('/kyc/sessions/' + btn.dataset.id + '/sync', {});
-        await kyc();
-        const results = result.syncResults || [];
-        const failed = results.some(item => item.state !== 'AVAILABLE');
-        const message = result.syncMessage || (results.length
-          ? results.map(item => item.kind + ': ' + (item.state === 'AVAILABLE' ? 'original available for review' : item.message || 'retrieval failed')).join(' • ')
-          : 'No documents were retrieved. Complete DigiLocker verification and retry.');
-        const feedback = document.createElement('p');
-        feedback.className = failed || result.syncMessage || !results.length ? 'error' : 'notice';
-        feedback.setAttribute('role', 'status');
-        feedback.textContent = message;
-        $('#app').prepend(feedback);
-        toast(message, failed || !!result.syncMessage || !results.length);
+        await dashboard('kyc');
+        toast('Verification records synced.');
       } catch (err) {
         toast(err.message, true);
         btn.disabled = false; btn.textContent = 'Sync & Refresh';
@@ -1329,7 +1305,6 @@ async function kyc() {
     };
   });
 
-  // Manual Document Upload
   bindForm('#doc-upload-form', async (data, form) => {
     const media = await uploadFile(form.file.files[0], data.kind);
     await post('/kyc/documents', {
@@ -1338,7 +1313,7 @@ async function kyc() {
       vehicleId: data.vehicleId || undefined,
       consent: true,
     });
-    await kyc();
+    await dashboard('kyc');
     toast('Document successfully submitted for verification review.');
   });
 }
@@ -1490,36 +1465,74 @@ function formatBookingStatus(b) {
   return b.status === 'PENDING' && new Date(b.expiresAt) < new Date() ? 'EXPIRED' : b.status;
 }
 
-async function dashboard() {
+async function dashboard(defaultTab = 'trips') {
   if (!requireUser()) return;
-  const [trips, hosted] = await Promise.all([
-    api('/bookings/my-trips'),
-    ['HOST','ADMIN'].includes(user.role) ? api('/bookings/host-bookings') : Promise.resolve([]),
+  const params = new URLSearchParams(location.search);
+  const activeTab = params.get('tab') || defaultTab;
+
+  const [trips, hosted, kycInfo] = await Promise.all([
+    api('/bookings/my-trips').catch(() => []),
+    ['HOST','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
+    api('/kyc').catch(() => ({ documents: [], sessions: [], environment: 'live', configured: false })),
   ]);
 
-  $('#app').innerHTML = `
-    ${sectionHead(`Welcome back, ${esc(user.firstName)}`, 'Manage your trip bookings, rental receipts, and vehicle reservations.', 'YOUR DASHBOARD')}
+  const activeCount = trips.filter(b => b.status === 'ACTIVE').length;
 
-    <div class="stats">
+  $('#app').innerHTML = `
+    ${sectionHead(`Account & Profile`, `Manage your trip reservations, verification credentials, and personal profile.`, 'MY ACCOUNT')}
+
+    <div class="stats" style="margin-bottom: 22px;">
       <div class="stat">
-        <div class="stat-lbl">My Trips</div>
-        <strong>${trips.length}</strong>
+        <div class="stat-lbl">Account Member</div>
+        <strong style="font-size:18px;color:var(--purple);">${esc(user.firstName + ' ' + user.lastName)}</strong>
+        <span style="font-size:12px;color:var(--muted);">${esc(user.email)} · ${badge(user.role)}</span>
       </div>
       <div class="stat">
-        <div class="stat-lbl">KYC Status</div>
-        <strong style="font-size:20px">${user.isVerified ? '✓ Verified' : 'Action Needed'}</strong>
-        <a href="kyc.html" style="font-size:12.5px;color:var(--purple);display:block;margin-top:4px">View KYC records →</a>
+        <div class="stat-lbl">KYC Verification</div>
+        <strong style="font-size:18px;color:${user.isVerified ? '#059669' : '#D97706'}">${user.isVerified ? '✓ Verified Driver' : 'Action Needed'}</strong>
+        <span style="font-size:12px;color:var(--muted);">${user.isVerified ? 'DigiLocker Authenticated' : 'Upload DL & Aadhaar'}</span>
       </div>
       <div class="stat">
-        <div class="stat-lbl">Active Trips</div>
-        <strong>${trips.filter(b => b.status === 'ACTIVE').length}</strong>
+        <div class="stat-lbl">My Bookings</div>
+        <strong style="font-size:22px;">${trips.length}</strong>
+        <span style="font-size:12px;color:var(--muted);">${activeCount} Active Trips</span>
       </div>
     </div>
 
+    <!-- Segmented Account Navigation Tabs -->
+    <div class="admin-tabs" style="margin-bottom: 24px;">
+      <button type="button" class="${activeTab === 'trips' ? 'active' : ''}" onclick="switchAccountTab('trips')">
+        🧳 My Trips <span>${trips.length}</span>
+      </button>
+      <button type="button" class="${activeTab === 'kyc' ? 'active' : ''}" onclick="switchAccountTab('kyc')">
+        🪪 Verification &amp; KYC <span>${user.isVerified ? '✓' : '!'}</span>
+      </button>
+      <button type="button" class="${activeTab === 'profile' ? 'active' : ''}" onclick="switchAccountTab('profile')">
+        👤 Profile Details
+      </button>
+    </div>
+
+    <div id="account-tab-content">
+      ${activeTab === 'kyc' ? renderKycTabHtml(kycInfo) : activeTab === 'profile' ? renderProfileTabHtml(kycInfo) : renderTripsTabHtml(trips, hosted)}
+    </div>`;
+
+  if (activeTab === 'trips') bindBookingEvents();
+  if (activeTab === 'kyc') bindKycEvents(kycInfo);
+}
+
+function switchAccountTab(tabName) {
+  const url = new URL(location.href);
+  url.searchParams.set('tab', tabName);
+  history.replaceState(null, '', url.toString());
+  dashboard(tabName);
+}
+
+function renderTripsTabHtml(trips, hosted) {
+  return `
     ${!user.isVerified ? `
       <div class="notice" style="margin-bottom:22px">
-        <strong>Verification Required:</strong> Please complete your Aadhaar eKYC and Driving Licence verification before your trip start time.
-        <a href="kyc.html" class="button btn-sm btn-orange" style="margin-left:12px">Complete KYC →</a>
+        <strong>Verification Required:</strong> Complete Aadhaar eKYC and Driving Licence verification to activate self-drive privileges.
+        <button type="button" onclick="switchAccountTab('kyc')" class="button btn-sm btn-orange" style="margin-left:12px">Complete KYC →</button>
       </div>` : ''}
 
     <section class="panel">
@@ -1528,12 +1541,42 @@ async function dashboard() {
     </section>
 
     ${hosted.length ? `
-      <section class="panel">
+      <section class="panel" style="margin-top:24px;">
         <h3>Bookings on Your Vehicles</h3>
         ${renderBookingTable(hosted, true)}
       </section>` : ''}`;
+}
 
-  bindBookingEvents();
+function renderProfileTabHtml(kycInfo) {
+  return `
+    <section class="panel">
+      <h3>User Profile Information</h3>
+      <p class="text-muted">Your registered Safar account identity and verification credentials.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:20px;">
+        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
+          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Full Name</span>
+          <p style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:4px;">${esc(user.firstName + ' ' + user.lastName)}</p>
+        </div>
+        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
+          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Email Address</span>
+          <p style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:4px;">${esc(user.email)}</p>
+        </div>
+        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
+          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Account Role</span>
+          <p style="margin-top:4px;">${badge(user.role)}</p>
+        </div>
+        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
+          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">DL Valid Until</span>
+          <p style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:4px;">${user.dlValidUntil ? d(user.dlValidUntil) : 'Not uploaded'}</p>
+        </div>
+      </div>
+
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border-main);display:flex;gap:12px;flex-wrap:wrap;">
+        <button type="button" onclick="switchAccountTab('kyc')" class="button btn-orange">Manage KYC Documents</button>
+        <button type="button" id="profile-logout-btn" class="button btn-outline">Sign Out of Account</button>
+      </div>
+    </section>`;
 }
 
 function tripDistanceSummary(booking) {
