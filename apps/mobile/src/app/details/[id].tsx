@@ -2,17 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Dimensions, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { apiRequest } from '@/services/api';
+import { apiRequest, parseImageList } from '@/services/api';
 import { ArrowLeft, Star, Calendar, MapPin, Gauge, Shield, Users, Fuel } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function VehicleDetailsScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors.light;
   
   const { id, startDate: paramStart, endDate: paramEnd } = useLocalSearchParams<{ id: string; startDate: string; endDate: string }>();
 
@@ -76,7 +74,7 @@ export default function VehicleDetailsScreen() {
     );
   }
 
-  const images = vehicle.images.split(',');
+  const images = parseImageList(vehicle.images);
   const rating = getAverageRating(vehicle.reviews);
   const totalDays = calculateDays();
   const pricePerDay = Number(vehicle.pricePerDay);

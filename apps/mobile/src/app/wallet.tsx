@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { apiRequest } from '@/services/api';
@@ -11,8 +10,7 @@ import { Wallet, LogIn, Plus, LogOut, ShieldCheck, CreditCard, ChevronRight } fr
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 export default function WalletScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors.light;
 
   const authContext = require('@/context/AuthContext');
   const { user, logout, refreshProfile } = authContext.useAuth();
@@ -152,17 +150,17 @@ export default function WalletScreen() {
         <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
           <ThemedText style={styles.sectionTitle}>Add Money to Wallet</ThemedText>
           <ThemedText type="small" style={[styles.sectionDesc, { color: colors.textSecondary }]}>
-            Top up your balance instantly using mock payment routing.
+            Wallet top-ups are temporarily unavailable until a verified payment provider is connected.
           </ThemedText>
 
           {/* Quick options */}
-          <View style={styles.quickAddRow}>
+          <View style={[styles.quickAddRow, { opacity: 0.45 }]}>
             {QUICK_AMOUNTS.map(amount => (
               <TouchableOpacity
                 key={amount}
                 style={[styles.quickPill, { backgroundColor: colors.backgroundElement }]}
                 onPress={() => handleDeposit(amount)}
-                disabled={actionLoading}
+                disabled
               >
                 <ThemedText style={[styles.quickPillText, { color: colors.primary }]}>+₹{amount}</ThemedText>
               </TouchableOpacity>
@@ -186,7 +184,7 @@ export default function WalletScreen() {
             <TouchableOpacity
               style={[styles.addBtn, { backgroundColor: colors.primary }]}
               onPress={() => handleDeposit(Number(depositAmount))}
-              disabled={actionLoading || !depositAmount}
+              disabled
             >
               {actionLoading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />

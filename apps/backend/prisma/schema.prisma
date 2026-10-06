@@ -9,6 +9,7 @@ generator client {
 enum Role {
   CUSTOMER
   HOST
+  DEALER
   ADMIN
 }
 
@@ -36,6 +37,7 @@ model User {
   lastName      String
   role          Role      @default(CUSTOMER)
   isVerified    Boolean   @default(false)
+  isBlocked     Boolean   @default(false)
   profileImage  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -48,6 +50,7 @@ model User {
   kycSessions   KycSession[]
   media         Media[]
   dlValidUntil  DateTime?
+  payoutAccount PayoutAccount?
 }
 
 model Vehicle {
@@ -115,6 +118,8 @@ model Booking {
   rentalDays     Int @default(1)
   includedKilometres Int?
   securityDeposit Decimal @default(0)
+  agreementVersion String @default("safarcars-car-sharing-v2")
+  agreementSnapshot String?
   invoice        Invoice?
   inspections    Inspection[]
 
@@ -184,6 +189,7 @@ model Inspection {
   stage String
   odometer Int
   mediaId String
+  mediaIds String?
   note String?
   fuelPercent Int?
   damageNote String?
@@ -232,4 +238,34 @@ model Wallet {
   updatedAt      DateTime @updatedAt
 
   user           User     @relation(fields: [userId], references: [id])
+}
+
+model PayoutAccount {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique
+  accountHolderName      String
+  bankName               String
+  accountNumberLast4     String
+  ifscCode               String
+  encryptedAccountNumber String
+  status                 String   @default("PENDING")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id])
+  payouts                Payout[]
+}
+
+model Payout {
+  id          String   @id @default(uuid())
+  accountId   String
+  amount      Decimal
+  status      String   @default("PENDING")
+  reference   String?
+  periodStart DateTime?
+  periodEnd   DateTime?
+  note        String?
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+  account     PayoutAccount @relation(fields: [accountId], references: [id])
+  @@index([accountId, status])
 }

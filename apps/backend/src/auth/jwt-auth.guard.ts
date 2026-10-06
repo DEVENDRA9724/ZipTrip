@@ -18,8 +18,9 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader.split(' ')[1];
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      const user = await this.prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, email: true, role: true } });
+      const user = await this.prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, email: true, role: true, isBlocked: true } });
       if (!user) throw new UnauthorizedException();
+      if (user.isBlocked) throw new UnauthorizedException('This account is blocked. Contact Safar support.');
       request.user = user;
       return true;
     } catch (e) {

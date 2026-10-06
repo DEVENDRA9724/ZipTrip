@@ -27,6 +27,14 @@ export class VehiclesController {
   @UseGuards(JwtAuthGuard)
   schedule(@Request() req: any, @Param('id') id: string) { return this.vehiclesService.schedule(req.user.id, id); }
 
+  @Get(':id/host-agreement')
+  @UseGuards(JwtAuthGuard)
+  hostAgreement(@Request() req: any, @Param('id') id: string) { return this.vehiclesService.hostAgreement(req.user, id); }
+
+  @Post(':id/host-agreement/acknowledge')
+  @UseGuards(JwtAuthGuard)
+  acknowledgeHostAgreement(@Request() req: any, @Param('id') id: string) { return this.vehiclesService.acknowledgeHostAgreement(req.user, id); }
+
   @Post(':id/availability-blocks')
   @UseGuards(JwtAuthGuard)
   block(@Request() req: any, @Param('id') id: string, @Body() body: any) { return this.vehiclesService.block(req.user.id, id, body); }

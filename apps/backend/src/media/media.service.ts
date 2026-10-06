@@ -1,10 +1,12 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PHOTO_KINDS, DOCUMENT_KINDS, choice } from '../common/validation';
+import { PHOTO_KINDS, INSPECTION_KINDS, DOCUMENT_KINDS, choice } from '../common/validation';
 import { createHash, randomUUID, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 import { mkdir, writeFile, readFile, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import sharp from 'sharp';
+
+const PRIVATE_DOCUMENT_KINDS = new Set(['AADHAAR', ...DOCUMENT_KINDS]);
 
 @Injectable()
 export class MediaService {
@@ -16,7 +18,7 @@ export class MediaService {
     return Buffer.from(key, 'hex');
   }
   async upload(userId: string, kindInput: string, file: any) {
-    const kind = choice(kindInput, 'Photo/document type', [...PHOTO_KINDS, ...DOCUMENT_KINDS]);
+    const kind = choice(kindInput, 'Photo/document type', [...PHOTO_KINDS, ...INSPECTION_KINDS, ...DOCUMENT_KINDS]);
     if (!file?.buffer || file.size > 8 * 1024 * 1024) throw new BadRequestException('Upload a JPEG, PNG or WebP image up to 8 MB');
     let buffer: Buffer;
     try {
@@ -41,10 +43,27 @@ export class MediaService {
       return { id: result.id, kind, url: '/api/media/' + result.id };
     } catch (e) { await unlink(path); throw e; }
   }
+  async storePrivateDocument(ownerId: string, kindInput: string, buffer: Buffer, mimeType: string) {
+    const kind = choice(kindInput, 'Document type', [...PRIVATE_DOCUMENT_KINDS]);
+    if (!Buffer.isBuffer(buffer) || buffer.length === 0 || buffer.length > 12 * 1024 * 1024) throw new BadRequestException('Provider document is empty or exceeds the 12 MB limit');
+    if (typeof mimeType !== 'string' || !/^(application\/(pdf|xml|octet-stream)|text\/xml|image\/(jpeg|png|webp))$/i.test(mimeType)) throw new BadRequestException('Provider returned an unsupported document format');
+    const iv = randomBytes(12);
+    const cipher = createCipheriv('aes-256-gcm', this.key(), iv);
+    const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
+    const stored = Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
+    const storageKey = randomUUID() + '.enc';
+    await mkdir(this.directory(), { recursive: true });
+    const path = resolve(this.directory(), storageKey);
+    await writeFile(path, stored, { flag: 'wx' });
+    try {
+      const result = await this.prisma.media.create({ data: { ownerId, kind, storageKey, mimeType: mimeType.toLowerCase(), size: stored.length, sha256: createHash('sha256').update(stored).digest('hex') } });
+      return result.id;
+    } catch (e) { await unlink(path); throw e; }
+  }
   async read(id: string, user?: { id: string; role: string }) {
     const media = await this.prisma.media.findUnique({ where: { id }, include: { vehicle: { select: { status: true } } } });
     if (!media) throw new NotFoundException('Image not found');
-    const isPrivate = DOCUMENT_KINDS.includes(media.kind as any);
+    const isPrivate = PRIVATE_DOCUMENT_KINDS.has(media.kind);
     const publicPhoto = !isPrivate && media.vehicle?.status === 'ACTIVE';
     if (!publicPhoto && (!user || (user.id !== media.ownerId && user.role !== 'ADMIN'))) throw new ForbiddenException('Image access denied');
     let buffer = await readFile(resolve(this.directory(), media.storageKey));

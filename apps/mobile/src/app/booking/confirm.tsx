@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { apiRequest } from '@/services/api';
+import { apiRequest, parseImageList } from '@/services/api';
 import { ArrowLeft, Wallet, CheckCircle, Info, Calendar, Sparkles } from 'lucide-react-native';
 
 export default function BookingConfirmScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors.light;
 
   const { vehicleId, startDate, endDate } = useLocalSearchParams<{ vehicleId: string; startDate: string; endDate: string }>();
 
@@ -99,7 +97,7 @@ export default function BookingConfirmScreen() {
           </ThemedText>
 
           <View style={[styles.detailsBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-            <Image source={{ uri: successBooking.vehicle.images.split(',')[0] }} style={styles.successCarImage} />
+            <Image source={{ uri: parseImageList(successBooking.vehicle.images)[0] }} style={styles.successCarImage} />
             <ThemedText style={styles.successCarName}>
               {successBooking.vehicle.make} {successBooking.vehicle.model}
             </ThemedText>
@@ -152,7 +150,7 @@ export default function BookingConfirmScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Vehicle Mini Summary */}
         <View style={[styles.vehicleSummary, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-          <Image source={{ uri: vehicle.images.split(',')[0] }} style={styles.carThumb} />
+          <Image source={{ uri: parseImageList(vehicle.images)[0] }} style={styles.carThumb} />
           <View style={styles.carText}>
             <ThemedText style={styles.carTitle}>{vehicle.make} {vehicle.model}</ThemedText>
             <ThemedText type="small" style={{ color: colors.textSecondary }}>
@@ -231,7 +229,7 @@ export default function BookingConfirmScreen() {
           <View style={styles.insufficientWarning}>
             <Info size={14} color={colors.error} />
             <ThemedText type="small" style={{ color: colors.error, marginLeft: 4 }}>
-              Add mock funds to your wallet to complete this booking.
+              Online payment is not enabled yet. Safar will enable booking confirmation after a verified payment method is connected.
             </ThemedText>
           </View>
         )}

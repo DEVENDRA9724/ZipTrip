@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { ArrowLeft, Mail, Lock, User, Phone } from 'lucide-react-native';
 
 export default function RegisterScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors.light;
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -25,6 +23,10 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !phone) {
       setError('Please fill in all fields');
+      return;
+    }
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters.');
       return;
     }
     setError('');
@@ -154,12 +156,13 @@ export default function RegisterScreen() {
             <Lock size={18} color={colors.textSecondary} style={styles.inputIcon} />
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder="Min 6 characters"
+              placeholder="At least 12 characters"
               placeholderTextColor={colors.textSecondary}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
+              maxLength={72}
             />
           </View>
 

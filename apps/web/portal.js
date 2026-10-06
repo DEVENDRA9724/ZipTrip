@@ -53,7 +53,16 @@ async function renderOriginalEvidence(box, endpoint, title, onEvidence = () => {
         ? 'Open Official Certificate ↗'
         : (evidence.source === 'DIGILOCKER' ? 'Open original document ↗' : 'Open uploaded image ↗');
       link.onclick = () => onOpen(evidence);
-      card.append(name, format, link);
+      const download = document.createElement('a');
+      const downloadUrl = new URL(file.url, location.origin);
+      if (downloadUrl.origin === location.origin && downloadUrl.pathname.startsWith('/api/media/')) downloadUrl.searchParams.set('download', '1');
+      download.href = downloadUrl.toString();
+      download.target = '_blank';
+      download.rel = 'noopener noreferrer';
+      download.referrerPolicy = 'no-referrer';
+      download.className = 'button btn-ghost btn-sm';
+      download.textContent = 'Download file ↓';
+      card.append(name, format, link, download);
       box.append(card);
     }
     const refresh = document.createElement('button');
@@ -69,12 +78,15 @@ async function renderOriginalEvidence(box, endpoint, title, onEvidence = () => {
     message.className = 'error';
     message.setAttribute('role', 'alert');
     message.textContent = error.message;
+    const recovery = document.createElement('p');
+    recovery.className = 'notice';
+    recovery.textContent = 'Approval remains disabled until the exact provider file is opened. A retry cannot restore an expired DigiLocker session; a fresh verification and Sync & Refresh are required.';
     const retry = document.createElement('button');
     retry.type = 'button';
     retry.className = 'button btn-ghost btn-sm';
     retry.textContent = 'Retry original document';
     retry.onclick = () => renderOriginalEvidence(box, endpoint, title, onEvidence, onOpen);
-    box.replaceChildren(message, retry);
+    box.replaceChildren(message, recovery, retry);
   }
 }
 
@@ -83,6 +95,12 @@ const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => '₹' + Number(n || 0).toLocaleString('en-IN', {maximumFractionDigits: 0});
+function ratingSummary(car) {
+  const reviews = Array.isArray(car?.reviews) ? car.reviews.filter(review => Number.isFinite(Number(review.rating))) : [];
+  if (!reviews.length) return { value: 'New', count: 0 };
+  const average = reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length;
+  return { value: average.toFixed(1), count: reviews.length };
+}
 const dt = v => v ? new Date(v).toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
 const d = v => v ? new Date(v).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '—';
 const localDateTime = value => {
@@ -185,7 +203,7 @@ function requireUser(roles) {
 function shell() {
   const links = [
     ['cars.html', 'Explore Cars'],
-    ['host-onboarding.html', 'List Your Car'],
+    [(['HOST','DEALER'].includes(user?.role) ? 'host-onboarding.html' : 'host-onboarding.html'), user?.role === 'DEALER' ? 'Dealer Fleet' : user?.role === 'HOST' ? 'Host Fleet' : 'List Your Car'],
     ['dashboard.html', 'Account'],
     ...(user?.role === 'ADMIN' ? [['admin.html', 'Admin']] : []),
   ];
@@ -278,14 +296,14 @@ function shell() {
 
 /* ─── CAR CARD (REFERENCE STYLE — CLEAN & EMOJI-FREE) ───────────────── */
 function carCard(car) {
-  const hrRate = Math.round(Number(car.pricePerDay) / 24);
   const specs = [car.transmission, car.fuelType, car.seats + ' Seats', car.year].filter(Boolean).join(' · ');
+  const rating = ratingSummary(car);
   return `
     <a class="car-card" href="${esc(carLink(car.id))}">
       <div class="car-card-media">
         <img src="${photoUrl(car)}" alt="${esc(car.make + ' ' + car.model)}" loading="lazy">
         <span class="car-card-badge">Self-Drive</span>
-        <span class="car-card-rating">${(car.media || []).length} photos</span>
+        <span class="car-card-rating">${rating.value === 'New' ? 'New listing' : `★ ${rating.value} · ${rating.count} review${rating.count === 1 ? '' : 's'}`}</span>
       </div>
       <div class="car-card-info">
         <div class="car-card-name">${esc(car.make + ' ' + car.model + ' ' + car.year)}</div>
@@ -327,8 +345,14 @@ function carCard(car) {
 
 /* ─── HOME PAGE — REFERENCE STYLE ───────────────────────────────────── */
 async function home() {
-  const today = new Date().toISOString().split('T')[0];
-  const tom   = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  // The search API requires pickup to be strictly in the future. Starting the
+  // widget on today made the first click show a validation toast instead of
+  // opening the available-car results.
+  const tomorrow = new Date(Date.now() + 86400000);
+  const dayAfter = new Date(Date.now() + 2 * 86400000);
+  const dateInputValue = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  const today = dateInputValue(tomorrow);
+  const tom = dateInputValue(dayAfter);
 
   $('#app').innerHTML = `
     <div class="hero reveal-on-scroll">
@@ -562,7 +586,7 @@ function auth(forceRegister) {
 
           ${isReg ? `
             ${inp('phone', 'Mobile number', 'tel', 'autocomplete="tel" placeholder="+919876543210"')}
-            ${sel('role', 'Account Type', ['CUSTOMER', 'HOST'])}
+            ${sel('role', 'Account Type', ['CUSTOMER', 'HOST', 'DEALER'])}
             <p class="text-muted" style="font-size:12px;margin:0">Password requires minimum 12 characters. KYC verification follows immediately.</p>
           ` : ''}
 
@@ -936,8 +960,7 @@ async function carDetails(id) {
               </div>
             </div>
             <div class="details-rating-box">
-              <div class="details-rating-num">★ 4.8</div>
-              <div class="details-rating-lbl">24 Trips Completed</div>
+              ${(() => { const rating = ratingSummary(car); return `<div class="details-rating-num">${rating.value === 'New' ? 'New listing' : `★ ${rating.value}`}</div><div class="details-rating-lbl">${rating.count} verified review${rating.count === 1 ? '' : 's'}</div>`; })()}
             </div>
           </div>
 
@@ -1018,11 +1041,7 @@ async function carDetails(id) {
             <button type="submit" class="button btn-orange" style="width:100%">Reserve This Car →</button>
           </form>
 
-          <p style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">
-            ${user.isVerified
-              ? '<span style="color:var(--green);font-weight:700">✓ Your KYC is verified. Instant booking ready.</span>'
-              : '<span>Notice: Please <a href="kyc.html">complete KYC verification</a> before trip starts.</span>'}
-          </p>
+          <p id="booking-kyc-status" style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">Checking KYC eligibility for your selected return date…</p>
         `}
 
         <div class="bp-perks-box">
@@ -1073,6 +1092,12 @@ async function carDetails(id) {
         $('#booking-quote-box').textContent = 'Choose a valid pickup and return time to check availability and price.';
         return;
       }
+      const dlValidUntil = user.dlValidUntil ? new Date(user.dlValidUntil) : null;
+      const kycEligible = Boolean(user.isVerified && dlValidUntil && Number.isFinite(+dlValidUntil) && dlValidUntil >= end);
+      const kycStatus = $('#booking-kyc-status');
+      if (kycStatus) kycStatus.innerHTML = kycEligible
+        ? '<span style="color:var(--green);font-weight:700">✓ KYC and driving licence are valid through your return date.</span>'
+        : '<span style="color:var(--red);font-weight:700">Complete KYC and obtain DL approval valid through your return date. <a href="kyc.html">Open Verification Centre →</a></span>';
       $('#booking-quote-box').textContent = 'Checking availability and rental price…';
       try {
         const quote = await api('/vehicles/' + encodeURIComponent(id) + '/quote?' + new URLSearchParams({startDate:start.toISOString(),endDate:end.toISOString()}));
@@ -1101,6 +1126,7 @@ async function carDetails(id) {
       const start = new Date(data.startDate), end = new Date(data.endDate);
       if (isNaN(start.getTime()) || isNaN(end.getTime())) throw new Error('Please select valid pickup and return dates.');
       if (start >= end) throw new Error('Return date must be strictly after pickup date.');
+      if (!user.isVerified || !user.dlValidUntil || new Date(user.dlValidUntil) < end) throw new Error('Complete KYC and obtain DL approval valid through your return date.');
       if (!currentQuote || currentQuote.startDate !== start.toISOString() || currentQuote.endDate !== end.toISOString()) throw new Error('Wait for an updated quote before booking.');
       const booking = await post('/bookings', {
         ...data, vehicleId: id, expectedTotal: currentQuote.totalAmount,
@@ -1320,11 +1346,12 @@ function bindKycEvents(info) {
 
 /* ─── HOST ONBOARDING ────────────────────────────────────────────────── */
 async function host() {
-  if (!requireUser(['HOST','ADMIN'])) return;
+  if (!requireUser(['HOST','DEALER','ADMIN'])) return;
   const vehicles = await api('/vehicles/mine');
+  const dealer = user.role === 'DEALER';
 
   $('#app').innerHTML = `
-    ${sectionHead('Host Dashboard', 'Register and manage your fleet vehicles on Safar.', 'PARTNER WITH US')}
+    ${sectionHead(dealer ? 'Dealer Fleet Console' : 'Host Dashboard', dealer ? 'Manage your dealership fleet, bookings, pricing and partner documents on Safar.' : 'Register and manage your fleet vehicles on Safar.', dealer ? 'CAR RENTAL DEALER' : 'PARTNER WITH US')}
     <div class="tabs">
       <button class="active" id="tab-register-car">Register a New Car</button>
       <button id="tab-my-fleet">My Fleet (${vehicles.length})</button>
@@ -1394,6 +1421,7 @@ async function host() {
           <div class="actions">
             <a class="button btn-ghost btn-sm" href="kyc.html?vehicle=${encodeURIComponent(v.id)}">Upload RC, Insurance &amp; PUC →</a>
             <button type="button" class="button btn-outline btn-sm host-schedule" data-id="${v.id}">Manage availability</button>
+            <a class="button btn-ghost btn-sm" href="host-agreement.html?id=${encodeURIComponent(v.id)}">Host–Safar agreement</a>
           </div>
         </div>`).join('') : empty('No cars listed yet', 'Use the form above to register your first self-drive car.')}
     </section>`;
@@ -1470,10 +1498,11 @@ async function dashboard(defaultTab = 'trips') {
   const params = new URLSearchParams(location.search);
   const activeTab = params.get('tab') || defaultTab;
 
-  const [trips, hosted, kycInfo] = await Promise.all([
+  const [trips, hosted, kycInfo, accountInfo] = await Promise.all([
     api('/bookings/my-trips').catch(() => []),
-    ['HOST','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
+    ['HOST','DEALER','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
     api('/kyc').catch(() => ({ documents: [], sessions: [], environment: 'live', configured: false })),
+    api('/account/dashboard').catch(() => null),
   ]);
 
   const activeCount = trips.filter(b => b.status === 'ACTIVE').length;
@@ -1494,10 +1523,20 @@ async function dashboard(defaultTab = 'trips') {
       </div>
       <div class="stat">
         <div class="stat-lbl">My Bookings</div>
-        <strong style="font-size:22px;">${trips.length}</strong>
+        <strong style="font-size:22px;">${accountInfo?.role === 'CUSTOMER' ? Object.values(accountInfo.bookingCounts || {}).reduce((sum, value) => sum + Number(value || 0), 0) : trips.length}</strong>
         <span style="font-size:12px;color:var(--muted);">${activeCount} Active Trips</span>
       </div>
     </div>
+
+    ${accountInfo?.role === 'HOST' || accountInfo?.role === 'DEALER' ? `
+      <div class="notice" style="margin-bottom:22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;">
+        <span><strong>${accountInfo.role === 'DEALER' ? 'Dealer fleet' : 'Host fleet'}:</strong> ${Number(accountInfo.fleet?.active || 0)} active · ${Number(accountInfo.fleet?.pendingApproval || 0)} awaiting approval</span>
+        <span><strong>Collected bookings:</strong> ₹${Number(accountInfo.earnings?.grossCollected || 0).toLocaleString('en-IN')}</span>
+      </div>` : accountInfo?.role === 'ADMIN' ? `
+      <div class="notice" style="margin-bottom:22px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;">
+        <span><strong>Operations:</strong> ${Number(accountInfo.metrics?.pendingDocuments || 0)} documents pending · ${Number(accountInfo.metrics?.pendingRefunds || 0)} refunds pending</span>
+        <span><strong>Today:</strong> ₹${Number(accountInfo.metrics?.todayCollected || 0).toLocaleString('en-IN')}</span>
+      </div>` : ''}
 
     <!-- Segmented Account Navigation Tabs -->
     <div class="admin-tabs" style="margin-bottom: 24px;">
@@ -1513,7 +1552,7 @@ async function dashboard(defaultTab = 'trips') {
     </div>
 
     <div id="account-tab-content">
-      ${activeTab === 'kyc' ? renderKycTabHtml(kycInfo) : activeTab === 'profile' ? renderProfileTabHtml(kycInfo) : renderTripsTabHtml(trips, hosted)}
+      ${activeTab === 'kyc' ? renderKycTabHtml(kycInfo) : activeTab === 'profile' ? renderProfileTabHtml(kycInfo) : renderTripsTabHtml(trips, hosted, accountInfo)}
     </div>`;
 
   if (activeTab === 'trips') bindBookingEvents();
@@ -1527,7 +1566,7 @@ function switchAccountTab(tabName) {
   dashboard(tabName);
 }
 
-function renderTripsTabHtml(trips, hosted) {
+function renderTripsTabHtml(trips, hosted, accountInfo) {
   return `
     ${!user.isVerified ? `
       <div class="notice" style="margin-bottom:22px">
@@ -1625,7 +1664,10 @@ function renderBookingTable(list, isHost) {
                 <div class="actions">
                   ${['PENDING','CONFIRMED'].includes(formatBookingStatus(b)) && new Date(b.startDate) > new Date()
                     ? `<button class="btn-ghost btn-sm cancel-booking-btn" data-id="${b.id}">Cancel</button>` : ''}
+                  <a class="button btn-ghost btn-sm" href="agreement.html?id=${b.id}">Agreement</a>
                   ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">Receipt</a>` : ''}
+                  ${!isHost && b.status === 'COMPLETED' ? `<button class="button btn-outline btn-sm review-booking-btn" data-id="${b.id}">Rate trip</button>` : ''}
+                  ${!isHost && b.status === 'ACTIVE' ? `<button class="button btn-outline btn-sm inspection-btn" data-id="${b.id}" data-stage="DAMAGE">Report damage</button>` : ''}
                   ${isHost && ['CONFIRMED','ACTIVE'].includes(b.status)
                     ? `<button class="button btn-orange btn-sm inspection-btn" data-id="${b.id}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? 'Record Pickup' : 'Record Return'}</button>` : ''}
                 </div>
@@ -1637,6 +1679,19 @@ function renderBookingTable(list, isHost) {
 }
 
 function bindBookingEvents() {
+  $$('.review-booking-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const rating = Number(prompt('Rate this vehicle from 1 to 5 stars:'));
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return toast('Choose a rating from 1 to 5.');
+      const comment = prompt('Optional review comment:') || '';
+      btn.disabled = true;
+      try {
+        await post('/reviews', { bookingId: btn.dataset.id, rating, comment });
+        toast('Thank you. Your verified review was submitted.');
+        await dashboard();
+      } catch (e) { toast(e.message, 'error'); btn.disabled = false; }
+    };
+  });
   $$('.cancel-booking-btn').forEach(btn => {
     btn.onclick = async () => {
       if (!confirm('Are you sure you want to cancel this reservation?')) return;
@@ -1654,15 +1709,20 @@ function bindBookingEvents() {
 
   $$('.inspection-btn').forEach(btn => {
     btn.onclick = () => {
+      const stage = btn.dataset.stage;
+      const isDamage = stage === 'DAMAGE';
+      const selfieKind = stage === 'PICKUP' ? 'SELFIE_PICKUP' : 'SELFIE_RETURN';
+      const conditionKind = stage === 'PICKUP' ? 'INSPECTION_PICKUP' : 'INSPECTION_RETURN';
       showDialog(`
-        <h3>${esc(btn.dataset.stage)} Vehicle Inspection</h3>
+        <h3>${esc(isDamage ? 'Trip Damage Report' : stage + ' Vehicle Inspection')}</h3>
         <form id="inspection-submit-form" class="form-stack">
-          ${inp('odometer','Current Odometer Reading (km)','number','min="0" max="2000000"')}
+          ${inp('odometer',isDamage ? 'Odometer Reading (optional)' : 'Current Odometer Reading (km)','number','min="0" max="2000000"' + (isDamage ? '' : ' required'))}
           ${inp('fuelPercent','Fuel level (%)','number','min="0" max="100" step="1"')}
-          <label>Vehicle condition / existing damage<textarea name="damageNote" required maxlength="2000" placeholder="Describe condition and any visible damage. Enter No visible damage when applicable."></textarea></label>
-          <label>Odometer Photo Proof
-            <input name="file" type="file" accept="image/jpeg,image/png,image/webp" required>
-          </label>
+          <label>${isDamage ? 'Damage description' : 'Vehicle condition / existing damage'}<textarea name="damageNote" required maxlength="2000" placeholder="Describe condition and any visible damage. Enter No visible damage when applicable."></textarea></label>
+          ${isDamage ? '' : `<label>Odometer Photo Proof<input name="odometerFile" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+          <label>${stage === 'PICKUP' ? 'Pickup' : 'Return'} Selfie<input name="selfieFile" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+          <label>${stage === 'PICKUP' ? 'Pickup' : 'Return'} Condition Photos<input name="conditionFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple required></label>`}
+          ${isDamage ? '<label>Damage Photos<input name="damageFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple required></label>' : ''}
           <label>Condition &amp; Vehicle Notes
             <textarea name="note" maxlength="1000" placeholder="Record tire condition, fuel level, scratch checks…"></textarea>
           </label>
@@ -1670,12 +1730,21 @@ function bindBookingEvents() {
         </form>`);
 
       bindForm('#inspection-submit-form', async (data, form) => {
-        const media = await uploadFile(form.file.files[0], 'ODOMETER');
+        const uploads = [];
+        if (isDamage) {
+          for (const file of Array.from(form.damageFiles.files || [])) uploads.push(await uploadFile(file, 'DAMAGE'));
+        } else {
+          uploads.push(await uploadFile(form.odometerFile.files[0], 'ODOMETER'));
+          uploads.push(await uploadFile(form.selfieFile.files[0], selfieKind));
+          for (const file of Array.from(form.conditionFiles.files || [])) uploads.push(await uploadFile(file, conditionKind));
+        }
+        if (!uploads.length) throw new Error('Upload at least one inspection photo');
         await post('/bookings/' + btn.dataset.id + '/inspection', {
-          stage: btn.dataset.stage,
-          odometer: Number(data.odometer),
-          fuelPercent: Number(data.fuelPercent), damageNote: data.damageNote,
-          mediaId: media.id,
+          stage,
+          odometer: Number(data.odometer || 0),
+          fuelPercent: Number(data.fuelPercent || 0), damageNote: data.damageNote,
+          mediaId: uploads[0].id,
+          mediaIds: uploads.map(item => item.id),
           note: data.note,
         });
         $('dialog').close();
@@ -1760,6 +1829,150 @@ async function invoice() {
   $('#print-invoice-btn').onclick = () => window.print();
 }
 
+async function hostAgreement() {
+  if (!requireUser(['HOST','DEALER','ADMIN'])) return;
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) throw new Error('No vehicle specified. Select a vehicle from My Fleet.');
+  const A = await api('/vehicles/' + encodeURIComponent(id) + '/host-agreement');
+  const V = A.vehicle, H = A.host, T = A.commercialTerms;
+  $('#app').innerHTML = `<section class="agreement panel">
+    ${sectionHead('Host Partner Agreement', 'The operating terms for listing and managing this vehicle on Safar.', 'PARTNER TERMS')}
+    <div class="agreement-meta"><strong>${esc(V.make + ' ' + V.model + ' ' + V.year)}</strong><span>${esc(V.registrationNumber || 'Registration pending')} · ${esc(V.city)}</span><span>Version ${esc(A.agreementVersion)} · Generated ${dt(A.generatedAt)}</span></div>
+    <div class="agreement-grid"><div><h3>Host</h3><p><strong>${esc(H.firstName + ' ' + H.lastName)}</strong><br>${esc(H.email)}${H.phone ? '<br>' + esc(H.phone) : ''}</p></div><div><h3>Safar operating terms</h3><p>${esc(T.platformRole)}</p><p>Deposit reference: ${money(T.securityDeposit)} · Included distance: ${Number(T.includedKilometresPer24Hours)} km / 24 hours · Excess distance: ${money(T.excessKmRate)} / km</p></div></div>
+    <h3>Terms</h3><ol class="agreement-terms">${A.terms.map(term => `<li>${esc(term)}</li>`).join('')}</ol>
+    <div class="actions agreement-actions"><button id="ack-host-agreement" class="button btn-orange" ${A.acknowledgement ? 'disabled' : ''}>${A.acknowledgement ? 'Agreement acknowledged' : 'Acknowledge host agreement'}</button><button id="print-host-agreement" class="button btn-outline">Print / Save PDF</button><a href="host-onboarding.html" class="button btn-ghost">Back to My Fleet</a></div>
+  </section>`;
+  $('#ack-host-agreement').onclick = async () => { try { const result = await post('/vehicles/' + encodeURIComponent(id) + '/host-agreement/acknowledge', {}); $('#ack-host-agreement').disabled = true; $('#ack-host-agreement').textContent = 'Agreement acknowledged'; toast('Host–Safar agreement acknowledged at ' + dt(result.acceptedAt)); } catch (err) { toast(err.message, true); } };
+  $('#print-host-agreement').onclick = () => window.print();
+}
+
+/* ─── RENTAL AGREEMENT ──────────────────────────────────────────────── */
+async function agreement() {
+  if (!requireUser()) return;
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) throw new Error('No booking specified. Select an agreement from My Trips.');
+  const A = await api('/bookings/' + encodeURIComponent(id) + '/agreement');
+  const B = A.booking, V = A.vehicle, C = A.customer, H = A.host;
+  const S = A.scheduleI || {};
+  const F = A.scheduleIII || {};
+  const cancellation = A.scheduleIV || {};
+  const isBinding = ['CONFIRMED', 'ACTIVE', 'COMPLETED'].includes(B.status);
+  const inspectionRows = (A.inspections || []).length
+    ? A.inspections.map(item => `<tr><td>${esc(item.stage)}</td><td>${Number(item.odometer).toLocaleString('en-IN')} km</td><td>${item.fuelPercent == null ? '—' : Number(item.fuelPercent) + '%'}</td><td>${esc(item.damageNote || 'No condition note recorded')}</td><td>${dt(item.createdAt)}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="text-muted">No pickup or return inspection has been recorded yet.</td></tr>';
+
+  $('#app').innerHTML = `
+    <article class="agreement panel">
+      <div class="heading">
+        <div>
+          <div class="eyebrow">SAFAR SELF DRIVE · RENTAL AGREEMENT</div>
+          <h2>${esc(A.business.name)}</h2>
+          <p class="text-muted">Agreement version ${esc(A.agreementVersion)} · Generated ${dt(A.generatedAt)}</p>
+        </div>
+        ${badge(B.status)}
+      </div>
+      <div class="agreement-notice ${isBinding ? 'is-confirmed' : ''}">
+        <strong>${isBinding ? 'Confirmed rental agreement' : 'Draft booking agreement'}</strong>
+        <p>${isBinding ? 'This agreement records the confirmed reservation and its operating terms.' : 'This booking is not a paid rental contract until payment is recorded and the reservation is confirmed.'}</p>
+      </div>
+      <div class="agreement-meta-grid">
+        <div><span>Booking reference</span><strong>${esc(B.reference)}</strong></div>
+        <div><span>Payment status</span><strong>${esc(B.paymentStatus.replaceAll('_', ' '))}</strong></div>
+        <div><span>Pickup</span><strong>${dt(B.startDate)}</strong></div>
+        <div><span>Return</span><strong>${dt(B.endDate)}</strong></div>
+      </div>
+      <div class="agreement-section">
+        <h3>1. Parties and platform role</h3>
+        <div class="two">
+          <div><h4>Renter / Guest</h4><p><strong>${esc(C.firstName + ' ' + C.lastName)}</strong><br>${esc(C.email)}${C.phone ? '<br>' + esc(C.phone) : ''}</p></div>
+          <div><h4>Host / vehicle provider</h4><p><strong>${esc(H.firstName + ' ' + H.lastName)}</strong><br>${esc(H.email)}${H.phone ? '<br>' + esc(H.phone) : ''}</p></div>
+        </div>
+        <p class="text-muted">${esc(A.platformRole || '')}</p>
+        <p class="text-muted">Platform operator: ${esc(A.business.legalName || A.business.name)}${A.business.address ? ' · ' + esc(A.business.address) : ''}${A.business.email ? ' · ' + esc(A.business.email) : ''}</p>
+      </div>
+      <div class="agreement-section">
+        <h3>2. Schedule I — booking and trip details</h3>
+        <div class="table-wrap"><table><tbody>
+          <tr><th>Effective date</th><td>${dt(S.effectiveDate || B.startDate)}</td></tr>
+          <tr><th>Booking period</th><td>${dt(B.startDate)} to ${dt(B.endDate)}</td></tr>
+          <tr><th>Booking reference</th><td>${esc(B.reference)}</td></tr>
+          <tr><th>Pickup location</th><td>${esc(S.trip?.pickupLocation || V.locationCity)}</td></tr>
+          <tr><th>Return location</th><td>${esc(S.trip?.returnLocation || V.locationCity)}</td></tr>
+          <tr><th>Trip status</th><td>${esc(B.status)} · ${Number(B.rentalDays)} billed day${Number(B.rentalDays) === 1 ? '' : 's'}</td></tr>
+          <tr><th>Payment status</th><td>${esc(B.paymentStatus.replaceAll('_', ' '))}</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="agreement-section">
+        <h3>3. Vehicle details</h3>
+        <div class="agreement-meta-grid compact">
+          <div><span>Vehicle</span><strong>${esc(V.make + ' ' + V.model)} (${V.year})</strong></div>
+          <div><span>Registration</span><strong>${esc(V.registrationNumber || 'Assigned at pickup')}</strong></div>
+          <div><span>Category</span><strong>${esc(V.category)}</strong></div>
+          <div><span>Pickup location</span><strong>${esc(V.locationCity)}</strong></div>
+          <div><span>Transmission / fuel</span><strong>${esc(V.transmission)} · ${esc(V.fuelType)}</strong></div>
+          <div><span>Seats</span><strong>${Number(V.seats)}</strong></div>
+        </div>
+      </div>
+      <div class="agreement-section">
+        <h3>4. Schedule III — charges, mileage and deposit</h3>
+        <div class="table-wrap"><table><tbody>
+          <tr><th>Rental (${Number(B.rentalDays)} billed day${Number(B.rentalDays) === 1 ? '' : 's'})</th><td>${money(B.rentalAmount)}</td></tr>
+          <tr><th>Refundable security deposit</th><td>${money(B.securityDeposit)}</td></tr>
+          <tr><th>Booking total</th><td><strong>${money(B.totalAmount)}</strong></td></tr>
+          <tr><th>Included distance</th><td>${B.includedKilometres == null ? 'As stated at booking' : Number(B.includedKilometres).toLocaleString('en-IN') + ' km'}</td></tr>
+          <tr><th>Daily rate used</th><td>${money(B.dailyRate)} / 24 hours</td></tr>
+          <tr><th>Excess distance</th><td>${money(F.excessKmRate || B.excessKmRate)} / km</td></tr>
+          <tr><th>Late-return rule</th><td>${Number(F.lateGraceMinutes || B.lateReturnGraceMinutes)} minute grace · ${money(F.lateReturnRatePerHour || B.lateReturnRatePerHour)} / hour</td></tr>
+          <tr><th>Deposit release target</th><td>${esc(F.depositReleaseTarget || 'After check-out and settlement review')}</td></tr>
+        </tbody></table></div>
+        <p class="text-muted">The deposit is adjusted only for documented late return, damage, excess distance or other agreed charges after inspection and review. Any remaining balance is released according to the applicable Safar settlement process.</p>
+      </div>
+      <div class="agreement-section">
+        <h3>5. Schedule II — vehicle condition and handover record</h3>
+        <div class="table-wrap"><table><thead><tr><th>Stage</th><th>Odometer</th><th>Fuel</th><th>Condition / damage</th><th>Recorded</th></tr></thead><tbody>${inspectionRows}</tbody></table></div>
+      </div>
+      <div class="agreement-section">
+        <h3>6. Schedule IV — cancellation and refund policy</h3>
+        <div class="table-wrap"><table><tbody>
+          <tr><th>More than 48 hours before pickup</th><td>${esc(cancellation.moreThan48Hours || 'As stated in the Fee Policy')}</td></tr>
+          <tr><th>24 to 48 hours before pickup</th><td>${esc(cancellation.between24And48Hours || 'As stated in the Fee Policy')}</td></tr>
+          <tr><th>Less than 24 hours before pickup</th><td>${esc(cancellation.lessThan24Hours || 'As stated in the Fee Policy')}</td></tr>
+          <tr><th>Refund timing</th><td>${esc(cancellation.refundTiming || 'Subject to Safar reconciliation')}</td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="agreement-section">
+        <h3>7. Car sharing agreement terms</h3>
+        <ol class="rules-list agreement-terms">${A.terms.map(term => `<li>${esc(term)}</li>`).join('')}</ol>
+      </div>
+      <div class="agreement-section agreement-signoff">
+        <p><strong>Electronic acknowledgement</strong></p>
+        <p>${esc(A.electronicExecution || 'This agreement is accepted electronically on the Platform.')}</p>
+        <p>By continuing with this booking, the renter confirms that the customer details, host details, vehicle details, dates, times, trip locations, payment terms, licence eligibility, vehicle condition process, distance allowance, security deposit and terms above were displayed for review. Safar retains the booking, payment, inspection and audit records associated with this agreement.</p>
+      </div>
+      <div class="actions agreement-actions"><button id="ack-agreement-btn" class="button btn-orange" ${A.acknowledgement ? 'disabled' : ''}>${A.acknowledgement ? 'Agreement acknowledged' : 'Acknowledge agreement'}</button><button id="download-agreement-pdf" class="button btn-outline">Download agreement PDF</button><button id="print-agreement-btn" class="button btn-ghost">Print current view</button><a href="dashboard.html" class="button btn-ghost">Back to My Trips</a></div>
+    </article>`;
+  $('#ack-agreement-btn').onclick = async () => { try { const result = await post('/bookings/' + encodeURIComponent(id) + '/agreement/acknowledge', {}); $('#ack-agreement-btn').disabled = true; $('#ack-agreement-btn').textContent = 'Agreement acknowledged'; toast('Agreement acknowledged at ' + dt(result.acceptedAt)); } catch (err) { toast(err.message, true); } };
+  $('#download-agreement-pdf').onclick = async () => {
+    const button = $('#download-agreement-pdf');
+    button.disabled = true;
+    button.textContent = 'Preparing PDF…';
+    try {
+      const response = await fetch('/api/bookings/' + encodeURIComponent(id) + '/agreement/pdf', { credentials: 'same-origin' });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.message || 'PDF generation failed');
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a'); link.href = url; link.download = (B.reference || 'safar-agreement') + '-safarcars-agreement.pdf'; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('Agreement PDF downloaded');
+    } catch (err) { toast(err.message, true); }
+    finally { button.disabled = false; button.textContent = 'Download agreement PDF'; }
+  };
+  $('#print-agreement-btn').onclick = () => window.print();
+}
+
 /* ─── ADMIN DASHBOARD ────────────────────────────────────────────────── */
 async function adminPage(tab = 'vehicles') {
   if (!requireUser(['ADMIN'])) return;
@@ -1770,9 +1983,12 @@ async function adminPage(tab = 'vehicles') {
     ${sectionHead('Administration &amp; Operations', 'Approve car listings, verify KYC documents, and reconcile payments.', 'ADMIN PANEL')}
 
     <div class="admin-summary">
-      <div class="admin-metric"><span>Vehicle approvals</span><strong>${adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL').length}</strong><small>Listings awaiting review</small></div>
-      <div class="admin-metric"><span>Document reviews</span><strong>${adminData.documents.filter(d => d.status === 'PENDING').length}</strong><small>KYC and vehicle documents</small></div>
-      <div class="admin-metric"><span>Pending refunds</span><strong>${adminData.bookings.filter(b => b.payment?.status === 'REFUND_PENDING').length}</strong><small>Payments to reconcile</small></div>
+      <div class="admin-metric"><span>Vehicle approvals</span><strong>${adminData.metrics?.vehiclePending ?? adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL').length}</strong><small>Listings awaiting review</small></div>
+      <div class="admin-metric"><span>Document reviews</span><strong>${adminData.metrics?.documentPending ?? adminData.documents.filter(d => d.status === 'PENDING').length}</strong><small>KYC and vehicle documents</small></div>
+      <div class="admin-metric"><span>Active bookings</span><strong>${adminData.metrics?.activeBookings ?? 0}</strong><small>Confirmed or currently active</small></div>
+      <div class="admin-metric"><span>Pending refunds</span><strong>${adminData.metrics?.refunds ?? adminData.bookings.filter(b => b.payment?.status === 'REFUND_PENDING').length}</strong><small>Payments to reconcile</small></div>
+      <div class="admin-metric"><span>Today's collected</span><strong>${money(adminData.metrics?.todayRevenue ?? 0)}</strong><small>Successful payments today</small></div>
+      <div class="admin-metric"><span>Collected to date</span><strong>${money(adminData.metrics?.paidRevenue ?? 0)}</strong><small>Successful payments history</small></div>
     </div>
 
     <nav class="admin-tabs" aria-label="Administration sections">
@@ -1782,6 +1998,9 @@ async function adminPage(tab = 'vehicles') {
     <div class="admin-toolbar">
       <label class="admin-search">Search records<input id="admin-search" type="search" placeholder="Search name, registration, city or status…"></label>
       <label>Status<select id="admin-status"><option value="">All statuses</option></select></label>
+      <label>From<input id="admin-export-from" type="date"></label>
+      <label>To<input id="admin-export-to" type="date"></label>
+      <button id="admin-export" type="button" class="button btn-outline">Export booking MIS (CSV)</button>
       <span id="admin-record-count" role="status"></span>
     </div>
     <div id="admin-panel-content"></div>
@@ -1791,6 +2010,7 @@ async function adminPage(tab = 'vehicles') {
   $('#admin-search').oninput = () => renderAdminView($('.admin-tabs .active').dataset.tab);
   $('#admin-status').onchange = () => renderAdminView($('.admin-tabs .active').dataset.tab);
   $('#admin-refresh').onclick = () => adminPage($('.admin-tabs .active').dataset.tab);
+  $('#admin-export').onclick = () => { const params = new URLSearchParams(); const from = $('#admin-export-from').value, to = $('#admin-export-to').value; if (from) params.set('from', from); if (to) params.set('to', to); window.open('/api/admin/export.csv?' + params.toString(), '_blank', 'noopener'); };
   $('#admin-load-more').onclick = async event => {
     const button = event.currentTarget;
     button.disabled = true;
@@ -1877,6 +2097,8 @@ function renderAdminView(tab) {
                 <td>
                   ${formatBookingStatus(b) === 'PENDING' ? `<button class="button btn-sm record-pmt-action" data-id="${b.id}" data-amount="${b.totalAmount}">Record Payment</button><button class="btn-outline btn-sm booking-hold-action" data-id="${b.id}">Manage hold</button>` : ''}
                   ${b.payment?.status === 'REFUND_PENDING' ? `<button class="button btn-ghost btn-sm record-ref-action" data-id="${b.id}">Record Refund</button>` : ''}
+                  ${['ACTIVE','COMPLETED'].includes(formatBookingStatus(b)) ? `<button class="btn-outline btn-sm booking-settlement-action" data-id="${b.id}">Settlement preview</button>` : ''}
+                  <a class="button btn-ghost btn-sm" href="agreement.html?id=${b.id}">Agreement</a>
                   ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">Receipt</a>` : ''}
                 </td>
               </tr>`).join('')}
@@ -1889,7 +2111,7 @@ function renderAdminView(tab) {
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>KYC Approval</th><th>DL Expiry</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>KYC Approval</th><th>DL Expiry</th><th>Account control</th></tr></thead>
           <tbody>
             ${data.map(u => `
               <tr>
@@ -1898,6 +2120,7 @@ function renderAdminView(tab) {
                 <td>${badge(u.role)}</td>
                 <td>${badge(u.isVerified ? 'APPROVED' : 'PENDING')}</td>
                 <td>${d(u.dlValidUntil)}</td>
+                <td>${u.role === 'ADMIN' ? '<span class="text-muted">Protected admin</span>' : `<button class="btn-${u.isBlocked ? 'outline' : 'ghost'} btn-sm user-block-action" data-id="${u.id}" data-blocked="${u.isBlocked ? 'false' : 'true'}">${u.isBlocked ? 'Unblock' : 'Block account'}</button>`}</td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -1952,6 +2175,20 @@ function renderAdminView(tab) {
       await post('/admin/bookings/' + booking.id + '/hold', data);
       $('dialog').close(); await adminPage('bookings'); toast('Checkout hold updated.');
     });
+  });
+  $$('.booking-settlement-action').forEach(btn => btn.onclick = async () => {
+    try {
+      const s = await api('/admin/bookings/' + btn.dataset.id + '/settlement');
+      showDialog(`<h3>Deposit settlement preview</h3>
+        <div class="notice"><p><strong>Deposit held:</strong> ${money(s.depositHeld)}</p><p><strong>Distance:</strong> ${s.travelledKilometres == null ? 'Not recorded' : Number(s.travelledKilometres).toLocaleString('en-IN') + ' km'} · Included ${s.includedKilometres == null ? '—' : Number(s.includedKilometres).toLocaleString('en-IN') + ' km'}</p><p><strong>Excess distance charge:</strong> ${money(s.excessCharge)}</p><p><strong>Late return charge:</strong> ${money(s.lateCharge)} (${Number(s.lateMinutes)} minutes after grace)</p><p><strong>Suggested automatic deduction:</strong> ${money(s.suggestedDepositDeduction)}</p><p><strong>Estimated release:</strong> ${money(s.estimatedDepositRelease)}</p></div><p class="text-muted">${esc(s.note)}${s.damageReviewRequired ? ' A damage note is present; complete a documented damage review before releasing the balance.' : ''}</p>`);
+    } catch (err) { toast(err.message, true); }
+  });
+  $$('.user-block-action').forEach(btn => btn.onclick = async () => {
+    const blocking = btn.dataset.blocked === 'true';
+    const reason = window.prompt(blocking ? 'Reason for blocking this account:' : 'Reason for unblocking this account:');
+    if (!reason || !reason.trim()) return;
+    try { await post('/admin/users/' + encodeURIComponent(btn.dataset.id) + '/block', { blocked: blocking, note: reason.trim() }); await adminPage('users'); toast(blocking ? 'Customer account blocked.' : 'Customer account unblocked.'); }
+    catch (err) { toast(err.message, true); }
   });
   $$('.vehicle-review-action').forEach(btn => btn.onclick = () => {
     showDialog(`
@@ -2074,11 +2311,8 @@ async function main() {
     'admin.html': adminPage,
     'invoice.html': invoice,
     'payment.html': dashboard,
-    'agreement.html': () => {
-      $('#app').innerHTML = sectionHead('Rental Agreement', 'Digital signing will be available soon.') +
-        '<div class="notice">Your booking invoice and confirmed reservation serve as the temporary rental contract.</div>' +
-        '<div class="actions"><a class="button" href="dashboard.html">View My Trips</a></div>';
-    },
+    'agreement.html': agreement,
+    'host-agreement.html': hostAgreement,
     'tracking.html': () => {
       $('#app').innerHTML = sectionHead('Fleet Tracking', 'GPS provider integration in progress.') +
         '<div class="notice">Telematics and live location tracking will be visible once vehicle GPS transponders are linked.</div>';

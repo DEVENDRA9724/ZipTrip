@@ -2,20 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator, FlatList, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { useColorScheme } from 'react-native';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { apiRequest } from '@/services/api';
+import { apiRequest, parseImageList } from '@/services/api';
 import { Search, MapPin, Calendar, Map, List, LogIn, User, Star, SlidersHorizontal, Eye } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 const CITIES = ['All', 'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'];
 const CATEGORIES = ['All', 'Self Drive', 'Taxi', 'SUV', 'Luxury', 'Sedan', 'Hatchback'];
+const dateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export default function SearchScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors.light;
 
   const authContext = require('@/context/AuthContext');
   const { user } = authContext.useAuth();
@@ -29,8 +33,8 @@ export default function SearchScreen() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   
   // Date booking states
-  const [startDate, setStartDate] = useState('2026-06-28');
-  const [endDate, setEndDate] = useState('2026-06-29');
+  const [startDate, setStartDate] = useState(() => dateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)));
+  const [endDate, setEndDate] = useState(() => dateInputValue(new Date(Date.now() + 48 * 60 * 60 * 1000)));
 
   // Selected Pin on Map
   const [activePin, setActivePin] = useState<any>(null);
@@ -44,7 +48,7 @@ export default function SearchScreen() {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      let endpoint = `/vehicles?city=${selectedCity}`;
+      let endpoint = selectedCity === 'All' ? '/vehicles' : `/vehicles?city=${encodeURIComponent(selectedCity)}`;
       if (selectedCategory !== 'All') {
         if (selectedCategory === 'Self Drive') {
           endpoint += `&search=Self Drive`;
@@ -78,7 +82,7 @@ export default function SearchScreen() {
   };
 
   const renderVehicleCard = ({ item }: { item: any }) => {
-    const images = item.images.split(',');
+    const images = parseImageList(item.images);
     const rating = getAverageRating(item.reviews);
     const isTaxi = item.model.includes('Taxi') || item.category === 'Luxury';
     
@@ -86,8 +90,8 @@ export default function SearchScreen() {
       <TouchableOpacity
         style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
         onPress={() => router.push({
-          pathname: `/details/${item.id}`,
-          params: { startDate, endDate }
+          pathname: '/details/[id]',
+          params: { id: String(item.id), startDate, endDate }
         })}
       >
         <View style={{ position: 'relative' }}>
@@ -198,11 +202,11 @@ export default function SearchScreen() {
             <TouchableOpacity
               style={[styles.floatingCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
               onPress={() => router.push({
-                pathname: `/details/${activePin.id}`,
-                params: { startDate, endDate }
+                pathname: '/details/[id]',
+                params: { id: String(activePin.id), startDate, endDate }
               })}
             >
-              <Image source={{ uri: activePin.images.split(',')[0] }} style={styles.floatingCardImage} />
+              <Image source={{ uri: parseImageList(activePin.images)[0] }} style={styles.floatingCardImage} />
               <View style={styles.floatingCardContent}>
                 <ThemedText style={styles.floatingCarName}>{activePin.make} {activePin.model}</ThemedText>
                 <ThemedText type="small" style={{ color: colors.textSecondary }}>

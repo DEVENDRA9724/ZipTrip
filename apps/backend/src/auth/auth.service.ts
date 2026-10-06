@@ -17,7 +17,7 @@ export class AuthService {
     if (typeof data.password !== 'string' || data.password.length < 12 || Buffer.byteLength(data.password) > 72) throw new BadRequestException('Password must be 12–72 bytes');
     data.firstName = text(data.firstName, 'First name', 60);
     data.lastName = text(data.lastName, 'Last name', 60);
-    data.role = choice(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST']);
+    data.role = choice(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST', 'DEALER']);
     if (data.phone) {
       data.phone = text(data.phone, 'Phone', 16).replace(/[\s-]/g, '');
       if (!/^\+?[0-9]{10,15}$/.test(data.phone)) throw new BadRequestException('Invalid phone');
@@ -75,6 +75,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
+    if (user.isBlocked) throw new UnauthorizedException('This account is blocked. Contact Safar support.');
 
     const isMatch = await bcrypt.compare(data.password, user.passwordHash);
     if (!isMatch) {
@@ -96,6 +97,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
+    if (user.isBlocked) throw new UnauthorizedException('This account is blocked. Contact Safar support.');
     const { passwordHash: _, ...result } = user;
     return result;
   }

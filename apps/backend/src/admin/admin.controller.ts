@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentEvidenceService } from '../kyc/document-evidence.service';
 import { admin, choice, text, number, PHOTO_KINDS } from '../common/validation';
 import { randomUUID } from 'node:crypto';
+import { rentalPolicy, lateReturnCharge } from '../bookings/rental-policy';
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
 export class AdminController {
@@ -13,14 +14,28 @@ export class AdminController {
   async overview(@Request() req: any, @Query() query: any = {}) {
     admin(req.user);
     const offset = query.offset === undefined ? 0 : number(query.offset, 'Offset', 0, 1000000, true);
+    const search = typeof query.q === 'string' && query.q.trim() ? query.q.trim().slice(0, 100) : undefined;
+    const vehicleStatus = query.vehicleStatus ? choice(query.vehicleStatus, 'Vehicle status', ['ACTIVE', 'PENDING_APPROVAL', 'INACTIVE', 'MAINTENANCE']) : undefined;
+    const bookingStatus = query.bookingStatus ? choice(query.bookingStatus, 'Booking status', ['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']) : undefined;
+    const documentStatus = query.documentStatus ? choice(query.documentStatus, 'Document status', ['PENDING', 'APPROVED', 'REJECTED']) : undefined;
+    const role = query.role ? choice(query.role, 'User role', ['CUSTOMER', 'HOST', 'DEALER', 'ADMIN']) : undefined;
     const [users, vehicles, bookings, documents, audit] = await Promise.all([
-      this.prisma.user.findMany({ select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true, dlValidUntil: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.vehicle.findMany({ include: { media: { select: { id: true, kind: true } }, documents: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.booking.findMany({ include: { vehicle: true, payment: true, invoice: true, customer: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.document.findMany({ include: { user: { select: { firstName: true, lastName: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.auditLog.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.user.findMany({ where: { ...(role ? { role: role as any } : {}), ...(search ? { OR: [{ email: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }] } : {}) }, select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true, isBlocked: true, dlValidUntil: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.vehicle.findMany({ where: { ...(vehicleStatus ? { status: vehicleStatus as any } : {}), ...(search ? { OR: [{ make: { contains: search } }, { model: { contains: search } }, { registrationNumber: { contains: search } }, { locationCity: { contains: search } }] } : {}) }, include: { media: { select: { id: true, kind: true } }, documents: true, host: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: true, payment: true, invoice: true, customer: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.document.findMany({ where: { ...(documentStatus ? { status: documentStatus } : {}), ...(search ? { OR: [{ kind: { contains: search } }, { user: { email: { contains: search } } }, { user: { firstName: { contains: search } } }, { user: { lastName: { contains: search } } }] } : {}) }, include: { user: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.auditLog.findMany({ where: search ? { OR: [{ action: { contains: search } }, { targetId: { contains: search } }, { detail: { contains: search } }] } : {}, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
     ]);
-    return { users, vehicles, bookings, documents, audit, nextOffset: [users, vehicles, bookings, documents, audit].some(rows => rows.length === 200) ? offset + 200 : null };
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const [vehiclePending, documentPending, refunds, activeBookings, todayRevenue, paidRevenue] = await Promise.all([
+      this.prisma.vehicle.count({ where: { status: 'PENDING_APPROVAL' } }),
+      this.prisma.document.count({ where: { status: 'PENDING' } }),
+      this.prisma.payment.count({ where: { status: 'REFUND_PENDING' } }),
+      this.prisma.booking.count({ where: { status: { in: ['CONFIRMED', 'ACTIVE'] } } }),
+      this.prisma.payment.aggregate({ where: { status: 'SUCCESS', createdAt: { gte: today } }, _sum: { amount: true } }),
+      this.prisma.payment.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
+    ]);
+    return { users, vehicles, bookings, documents, audit, metrics: { vehiclePending, documentPending, refunds, activeBookings, todayRevenue: Number(todayRevenue._sum.amount || 0), paidRevenue: Number(paidRevenue._sum.amount || 0) }, nextOffset: [users, vehicles, bookings, documents, audit].some(rows => rows.length === 200) ? offset + 200 : null };
   }
   // Redirect legacy certificate links to the original document after authorization.
   @Get('documents/:id/certificate')
@@ -115,6 +130,48 @@ export class AdminController {
       await tx.auditLog.create({ data: { actorId: req.user.id, action: 'PAYMENT_RECORDED', targetId: id, detail: reference } });
       return invoice;
     });
+  }
+  @Post('users/:id/block')
+  async blockUser(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const blocked = body.blocked === true;
+    const note = text(body.note, 'Reason', 1000);
+    return this.prisma.$transaction(async tx => {
+      const target = await tx.user.findUnique({ where: { id }, select: { id: true, role: true, isBlocked: true } });
+      if (!target) throw new NotFoundException('User not found');
+      if (target.role === 'ADMIN' || target.id === req.user.id) throw new BadRequestException('Administrators cannot be blocked from this panel');
+      const result = await tx.user.update({ where: { id }, data: { isBlocked: blocked } });
+      await tx.auditLog.create({ data: { actorId: req.user.id, action: blocked ? 'USER_BLOCKED' : 'USER_UNBLOCKED', targetId: id, detail: note } });
+      return { id: result.id, isBlocked: result.isBlocked };
+    });
+  }
+  @Get('export.csv')
+  async exportCsv(@Request() req: any, @Query() query: any, @Res() res: Response) {
+    admin(req.user);
+    const from = query.from ? new Date(query.from + 'T00:00:00.000Z') : undefined;
+    const to = query.to ? new Date(query.to + 'T23:59:59.999Z') : undefined;
+    if ((from && !Number.isFinite(+from)) || (to && !Number.isFinite(+to))) throw new BadRequestException('Invalid export date range');
+    const bookings = await this.prisma.booking.findMany({ where: { ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}) }, include: { customer: { select: { firstName: true, lastName: true, email: true } }, vehicle: { include: { host: { select: { firstName: true, lastName: true, email: true } } } }, payment: true, invoice: true }, orderBy: { createdAt: 'desc' }, take: 10000 });
+    const cell = (value: unknown) => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+    const rows: Array<Array<string | number>> = [['Booking reference','Created at','Customer','Customer email','Host','Vehicle','Registration','Pickup','Return','Status','Rental amount','Security deposit','Total','Payment status','Payment reference','Invoice']];
+    for (const booking of bookings) rows.push([booking.bookingRef, booking.createdAt.toISOString(), booking.customer.firstName + ' ' + booking.customer.lastName, booking.customer.email, booking.vehicle.host.firstName + ' ' + booking.vehicle.host.lastName, booking.vehicle.make + ' ' + booking.vehicle.model, booking.vehicle.registrationNumber || '', booking.startDate.toISOString(), booking.endDate.toISOString(), booking.status, Number(booking.totalAmount) - Number(booking.securityDeposit), Number(booking.securityDeposit), Number(booking.totalAmount), booking.payment?.status || 'NOT_RECORDED', booking.payment?.transactionId || '', booking.invoice?.number || '']);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="safar-bookings-mis.csv"');
+    res.send(rows.map(row => row.map(cell).join(',')).join('\r\n'));
+  }
+  @Get('bookings/:id/settlement')
+  async settlement(@Request() req: any, @Param('id') id: string) {
+    admin(req.user);
+    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { vehicle: true, inspections: { orderBy: { createdAt: 'asc' } } } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const pickup = booking.inspections.find(item => item.stage === 'PICKUP');
+    const returned = booking.inspections.find(item => item.stage === 'RETURN');
+    const travelled = pickup && returned ? Math.max(0, returned.odometer - pickup.odometer) : null;
+    const excessKm = travelled == null || booking.includedKilometres == null ? null : Math.max(0, travelled - booking.includedKilometres);
+    const excessCharge = excessKm == null ? 0 : excessKm * rentalPolicy.excessKmRate;
+    const late = returned ? lateReturnCharge(returned.createdAt, booking.endDate) : { lateMinutes: 0, lateHours: 0, amount: 0 };
+    const automaticCharges = excessCharge + late.amount;
+    return { bookingId: id, depositHeld: Number(booking.securityDeposit), includedKilometres: booking.includedKilometres, travelledKilometres: travelled, excessKilometres: excessKm, excessKmRate: rentalPolicy.excessKmRate, excessCharge, lateGraceMinutes: rentalPolicy.lateGraceMinutes, lateMinutes: late.lateMinutes, lateCharge: late.amount, automaticCharges, suggestedDepositDeduction: Math.min(Number(booking.securityDeposit), automaticCharges), estimatedDepositRelease: Math.max(0, Number(booking.securityDeposit) - automaticCharges), damageReviewRequired: Boolean(returned?.damageNote && !/^no visible damage$/i.test(returned.damageNote.trim())), note: 'Damage, fuel, tolls, fines and cleaning require documented admin review before any additional deduction.' };
   }
   @Post('vehicles/:id/pricing')
   async pricing(@Request() req: any, @Param('id') id: string, @Body() body: any) {

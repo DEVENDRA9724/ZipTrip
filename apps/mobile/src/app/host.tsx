@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Image, FlatList, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { apiRequest } from '@/services/api';
+import { apiRequest, parseImageList } from '@/services/api';
 import { Landmark, LogIn, Plus, Sparkles, Car, IndianRupee, Layers, ChevronRight, Check } from 'lucide-react-native';
 
 const CAR_TEMPLATES = [
@@ -15,10 +14,10 @@ const CAR_TEMPLATES = [
   { name: 'Luxury Sports Sedan', url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=80&w=600' },
   { name: 'White Electric SUV', url: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=600' },
 ];
+const VEHICLE_CATEGORIES = ['Hatchback', 'Sedan', 'Compact SUV', 'SUV', 'MUV', 'Luxury'] as const;
 
 export default function HostScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors.light;
 
   const authContext = require('@/context/AuthContext');
   const { user } = authContext.useAuth();
@@ -56,18 +55,9 @@ export default function HostScreen() {
       const bookingsData = await apiRequest('/bookings/host-bookings');
       setBookings(bookingsData);
 
-      // Fetch all cars in the city to filter host's cars
-      // (Alternative would be a dedicated host endpoint, but since all listings return hostId, we can filter locally!)
-      const allVehicles = await apiRequest(`/vehicles?city=Mumbai`);
-      const allDelhi = await apiRequest(`/vehicles?city=Delhi`);
-      const allBlr = await apiRequest(`/vehicles?city=Bangalore`);
-      
-      const combined = [...allVehicles, ...allDelhi, ...allBlr];
-      const filtered = combined.filter((car: any) => car.hostId === user.id);
-      
-      // Remove duplicates just in case
-      const uniqueCars = filtered.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-      setHostCars(uniqueCars);
+      // Use the authenticated host endpoint so pending, inactive and maintenance
+      // listings are visible. Public vehicle search only returns active cars.
+      setHostCars(await apiRequest('/vehicles/mine'));
     } catch (error) {
       console.error('Error fetching host data:', error);
     } finally {
@@ -76,43 +66,7 @@ export default function HostScreen() {
   };
 
   const handleSubmitCar = async () => {
-    if (!make || !model || !pricePerDay) {
-      Alert.alert('Error', 'Please fill in make, model, and price per day');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await apiRequest('/vehicles', {
-        method: 'POST',
-        body: JSON.stringify({
-          make,
-          model,
-          year,
-          category,
-          transmission,
-          fuelType,
-          seats,
-          pricePerDay,
-          locationCity,
-          images: selectedPhoto,
-        }),
-      });
-
-      Alert.alert('Success', 'Your vehicle has been listed and is now ACTIVE!');
-      setWizardVisible(false);
-      
-      // Reset form
-      setMake('');
-      setModel('');
-      setPricePerDay('');
-      
-      fetchHostData();
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to list car');
-    } finally {
-      setSubmitting(false);
-    }
+    Alert.alert('Complete listing on the web portal', 'A vehicle listing needs a registration number and eight original vehicle photos (front, rear, both sides, interior, boot, bonnet and odometer). The mobile photo-upload flow is being completed; no listing was created.');
   };
 
   // Calculate statistics
@@ -219,7 +173,7 @@ export default function HostScreen() {
 
               return (
                 <View key={car.id} style={[styles.carItem, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                  <Image source={{ uri: car.images.split(',')[0] }} style={styles.carItemImage} />
+                  <Image source={{ uri: parseImageList(car.images)[0] }} style={styles.carItemImage} />
                   <View style={styles.carItemContent}>
                     <ThemedText style={styles.carItemTitle}>{car.make} {car.model}</ThemedText>
                     <ThemedText type="small" style={{ color: colors.textSecondary }}>
@@ -357,13 +311,9 @@ export default function HostScreen() {
                 <View style={styles.formCol}>
                   <ThemedText style={styles.formLabel}>Category</ThemedText>
                   <View style={[styles.selectContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                    {/* Simplified selector logic */}
-                    <TextInput
-                      style={[styles.selectInput, { color: colors.text }]}
-                      value={category}
-                      onChangeText={setCategory}
-                      placeholder="SUV, Sedan, Electric..."
-                    />
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryOptions}>
+                      {VEHICLE_CATEGORIES.map(option => <TouchableOpacity key={option} onPress={() => setCategory(option)} style={[styles.categoryOption, category === option && { backgroundColor: colors.primary }]}><ThemedText style={category === option ? styles.roleActiveText : undefined}>{option}</ThemedText></TouchableOpacity>)}
+                    </ScrollView>
                   </View>
                 </View>
                 <View style={styles.formCol}>
@@ -443,6 +393,10 @@ export default function HostScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  roleActiveText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   header: {
     paddingHorizontal: Spacing.three,
@@ -646,6 +600,17 @@ const styles = StyleSheet.create({
   },
   formCol: {
     flex: 1,
+  },
+  categoryOptions: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  categoryOption: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#D5D5D5',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
   formLabel: {
     fontSize: 13,

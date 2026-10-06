@@ -64,11 +64,22 @@ export class KycController {
     if (status.toLowerCase() !== 'succeeded') return { ...await this.status(req), syncResults, syncMessage: 'DigiLocker consent is not complete. Complete the provider flow before syncing documents.' };
     // A redirect or a session status never grants KYC approval. Fetching each issuer document is required.
     for (const kind of ['AADHAAR', 'DL']) {
-      try { await this.documents.original({ userId: req.user.id, kind, source: session.environment === 'live' ? 'DIGILOCKER_LIVE' : 'DIGILOCKER_TEST', providerSessionId: id, mediaId: null }); }
+      const existing = await this.prisma.document.findFirst({ where: { userId: req.user.id, providerSessionId: id, kind }, select: { id: true, mediaId: true } });
+      if (existing?.mediaId) {
+        syncResults.push({ kind, state: 'AVAILABLE' });
+        continue;
+      }
+      let mediaId: string | null = null;
+      try {
+        const evidence = await this.documents.original({ userId: req.user.id, kind, source: session.environment === 'live' ? 'DIGILOCKER_LIVE' : 'DIGILOCKER_TEST', providerSessionId: id, mediaId: null });
+        const archive = (this.documents as any).archive;
+        if (typeof archive === 'function') mediaId = await archive.call(this.documents, req.user.id, kind, evidence);
+      }
       catch (error) { syncResults.push({ kind, state: 'FAILED', message: error.message }); continue; }
       await this.prisma.$transaction(async tx => {
-        const exists = await tx.document.findFirst({ where: { userId: req.user.id, providerSessionId: id, kind } });
-        if (!exists) await tx.document.create({ data: { userId: req.user.id, kind, providerSessionId: id, source: session.environment === 'live' ? 'DIGILOCKER_LIVE' : 'DIGILOCKER_TEST', status: 'PENDING' } });
+        const current = await tx.document.findFirst({ where: { userId: req.user.id, providerSessionId: id, kind } });
+        if (!current) await tx.document.create({ data: { userId: req.user.id, kind, providerSessionId: id, mediaId, source: session.environment === 'live' ? 'DIGILOCKER_LIVE' : 'DIGILOCKER_TEST', status: 'PENDING' } });
+        else if (mediaId && !current.mediaId) await tx.document.update({ where: { id: current.id }, data: { mediaId } });
       });
       syncResults.push({ kind, state: 'AVAILABLE' });
     }

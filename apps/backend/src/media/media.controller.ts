@@ -13,7 +13,7 @@ export class MediaController {
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 8 * 1024 * 1024, files: 1, fields: 0 } }))
   upload(@Request() req: any, @Query('kind') kind: string, @UploadedFile() file: any) { return this.media.upload(req.user.id, kind, file); }
   @Get(':id')
-  async read(@Param('id') id: string, @Request() req: any, @Res() res: Response) {
+  async read(@Param('id') id: string, @Request() req: any, @Res() res: Response, @Query('download') download?: string) {
     let user: any;
     try {
       const token = req.headers.authorization?.slice(7) || req.headers.cookie?.split(';').map((s: string) => s.trim()).find((s: string) => s.startsWith('safar_session='))?.slice(14);
@@ -21,6 +21,7 @@ export class MediaController {
     } catch {}
     const result = await this.media.read(id, user);
     res.setHeader('Cache-Control', 'private, no-store');
+    if (download === '1') res.setHeader('Content-Disposition', 'attachment; filename="safar-original-document"');
     res.type(result.mimeType).send(result.buffer);
   }
 }

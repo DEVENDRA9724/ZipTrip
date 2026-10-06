@@ -12,6 +12,9 @@ import { KycController } from './kyc/kyc.controller';
 import { SandboxService } from './kyc/sandbox.service';
 import { DocumentEvidenceService } from './kyc/document-evidence.service';
 import { AdminController } from './admin/admin.controller';
+import { AccountModule } from './account/account.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { PayoutsModule } from './payouts/payouts.module';
 
 @Module({
   imports: [
@@ -20,6 +23,9 @@ import { AdminController } from './admin/admin.controller';
     VehiclesModule,
     BookingsModule,
     WalletModule,
+    AccountModule,
+    ReviewsModule,
+    PayoutsModule,
   ],
   controllers: [AppController, MediaController, KycController, AdminController],
   providers: [AppService, MediaService, SandboxService, DocumentEvidenceService],

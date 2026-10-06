@@ -22,8 +22,8 @@ Not completed / launch blockers:
    See apps/backend/POSTGRESQL-SETUP.txt. No cloud account or domain exists yet.
 2. Private cloud storage for permitted KYC originals, retention and access auditing.
    Current DigiLocker files still depend on temporary provider availability.
-3. Full host application, payout details, agreements and review workflow.
-4. Host availability blocks, maintenance periods, turnaround buffers and extensions.
+3. Full host application, payout details and remaining review workflow.
+4. Turnaround buffers, automatic maintenance reminders and extensions.
 5. Payment gateway, deposits, refunds, webhooks, settlements and invoice reconciliation.
 6. Remove unsupported demonstration claims, fixed ratings and deposit statements;
    unify backend pricing with all displayed quotes before accepting real payments.
@@ -45,8 +45,37 @@ Rental operations update — 2 October 2026
   shows recorded distance and excess kilometres without inventing charge rates.
 - Receipts separate rental and deposit. Checkout rejects a changed quote amount.
 - Backed up SQLite before additive schema changes; PostgreSQL migration included.
-- 45 automated tests passed; build and frontend syntax checks passed.
+- 47 automated tests passed; backend build and frontend syntax checks passed.
 - Running API verified: 12-hour quote includes 150 km and INR 2,000 deposit.
+- Added server security headers for production, data-backed vehicle review summaries,
+  Compact SUV validation parity, and honest mobile messaging for unavailable payment
+  and incomplete eight-angle host photo uploads.
+- Added authenticated, party-scoped rental agreements for every booking, with vehicle,
+  parties, dates, charges, deposit, inspections and operating terms plus print/PDF export.
+- Verified the existing administrator account in the local database; it remains
+  ADMIN and is now marked verified.
+- DigiLocker sync now archives the provider's original XML/PDF bytes encrypted in
+  private media storage and reopens them through authorized media links. Existing
+  records created before this change still require a fresh verification if the
+  provider has expired their temporary file.
+- Centralized rental policy configuration now covers the ₹2,000 default deposit,
+  300 km per 24 hours, configurable excess-kilometre and late-return rates,
+  grace period and cancellation schedule. Booking agreements display these terms.
+- Added host–Safar partner agreements per vehicle and an admin settlement preview
+  that calculates recorded excess kilometres and late-return charges from pickup
+  and return inspections. Damage, fuel, toll, fine and cleaning deductions remain
+  manual until reviewed and recorded.
+- Added versioned agreement acknowledgement endpoints and audit records for both
+  renter/host booking agreements and host–Safar vehicle agreements.
+- Admin overview now supports server-side search/status filters and database-backed
+  operational metrics; vehicle fleet cards include pricing, availability, review,
+  compliance and host-agreement controls.
+- Added a separate DEALER fleet role with the same scoped fleet controls as a host,
+  protected account blocking for customers/partners, daily and lifetime collected
+  payment metrics, and an Excel-compatible booking MIS CSV export.
+- KYC evidence cards now include an explicit download action for securely archived
+  originals; archived media supports attachment downloads without changing the
+  supplied XML/PDF bytes.
 
 Still required: excess-km rate, late-return policy, cancellation policy, confirmed
 hourly-vs-daily pricing policy, deposit settlement/refund workflow, damage-photo

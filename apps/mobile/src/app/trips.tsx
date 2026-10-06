@@ -2,17 +2,15 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { useColorScheme } from 'react-native';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { apiRequest } from '@/services/api';
+import { apiRequest, parseImageList } from '@/services/api';
 import { Calendar, AlertCircle, LogIn, ChevronRight, CheckCircle2, XCircle } from 'lucide-react-native';
 
 const TRIP_STATUSES = ['Upcoming', 'Completed', 'Cancelled'];
 
 export default function TripsScreen() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const colors = Colors.light;
 
   const authContext = require('@/context/AuthContext');
   const { user } = authContext.useAuth();
@@ -61,7 +59,7 @@ export default function TripsScreen() {
   const handleCancelBooking = (bookingId: string) => {
     Alert.alert(
       'Cancel Booking',
-      'Are you sure you want to cancel this booking? The full amount will be refunded to your wallet.',
+      'Are you sure you want to cancel this booking? The cancellation policy will be applied and any eligible refund will be reviewed by Safar.',
       [
         { text: 'No', style: 'cancel' },
         {
@@ -73,7 +71,7 @@ export default function TripsScreen() {
               await apiRequest(`/bookings/${bookingId}/cancel`, {
                 method: 'POST',
               });
-              Alert.alert('Success', 'Booking cancelled and money refunded to wallet.');
+              Alert.alert('Cancellation submitted', 'Your booking was cancelled. Any eligible refund is now pending administrator reconciliation.');
               fetchTrips();
             } catch (e: any) {
               Alert.alert('Error', e.message || 'Failed to cancel booking.');
@@ -96,7 +94,7 @@ export default function TripsScreen() {
   };
 
   const renderBookingCard = ({ item }: { item: any }) => {
-    const images = item.vehicle.images.split(',');
+    const images = parseImageList(item.vehicle.images);
     const isUpcoming = activeTab === 'Upcoming';
     
     return (
@@ -129,7 +127,12 @@ export default function TripsScreen() {
         </View>
 
         {isUpcoming && item.status === 'CONFIRMED' && (
-          <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
+          <View style={[styles.cardActions, { borderTopColor: colors.border }]}>`r`n            <TouchableOpacity
+              style={[styles.agreementBtn, { borderColor: colors.primary }]}
+              onPress={() => router.push({ pathname: '/booking/agreement' as any, params: { id: item.id } })}
+            >
+              <ThemedText style={[styles.agreementBtnText, { color: colors.primary }]}>Agreement</ThemedText>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.cancelBtn, { borderColor: colors.error }]}
               onPress={() => handleCancelBooking(item.id)}
@@ -351,6 +354,8 @@ const styles = StyleSheet.create({
   cardActions: {
     borderTopWidth: 1,
     padding: Spacing.two,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'flex-end',
   },
   cancelBtn: {
@@ -360,6 +365,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
   },
   cancelBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  agreementBtn: {
+    borderWidth: 1.5,
+    borderRadius: 8,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+    marginRight: Spacing.two,
+  },
+  agreementBtnText: {
     fontSize: 12,
     fontWeight: 'bold',
   },

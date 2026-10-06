@@ -19,5 +19,10 @@ export function choice(value: unknown, field: string, values: readonly string[])
 export function admin(user: { role: string }) {
   if (user.role !== 'ADMIN') throw new ForbiddenException('Administrator access required');
 }
+export const FLEET_ROLES = ['HOST', 'DEALER', 'ADMIN'] as const;
+export function fleetManager(user: { role: string }) {
+  if (!FLEET_ROLES.includes(user.role as any)) throw new ForbiddenException('Host or dealer account required');
+}
 export const PHOTO_KINDS = ['FRONT', 'REAR', 'LEFT', 'RIGHT', 'INTERIOR', 'BOOT', 'BONNET', 'ODOMETER'] as const;
+export const INSPECTION_KINDS = ['ODOMETER', 'SELFIE_PICKUP', 'SELFIE_RETURN', 'DAMAGE', 'INSPECTION_PICKUP', 'INSPECTION_RETURN'] as const;
 export const DOCUMENT_KINDS = ['DL', 'RC', 'INSURANCE', 'PUC'] as const;

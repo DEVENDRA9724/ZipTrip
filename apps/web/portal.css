@@ -1167,6 +1167,34 @@ dialog::backdrop { background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); }
 .invoice-total { font-size: 24px; font-weight: 900; text-align: right; }
 hr { border: none; border-top: 1px solid var(--border-light); margin: 16px 0; }
 
+/* Rental agreement */
+.agreement { max-width: 900px; margin: 0 auto; }
+.agreement-notice { margin: 18px 0; padding: 15px 17px; border: 1px solid var(--orange-border); border-radius: var(--r); background: var(--orange-soft); }
+.agreement-notice.is-confirmed { border-color: var(--green-border); background: var(--green-bg); }
+.agreement-notice strong { display: block; margin-bottom: 4px; }
+.agreement-notice p { margin: 0; color: var(--text-body); font-size: 13px; }
+.agreement-meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+.agreement-meta-grid.compact { grid-template-columns: repeat(3, 1fr); }
+.agreement-meta-grid > div { min-width: 0; padding: 13px 14px; background: var(--bg-subtle); border: 1px solid var(--border-light); border-radius: var(--r-sm); }
+.agreement-meta-grid span { display: block; color: var(--text-muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+.agreement-meta-grid strong { display: block; overflow-wrap: anywhere; font-size: 13px; }
+.agreement-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-light); }
+.agreement-section h3 { margin-bottom: 13px; }
+.agreement-section h4 { margin-bottom: 6px; }
+.agreement-section p { line-height: 1.6; }
+.agreement-terms { margin: 0; }
+.agreement-signoff { background: var(--bg-subtle); padding: 16px; border-radius: var(--r); border-top: 0; }
+.agreement-actions { margin-top: 22px; }
+@media (max-width: 700px) {
+  .agreement-meta-grid, .agreement-meta-grid.compact { grid-template-columns: repeat(2, 1fr); }
+  .agreement .table-wrap { overflow-x: auto; }
+}
+@media print {
+  .header, .footer, .mobile-bnav, .agreement-actions { display: none !important; }
+  body { background: #fff; }
+  .agreement { max-width: none; border: 0; box-shadow: none; }
+}
+
 /* ══ SKELETON LOADING ═══════════════════════════════════════════════ */
 @keyframes shimmer {
   0%   { background-position: -600px 0; }

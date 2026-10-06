@@ -8,6 +8,7 @@ CREATE TABLE "User" (
     "lastName" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'CUSTOMER',
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "isBlocked" BOOLEAN NOT NULL DEFAULT false,
     "profileImage" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
@@ -69,6 +70,8 @@ CREATE TABLE "Booking" (
     "rentalDays" INTEGER NOT NULL DEFAULT 1,
     "includedKilometres" INTEGER,
     "securityDeposit" DECIMAL NOT NULL DEFAULT 0,
+    "agreementVersion" TEXT NOT NULL DEFAULT 'safarcars-car-sharing-v2',
+    "agreementSnapshot" TEXT,
     CONSTRAINT "Booking_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Booking_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -139,6 +142,7 @@ CREATE TABLE "Inspection" (
     "stage" TEXT NOT NULL,
     "odometer" INTEGER NOT NULL,
     "mediaId" TEXT NOT NULL,
+    "mediaIds" TEXT,
     "note" TEXT,
     "fuelPercent" INTEGER,
     "damageNote" TEXT,
@@ -187,6 +191,36 @@ CREATE TABLE "Wallet" (
     "balance" DECIMAL NOT NULL DEFAULT 0.00,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "Wallet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "PayoutAccount" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "accountHolderName" TEXT NOT NULL,
+    "bankName" TEXT NOT NULL,
+    "accountNumberLast4" TEXT NOT NULL,
+    "ifscCode" TEXT NOT NULL,
+    "encryptedAccountNumber" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "PayoutAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Payout" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "accountId" TEXT NOT NULL,
+    "amount" DECIMAL NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "reference" TEXT,
+    "periodStart" DATETIME,
+    "periodEnd" DATETIME,
+    "note" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "processedAt" DATETIME,
+    CONSTRAINT "Payout_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "PayoutAccount"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -242,3 +276,5 @@ CREATE UNIQUE INDEX "Payment_transactionId_key" ON "Payment"("transactionId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Wallet_userId_key" ON "Wallet"("userId");
+CREATE UNIQUE INDEX "PayoutAccount_userId_key" ON "PayoutAccount"("userId");
+CREATE INDEX "Payout_accountId_status_idx" ON "Payout"("accountId", "status");

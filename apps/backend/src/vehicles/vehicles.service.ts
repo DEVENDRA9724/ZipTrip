@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { text, number, choice, PHOTO_KINDS } from '../common/validation';
+import { text, number, choice, PHOTO_KINDS, FLEET_ROLES } from '../common/validation';
 import { rentalPeriod, overlappingReservations } from '../bookings/availability';
 import { rentalQuote } from '../bookings/pricing';
+import { rentalPolicy } from '../bookings/rental-policy';
 @Injectable()
 export class VehiclesService {
   constructor(private prisma: PrismaService) {}
@@ -20,10 +21,10 @@ export class VehiclesService {
     if (query.transmission) where.transmission = text(query.transmission, 'Transmission');
     if (query.seats) where.seats = number(query.seats, 'Seats', 2, 12, true);
     if (query.maxPrice) where.pricePerDay = { lte: number(query.maxPrice, 'Price', 1, 1000000) };
-    return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } } }, orderBy: { createdAt: 'desc' }, take: 100 });
+    return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { select: { rating: true } } }, orderBy: { createdAt: 'desc' }, take: 100 });
   }
   async findOne(id: string) {
-    const vehicle = await this.prisma.vehicle.findFirst({ where: { id, status: 'ACTIVE' }, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } } } });
+    const vehicle = await this.prisma.vehicle.findFirst({ where: { id, status: 'ACTIVE' }, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { include: { author: { select: { firstName: true, lastName: true } } }, orderBy: { createdAt: 'desc' }, take: 20 } } });
     if (!vehicle) throw new NotFoundException('Vehicle not found');
     return vehicle;
   }
@@ -46,6 +47,43 @@ export class VehiclesService {
       this.prisma.booking.findMany({ where: { vehicleId: id, endDate: { gt: now }, OR: [{ status: { in: ['CONFIRMED','ACTIVE'] } }, { status: 'PENDING', expiresAt: { gt: now } }] }, select: { id: true, bookingRef: true, startDate: true, endDate: true, status: true }, orderBy: { startDate: 'asc' } }),
     ]);
     return { blocks, bookings };
+  }
+  async hostAgreement(user: any, id: string) {
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id },
+      include: {
+        host: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+        documents: { select: { kind: true, status: true, validUntil: true } },
+      },
+    });
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    if (vehicle.hostId !== user.id && user.role !== 'ADMIN') throw new ForbiddenException('Host agreement access denied');
+    return {
+      agreementVersion: 'safar-host-partner-v1',
+      generatedAt: new Date().toISOString(),
+      business: { name: process.env.BUSINESS_NAME || 'Safar Self Drive', address: process.env.BUSINESS_ADDRESS || '', email: process.env.BUSINESS_EMAIL || '', phone: process.env.BUSINESS_PHONE || '' },
+      host: vehicle.host,
+      vehicle: { id: vehicle.id, make: vehicle.make, model: vehicle.model, year: vehicle.year, registrationNumber: vehicle.registrationNumber, city: vehicle.locationCity, status: vehicle.status, dailyRate: Number(vehicle.pricePerDay) },
+      commercialTerms: { platformRole: 'Safar operates the marketplace, verification, booking records and customer support.', hostPayout: 'Payout is released only after a completed booking, inspection and reconciliation under the selected payment provider terms.', securityDeposit: rentalPolicy.deposit, includedKilometresPer24Hours: rentalPolicy.kilometresPer24Hours, excessKmRate: rentalPolicy.excessKmRate },
+      acknowledgement: await this.prisma.auditLog.findFirst({ where: { action: 'HOST_AGREEMENT_ACKNOWLEDGED', targetId: id, actorId: user.id }, orderBy: { createdAt: 'desc' } }).then(row => row ? { acceptedAt: row.createdAt, version: row.detail } : null),
+      terms: [
+        'The host confirms legal ownership or authority to list the vehicle and must keep registration, insurance and pollution documents valid.',
+        'Safar may suspend the listing when documents expire, safety concerns are reported, a booking dispute is open or the vehicle fails inspection.',
+        'The host must provide the vehicle clean, roadworthy, fuelled as recorded and with the required exterior, interior, boot, bonnet and odometer evidence.',
+        'The host must accept pickup and return inspections, report accidents or damage promptly, and not collect unrecorded charges directly from a customer.',
+        'Bookings, cancellations, refunds, deposits, excess distance, late return, damage and payout adjustments must be recorded through Safar operations.',
+        'Safar may withhold or adjust a payout for documented damage, fraud, fines, chargebacks, customer refunds or breach of these terms after review.',
+        'This partner agreement supplements each booking agreement and does not replace mandatory insurance, tax or statutory obligations.',
+      ],
+    };
+  }
+  async acknowledgeHostAgreement(user: any, id: string) {
+    const vehicle = await this.prisma.vehicle.findUnique({ where: { id }, select: { hostId: true } });
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    if (vehicle.hostId !== user.id && user.role !== 'ADMIN') throw new ForbiddenException('Host agreement access denied');
+    const detail = 'safar-host-partner-v1';
+    const row = await this.prisma.auditLog.create({ data: { actorId: user.id, action: 'HOST_AGREEMENT_ACKNOWLEDGED', targetId: id, detail } });
+    return { acceptedAt: row.createdAt, version: detail };
   }
   async block(hostId: string, id: string, body: any) {
     const access = await this.managementScope(hostId, id);
@@ -80,7 +118,7 @@ export class VehiclesService {
   mine(hostId: string) { return this.prisma.vehicle.findMany({ where: { hostId }, include: { media: { select: { id: true, kind: true } }, documents: true }, orderBy: { createdAt: 'desc' } }); }
   async create(hostId: string, data: any) {
     const user = await this.prisma.user.findUnique({ where: { id: hostId } });
-    if (!user || !['HOST', 'ADMIN'].includes(user.role)) throw new ForbiddenException('Register a host account to list a car');
+    if (!user || !FLEET_ROLES.includes(user.role as any)) throw new ForbiddenException('Register a host or dealer account to list a car');
     const registrationNumber = text(data.registrationNumber, 'Registration number', 16).replace(/\s/g, '').toUpperCase();
     if (!/^[A-Z0-9-]{6,16}$/.test(registrationNumber)) throw new BadRequestException('Invalid registration number');
     if (await this.prisma.vehicle.findUnique({ where: { registrationNumber } })) throw new ConflictException('This registration number is already listed. Open My Fleet or contact an administrator.');

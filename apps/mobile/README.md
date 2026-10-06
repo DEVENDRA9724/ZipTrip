@@ -25,6 +25,16 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Safar API configuration
+
+Copy `.env.example` to `.env` and set `EXPO_PUBLIC_API_URL` to the backend URL reachable by the device. Use the computer's LAN IP for local testing; `localhost` inside a phone points to the phone itself. Only public configuration belongs in this variable. Provider, payment, JWT, and storage secrets stay on the backend.
+
+The app uses the `safar://` deep-link scheme. DigiLocker opens in the system browser and the user returns to the app to sync the session. Production DigiLocker redirects must use an HTTPS backend callback.
+
+## Android and iOS builds
+
+Install EAS CLI when ready, then run `eas build --platform android` or `eas build --platform ios`. Use the `preview` profile in `eas.json` for internal testing and `production` for store builds. Android publishing needs a Google Play Console account; iOS publishing needs an Apple Developer account. EAS manages build signing credentials.
+
 ## Get a fresh project
 
 When you're ready, run:
