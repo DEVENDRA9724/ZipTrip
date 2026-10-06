@@ -263,6 +263,8 @@ export class BookingsService {
       if (media.length !== mediaIds.length || (stage !== 'DAMAGE' && !media.some(item => item.id === mediaId && item.kind === 'ODOMETER'))) throw new BadRequestException('Upload the required inspection photo and ensure every inspection photo belongs to you');
       if (stage === 'PICKUP' && !media.some(item => item.kind === 'SELFIE_PICKUP')) throw new BadRequestException('Upload a pickup selfie');
       if (stage === 'RETURN' && !media.some(item => item.kind === 'SELFIE_RETURN')) throw new BadRequestException('Upload a return selfie');
+      if (stage === 'PICKUP' && !media.some(item => item.kind === 'INSPECTION_PICKUP')) throw new BadRequestException('Upload at least one pickup condition photo');
+      if (stage === 'RETURN' && !media.some(item => item.kind === 'INSPECTION_RETURN')) throw new BadRequestException('Upload at least one return condition photo');
       const alreadyUsed = await tx.inspection.findFirst({ where: { mediaId: { in: mediaIds } } });
       if (alreadyUsed) throw new BadRequestException('One of these inspection photos was already used');
       if (stage === 'DAMAGE') {
