@@ -16,4 +16,15 @@ export class ReviewsController {
   create(@Request() req: any, @Body() body: any) {
     return this.reviews.create(req.user.id, body);
   }
+
+  @Get('user/:userId')
+  listForUser(@Param('userId') userId: string) {
+    return this.reviews.listForUser(userId);
+  }
+
+  @Post('party')
+  @UseGuards(JwtAuthGuard)
+  createParty(@Request() req: any, @Body() body: any) {
+    return this.reviews.createParty(req.user, body);
+  }
 }

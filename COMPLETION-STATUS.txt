@@ -78,6 +78,8 @@ Rental operations update — 2 October 2026
   supplied XML/PDF bytes.
 - Role dashboards now include a customer/host/dealer/admin account summary, and
   completed trips can receive verified customer-to-vehicle ratings.
+- Completed bookings now support one verified customer-to-host rating and one
+  host/dealer-to-customer rating, with role and booking ownership enforced.
 - Host and dealer payout accounts now use encrypted account-number storage with
   last-four display, admin verification controls, and a manual payout ledger with
   status/reference updates. This is an operational ledger, not an automatic bank
@@ -91,7 +93,7 @@ Rental operations update — 2 October 2026
 
 Still required: excess-km rate, late-return policy, cancellation policy, confirmed
 hourly-vs-daily pricing policy, automatic deposit settlement/refund workflow,
-host-to-customer ratings, full host/dealer onboarding and bank verification,
+rating reminders, full host/dealer onboarding and bank verification,
 payment gateway, secure cloud documents and deployment.
 Current rental billing remains per started 24-hour day; only kilometre allowance
 is prorated. No automatic damage, late-return or excess-km charges are implemented.

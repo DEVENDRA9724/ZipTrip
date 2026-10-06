@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
@@ -19,6 +19,11 @@ export default function TripsScreen() {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [ratingBooking, setRatingBooking] = useState<any | null>(null);
+  const [ratingTarget, setRatingTarget] = useState<'vehicle' | 'host'>('vehicle');
+  const [ratingValue, setRatingValue] = useState('5');
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingBusy, setRatingBusy] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -84,6 +89,26 @@ export default function TripsScreen() {
     );
   };
 
+  const submitRating = async () => {
+    if (!ratingBooking) return;
+    const rating = Number(ratingValue);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return Alert.alert('Rating required', 'Choose a rating from 1 to 5.');
+    setRatingBusy(true);
+    try {
+      await apiRequest(ratingTarget === 'vehicle' ? '/reviews' : '/reviews/party', {
+        method: 'POST',
+        body: JSON.stringify({ bookingId: ratingBooking.id, ...(ratingTarget === 'host' ? { targetRole: 'HOST' } : {}), rating, comment: ratingComment.trim() || undefined }),
+      });
+      setRatingBooking(null);
+      Alert.alert('Rating submitted', `Your ${ratingTarget} rating was saved.`);
+      fetchTrips();
+    } catch (error: any) {
+      Alert.alert('Rating failed', error.message || 'Could not save this rating.');
+    } finally {
+      setRatingBusy(false);
+    }
+  };
+
   const formatDateString = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-IN', {
@@ -144,6 +169,16 @@ export default function TripsScreen() {
               ) : (
                 <ThemedText style={[styles.cancelBtnText, { color: colors.error }]}>Cancel Booking</ThemedText>
               )}
+            </TouchableOpacity>
+          </View>
+        )}
+        {item.status === 'COMPLETED' && (
+          <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
+            <TouchableOpacity style={[styles.agreementBtn, { borderColor: colors.primary }]} onPress={() => { setRatingBooking(item); setRatingTarget('vehicle'); setRatingValue('5'); setRatingComment(''); }}>
+              <ThemedText style={[styles.agreementBtnText, { color: colors.primary }]}>Rate vehicle</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.primary }]} onPress={() => { setRatingBooking(item); setRatingTarget('host'); setRatingValue('5'); setRatingComment(''); }}>
+              <ThemedText style={[styles.cancelBtnText, { color: colors.primary }]}>Rate host</ThemedText>
             </TouchableOpacity>
           </View>
         )}
@@ -224,6 +259,22 @@ export default function TripsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+      <Modal visible={Boolean(ratingBooking)} animationType="slide" transparent onRequestClose={() => !ratingBusy && setRatingBooking(null)}>
+        <View style={styles.modalBg}>
+          <SafeAreaView style={[styles.ratingModal, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>Rate {ratingTarget}</ThemedText>
+              <TouchableOpacity disabled={ratingBusy} onPress={() => setRatingBooking(null)}><ThemedText style={{ color: colors.error, fontWeight: 'bold' }}>Close</ThemedText></TouchableOpacity>
+            </View>
+            <View style={styles.ratingForm}>
+              <ThemedText type="small" style={{ color: colors.textSecondary }}>Booking {ratingBooking?.bookingRef || ''}</ThemedText>
+              <TextInput style={[styles.ratingInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]} value={ratingValue} onChangeText={setRatingValue} keyboardType="numeric" placeholder="Rating 1 to 5" placeholderTextColor={colors.textSecondary} />
+              <TextInput style={[styles.ratingInput, styles.ratingComment, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]} value={ratingComment} onChangeText={setRatingComment} multiline placeholder="Optional comment" placeholderTextColor={colors.textSecondary} />
+              <TouchableOpacity style={[styles.loginBtn, { backgroundColor: colors.primary }]} onPress={submitRating} disabled={ratingBusy}>{ratingBusy ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={styles.loginBtnText}>Submit Rating</ThemedText>}</TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -358,6 +409,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  ratingModal: {
+    minHeight: '42%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  modalHeader: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  ratingForm: {
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.five,
+    gap: Spacing.two,
+  },
+  ratingInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+    fontSize: 15,
+  },
+  ratingComment: {
+    minHeight: 90,
+    textAlignVertical: 'top',
   },
   cancelBtn: {
     borderWidth: 1.5,

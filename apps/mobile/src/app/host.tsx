@@ -34,6 +34,10 @@ export default function HostScreen() {
   const [inspectionNote, setInspectionNote] = useState('');
   const [inspectionMedia, setInspectionMedia] = useState<Record<string, string>>({});
   const [inspectionBusy, setInspectionBusy] = useState(false);
+  const [ratingBooking, setRatingBooking] = useState<any | null>(null);
+  const [ratingValue, setRatingValue] = useState('5');
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingBusy, setRatingBusy] = useState(false);
 
   // Form States
   const [make, setMake] = useState('');
@@ -129,6 +133,22 @@ export default function HostScreen() {
       Alert.alert('Inspection failed', error.message || 'Could not save trip evidence.');
     } finally {
       setInspectionBusy(false);
+    }
+  };
+
+  const submitPartyRating = async () => {
+    if (!ratingBooking) return;
+    const rating = Number(ratingValue);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return Alert.alert('Rating required', 'Choose a rating from 1 to 5.');
+    setRatingBusy(true);
+    try {
+      await apiRequest('/reviews/party', { method: 'POST', body: JSON.stringify({ bookingId: ratingBooking.id, targetRole: 'CUSTOMER', rating, comment: ratingComment.trim() || undefined }) });
+      setRatingBooking(null);
+      Alert.alert('Rating submitted', 'Your verified customer rating was saved.');
+    } catch (error: any) {
+      Alert.alert('Rating failed', error.message || 'Could not save this rating.');
+    } finally {
+      setRatingBusy(false);
     }
   };
 
@@ -313,6 +333,11 @@ export default function HostScreen() {
                     <ThemedText style={styles.tripActionText}>{booking.status === 'CONFIRMED' ? 'Start Trip' : 'End Trip'}</ThemedText>
                   </TouchableOpacity>
                 )}
+                {booking.status === 'COMPLETED' && (
+                  <TouchableOpacity style={[styles.secondaryActionBtn, { borderColor: colors.primary }]} onPress={() => { setRatingBooking(booking); setRatingValue('5'); setRatingComment(''); }}>
+                    <ThemedText style={{ color: colors.primary, fontWeight: '700' }}>Rate Customer</ThemedText>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -371,6 +396,23 @@ export default function HostScreen() {
                 {inspectionBusy ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={styles.submitBtnText}>{inspectionStage === 'PICKUP' ? 'Start Trip' : 'End Trip'}</ThemedText>}
               </TouchableOpacity>
             </ScrollView>
+          </SafeAreaView>
+        </View>
+      </Modal>
+
+      <Modal visible={Boolean(ratingBooking)} animationType="slide" transparent onRequestClose={() => !ratingBusy && setRatingBooking(null)}>
+        <View style={styles.modalBg}>
+          <SafeAreaView style={[styles.inspectionModal, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>Rate Customer</ThemedText>
+              <TouchableOpacity disabled={ratingBusy} onPress={() => setRatingBooking(null)}><ThemedText style={{ color: colors.error, fontWeight: 'bold' }}>Close</ThemedText></TouchableOpacity>
+            </View>
+            <View style={styles.modalForm}>
+              <ThemedText type="small" style={{ color: colors.textSecondary }}>Booking {ratingBooking?.bookingRef || ''}</ThemedText>
+              <TextInput style={[styles.formInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]} value={ratingValue} onChangeText={setRatingValue} keyboardType="numeric" placeholder="Rating 1 to 5" placeholderTextColor={colors.textSecondary} />
+              <TextInput style={[styles.formInput, styles.noteInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]} value={ratingComment} onChangeText={setRatingComment} multiline placeholder="Optional comment" placeholderTextColor={colors.textSecondary} />
+              <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={submitPartyRating} disabled={ratingBusy}>{ratingBusy ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={styles.submitBtnText}>Submit Rating</ThemedText>}</TouchableOpacity>
+            </View>
           </SafeAreaView>
         </View>
       </Modal>
@@ -703,6 +745,13 @@ const styles = StyleSheet.create({
   tripActionText: {
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  secondaryActionBtn: {
+    marginTop: Spacing.two,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: Spacing.two,
+    alignItems: 'center',
   },
   modalBg: {
     flex: 1,

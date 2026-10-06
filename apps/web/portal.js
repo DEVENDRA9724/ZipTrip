@@ -1686,7 +1686,8 @@ function renderBookingTable(list, isHost) {
                     ? `<button class="btn-ghost btn-sm cancel-booking-btn" data-id="${b.id}">Cancel</button>` : ''}
                   <a class="button btn-ghost btn-sm" href="agreement.html?id=${b.id}">Agreement</a>
                   ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">Receipt</a>` : ''}
-                  ${!isHost && b.status === 'COMPLETED' ? `<button class="button btn-outline btn-sm review-booking-btn" data-id="${b.id}">Rate trip</button>` : ''}
+                  ${!isHost && b.status === 'COMPLETED' ? `<button class="button btn-outline btn-sm review-booking-btn" data-id="${b.id}">Rate vehicle</button><button class="button btn-outline btn-sm party-review-btn" data-id="${b.id}" data-target-role="HOST">Rate host</button>` : ''}
+                  ${isHost && b.status === 'COMPLETED' ? `<button class="button btn-outline btn-sm party-review-btn" data-id="${b.id}" data-target-role="CUSTOMER">Rate customer</button>` : ''}
                   ${!isHost && b.status === 'ACTIVE' ? `<button class="button btn-outline btn-sm inspection-btn" data-id="${b.id}" data-stage="DAMAGE">Report damage</button>` : ''}
                   ${isHost && ['CONFIRMED','ACTIVE'].includes(b.status)
                     ? `<button class="button btn-orange btn-sm inspection-btn" data-id="${b.id}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? 'Record Pickup' : 'Record Return'}</button>` : ''}
@@ -1710,6 +1711,20 @@ function bindBookingEvents() {
         toast('Thank you. Your verified review was submitted.');
         await dashboard();
       } catch (e) { toast(e.message, 'error'); btn.disabled = false; }
+    };
+  });
+  $$('.party-review-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const target = btn.dataset.targetRole === 'HOST' ? 'host' : 'customer';
+      const rating = Number(prompt(`Rate this ${target} from 1 to 5 stars:`));
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return toast('Choose a rating from 1 to 5.');
+      const comment = prompt('Optional review comment:') || '';
+      btn.disabled = true;
+      try {
+        await post('/reviews/party', { bookingId: btn.dataset.id, targetRole: btn.dataset.targetRole, rating, comment });
+        toast(`Your ${target} rating was submitted.`);
+        await dashboard();
+      } catch (e) { toast(e.message, true); btn.disabled = false; }
     };
   });
   $$('.cancel-booking-btn').forEach(btn => {
