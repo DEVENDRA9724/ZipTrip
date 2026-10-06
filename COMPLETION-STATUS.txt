@@ -84,6 +84,10 @@ Rental operations update — 2 October 2026
   payout integration.
 - Pickup, return, and damage reports now require the relevant odometer/selfie/
   condition evidence and store all linked media against the inspection record.
+- The Expo host app now exposes Start Trip and End Trip actions. Each action
+  captures camera evidence for the odometer, trip selfie and vehicle condition,
+  uploads it to the authenticated media endpoint, and submits the inspection to
+  the same booking state machine as the web portal.
 
 Still required: excess-km rate, late-return policy, cancellation policy, confirmed
 hourly-vs-daily pricing policy, automatic deposit settlement/refund workflow,

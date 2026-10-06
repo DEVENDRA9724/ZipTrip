@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Image, FlatList, Modal } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
@@ -26,6 +27,13 @@ export default function HostScreen() {
   const [hostCars, setHostCars] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [wizardVisible, setWizardVisible] = useState(false);
+  const [inspectionBooking, setInspectionBooking] = useState<any | null>(null);
+  const [inspectionStage, setInspectionStage] = useState<'PICKUP' | 'RETURN' | null>(null);
+  const [inspectionOdometer, setInspectionOdometer] = useState('');
+  const [inspectionFuel, setInspectionFuel] = useState('');
+  const [inspectionNote, setInspectionNote] = useState('');
+  const [inspectionMedia, setInspectionMedia] = useState<Record<string, string>>({});
+  const [inspectionBusy, setInspectionBusy] = useState(false);
 
   // Form States
   const [make, setMake] = useState('');
@@ -67,6 +75,61 @@ export default function HostScreen() {
 
   const handleSubmitCar = async () => {
     Alert.alert('Complete listing on the web portal', 'A vehicle listing needs a registration number and eight original vehicle photos (front, rear, both sides, interior, boot, bonnet and odometer). The mobile photo-upload flow is being completed; no listing was created.');
+  };
+
+  const beginInspection = (booking: any) => {
+    setInspectionBooking(booking);
+    setInspectionStage(booking.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN');
+    setInspectionOdometer('');
+    setInspectionFuel('');
+    setInspectionNote('');
+    setInspectionMedia({});
+  };
+
+  const captureInspectionPhoto = async (kind: string) => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) throw new Error('Camera permission is required for trip evidence.');
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.8 });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const form = new FormData();
+      form.append('file', { uri: asset.uri, name: `${kind.toLowerCase()}-${Date.now()}.jpg`, type: asset.mimeType || 'image/jpeg' } as any);
+      const uploaded = await apiRequest(`/media?kind=${encodeURIComponent(kind)}`, { method: 'POST', body: form });
+      setInspectionMedia(current => ({ ...current, [kind]: uploaded.id }));
+    } catch (error: any) {
+      Alert.alert('Photo upload failed', error.message || 'Could not upload this evidence photo.');
+    }
+  };
+
+  const submitInspection = async () => {
+    if (!inspectionBooking || !inspectionStage) return;
+    const selfieKind = inspectionStage === 'PICKUP' ? 'SELFIE_PICKUP' : 'SELFIE_RETURN';
+    const conditionKind = inspectionStage === 'PICKUP' ? 'INSPECTION_PICKUP' : 'INSPECTION_RETURN';
+    const odometer = Number(inspectionOdometer);
+    if (!Number.isInteger(odometer) || odometer < 0) return Alert.alert('Odometer required', 'Enter the current odometer reading in kilometres.');
+    if (!inspectionMedia.ODOMETER || !inspectionMedia[selfieKind] || !inspectionMedia[conditionKind]) return Alert.alert('Evidence required', 'Capture the odometer, selfie, and condition photo before submitting.');
+    setInspectionBusy(true);
+    try {
+      await apiRequest(`/bookings/${inspectionBooking.id}/inspection`, {
+        method: 'POST',
+        body: JSON.stringify({
+          stage: inspectionStage,
+          odometer,
+          fuelPercent: inspectionFuel ? Number(inspectionFuel) : undefined,
+          damageNote: inspectionNote.trim() || 'No visible damage',
+          mediaId: inspectionMedia.ODOMETER,
+          mediaIds: Object.values(inspectionMedia),
+        }),
+      });
+      setInspectionBooking(null);
+      Alert.alert(inspectionStage === 'PICKUP' ? 'Trip started' : 'Trip ended', inspectionStage === 'PICKUP' ? 'Pickup inspection saved and the booking is now active.' : 'Return inspection saved and the booking is now completed.');
+      await fetchHostData();
+    } catch (error: any) {
+      Alert.alert('Inspection failed', error.message || 'Could not save trip evidence.');
+    } finally {
+      setInspectionBusy(false);
+    }
   };
 
   // Calculate statistics
@@ -242,11 +305,75 @@ export default function HostScreen() {
                     ₹{Number(booking.totalAmount).toLocaleString()}
                   </ThemedText>
                 </View>
+                {['CONFIRMED', 'ACTIVE'].includes(booking.status) && (
+                  <TouchableOpacity
+                    style={[styles.tripActionBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => beginInspection(booking)}
+                  >
+                    <ThemedText style={styles.tripActionText}>{booking.status === 'CONFIRMED' ? 'Start Trip' : 'End Trip'}</ThemedText>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
         )}
       </ScrollView>
+
+      <Modal visible={Boolean(inspectionBooking)} animationType="slide" transparent onRequestClose={() => !inspectionBusy && setInspectionBooking(null)}>
+        <View style={styles.modalBg}>
+          <SafeAreaView style={[styles.inspectionModal, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <ThemedText style={styles.modalTitle}>{inspectionStage === 'PICKUP' ? 'Start Trip' : 'End Trip'}</ThemedText>
+                <ThemedText type="small" style={{ color: colors.textSecondary }}>{inspectionBooking?.bookingRef || 'Booking inspection'}</ThemedText>
+              </View>
+              <TouchableOpacity disabled={inspectionBusy} onPress={() => setInspectionBooking(null)}>
+                <ThemedText style={{ color: colors.error, fontWeight: 'bold' }}>Close</ThemedText>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalForm}>
+              <ThemedText style={styles.formLabel}>Trip evidence</ThemedText>
+              <ThemedText type="small" style={{ color: colors.textSecondary, marginBottom: Spacing.two }}>Capture the required photos from the vehicle. They are stored with this booking inspection.</ThemedText>
+              <TextInput
+                style={[styles.formInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]}
+                placeholder="Current odometer reading (km)"
+                placeholderTextColor={colors.textSecondary}
+                value={inspectionOdometer}
+                onChangeText={setInspectionOdometer}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={[styles.formInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]}
+                placeholder="Fuel level % (optional)"
+                placeholderTextColor={colors.textSecondary}
+                value={inspectionFuel}
+                onChangeText={setInspectionFuel}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity style={[styles.captureBtn, { borderColor: colors.border }]} onPress={() => captureInspectionPhoto('ODOMETER')} disabled={inspectionBusy}>
+                <ThemedText>{inspectionMedia.ODOMETER ? '✓ Odometer photo captured' : 'Capture odometer photo'}</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.captureBtn, { borderColor: colors.border }]} onPress={() => captureInspectionPhoto(inspectionStage === 'PICKUP' ? 'SELFIE_PICKUP' : 'SELFIE_RETURN')} disabled={inspectionBusy}>
+                <ThemedText>{inspectionMedia[inspectionStage === 'PICKUP' ? 'SELFIE_PICKUP' : 'SELFIE_RETURN'] ? '✓ Selfie captured' : 'Capture trip selfie'}</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.captureBtn, { borderColor: colors.border }]} onPress={() => captureInspectionPhoto(inspectionStage === 'PICKUP' ? 'INSPECTION_PICKUP' : 'INSPECTION_RETURN')} disabled={inspectionBusy}>
+                <ThemedText>{inspectionMedia[inspectionStage === 'PICKUP' ? 'INSPECTION_PICKUP' : 'INSPECTION_RETURN'] ? '✓ Condition photo captured' : 'Capture vehicle condition photo'}</ThemedText>
+              </TouchableOpacity>
+              <TextInput
+                style={[styles.formInput, styles.noteInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]}
+                placeholder="Condition / damage notes"
+                placeholderTextColor={colors.textSecondary}
+                value={inspectionNote}
+                onChangeText={setInspectionNote}
+                multiline
+              />
+              <TouchableOpacity style={[styles.submitBtn, { backgroundColor: colors.primary }]} onPress={submitInspection} disabled={inspectionBusy}>
+                {inspectionBusy ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={styles.submitBtnText}>{inspectionStage === 'PICKUP' ? 'Start Trip' : 'End Trip'}</ThemedText>}
+              </TouchableOpacity>
+            </ScrollView>
+          </SafeAreaView>
+        </View>
+      </Modal>
 
       {/* List Car Wizard Modal */}
       <Modal visible={wizardVisible} animationType="slide" transparent>
@@ -567,6 +694,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
   },
+  tripActionBtn: {
+    marginTop: Spacing.two,
+    borderRadius: 8,
+    paddingVertical: Spacing.two,
+    alignItems: 'center',
+  },
+  tripActionText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
   modalBg: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -576,6 +713,23 @@ const styles = StyleSheet.create({
     height: '90%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+  },
+  inspectionModal: {
+    height: '82%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  captureBtn: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    marginTop: Spacing.two,
+  },
+  noteInput: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+    marginTop: Spacing.two,
   },
   modalHeader: {
     flexDirection: 'row',

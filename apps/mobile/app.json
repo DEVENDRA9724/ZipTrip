@@ -28,6 +28,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Safar uses your photos for vehicle and trip inspection evidence.",
+          "cameraPermission": "Safar uses your camera for vehicle and trip inspection evidence."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",

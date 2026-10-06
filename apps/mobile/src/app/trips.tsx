@@ -127,7 +127,8 @@ export default function TripsScreen() {
         </View>
 
         {isUpcoming && item.status === 'CONFIRMED' && (
-          <View style={[styles.cardActions, { borderTopColor: colors.border }]}>`r`n            <TouchableOpacity
+          <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
               style={[styles.agreementBtn, { borderColor: colors.primary }]}
               onPress={() => router.push({ pathname: '/booking/agreement' as any, params: { id: item.id } })}
             >
