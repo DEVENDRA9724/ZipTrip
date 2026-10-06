@@ -51,6 +51,18 @@ export class PayoutsService {
     return this.prisma.payout.findMany({ where: { account: { userId: user.id } }, orderBy: { createdAt: 'desc' }, take: 100 });
   }
 
+  async listAccounts(user: { id: string; role: string }) {
+    admin(user);
+    return this.prisma.payoutAccount.findMany({
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true, role: true } },
+        payouts: { orderBy: { createdAt: 'desc' }, take: 20 },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 500,
+    });
+  }
+
   async create(user: { id: string; role: string }, body: any) {
     admin(user);
     const accountId = text(body.accountId, 'Payout account', 80);
@@ -69,6 +81,14 @@ export class PayoutsService {
     const payout = await this.prisma.payout.findUnique({ where: { id } });
     if (!payout) throw new NotFoundException('Payout not found');
     return this.prisma.payout.update({ where: { id }, data: { status, reference, processedAt: ['PAID', 'FAILED', 'CANCELLED'].includes(status) ? new Date() : null } });
+  }
+
+  async updateAccountStatus(user: { id: string; role: string }, id: string, body: any) {
+    admin(user);
+    const status = choice(body.status, 'Payout account status', ['PENDING', 'VERIFIED', 'REJECTED']);
+    const account = await this.prisma.payoutAccount.findUnique({ where: { id } });
+    if (!account) throw new NotFoundException('Payout account not found');
+    return this.prisma.payoutAccount.update({ where: { id }, data: { status }, select: { id: true, userId: true, accountHolderName: true, bankName: true, accountNumberLast4: true, ifscCode: true, status: true } });
   }
 
   private encrypt(accountNumber: string) {

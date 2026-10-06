@@ -1347,11 +1347,25 @@ function bindKycEvents(info) {
 /* ─── HOST ONBOARDING ────────────────────────────────────────────────── */
 async function host() {
   if (!requireUser(['HOST','DEALER','ADMIN'])) return;
-  const vehicles = await api('/vehicles/mine');
+  const [vehicles, payoutAccount] = await Promise.all([
+    api('/vehicles/mine'),
+    api('/payouts/account').catch(() => null),
+  ]);
   const dealer = user.role === 'DEALER';
 
   $('#app').innerHTML = `
     ${sectionHead(dealer ? 'Dealer Fleet Console' : 'Host Dashboard', dealer ? 'Manage your dealership fleet, bookings, pricing and partner documents on Safar.' : 'Register and manage your fleet vehicles on Safar.', dealer ? 'CAR RENTAL DEALER' : 'PARTNER WITH US')}
+    <section class="panel payout-panel">
+      <div class="heading"><div><h3>Payout account</h3><p class="text-muted">Keep your bank details ready for verified host/dealer settlements.</p></div>${payoutAccount ? badge(payoutAccount.status) : badge('PENDING')}</div>
+      ${payoutAccount ? `<p class="text-muted">${esc(payoutAccount.bankName)} · Account ending ${esc(payoutAccount.accountNumberLast4)} · IFSC ${esc(payoutAccount.ifscCode)}. Changes return the account to pending review.</p>` : '<p class="text-muted">No payout account has been submitted yet. Account numbers are encrypted and only the last four digits are shown after saving.</p>'}
+      <form id="payout-account-form" class="form-grid">
+        ${inp('accountHolderName','Account holder name')}
+        ${inp('bankName','Bank name')}
+        ${inp('accountNumber','Account number','text','inputmode="numeric" autocomplete="off" maxlength="18"')}
+        ${inp('ifscCode','IFSC code','text','maxlength="11" autocomplete="off"')}
+        <div class="actions"><button type="submit" class="button btn-orange">Save payout details</button></div>
+      </form>
+    </section>
     <div class="tabs">
       <button class="active" id="tab-register-car">Register a New Car</button>
       <button id="tab-my-fleet">My Fleet (${vehicles.length})</button>
@@ -1436,6 +1450,12 @@ async function host() {
   };
 
   $$('.host-schedule').forEach(button => button.onclick = () => openVehicleSchedule(vehicles.find(item => item.id === button.dataset.id)));
+
+  bindForm('#payout-account-form', async data => {
+    await post('/payouts/account', data);
+    toast('Payout account submitted for verification.');
+    await host();
+  });
 
   $$('.photo-slot input[type=file]').forEach(el => {
     el.onchange = () => {
@@ -1977,6 +1997,8 @@ async function agreement() {
 async function adminPage(tab = 'vehicles') {
   if (!requireUser(['ADMIN'])) return;
   adminData = await api('/admin');
+  adminData.payouts = await api('/payouts').catch(() => []);
+  adminData.payoutAccounts = await api('/payouts/accounts').catch(() => []);
 
   $('#app').innerHTML = `
     <div class="admin-workspace">
@@ -1992,7 +2014,7 @@ async function adminPage(tab = 'vehicles') {
     </div>
 
     <nav class="admin-tabs" aria-label="Administration sections">
-      ${['vehicles','documents','bookings','users','audit'].map(t =>
+      ${['vehicles','documents','bookings','users','payouts','audit'].map(t =>
         `<button type="button" data-tab="${t}" class="${t === tab ? 'active' : ''}">${t[0].toUpperCase() + t.slice(1)}<span>${adminData[t].length}</span></button>`).join('')}
     </nav>
     <div class="admin-toolbar">
@@ -2039,7 +2061,7 @@ function renderAdminView(tab) {
   const query = $('#admin-search').value.trim().toLowerCase();
   const data = adminData[tab].filter(item => (!statusSelect.value || (tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action) === statusSelect.value) && (!query || JSON.stringify(item).toLowerCase().includes(query)));
   $('#admin-record-count').textContent = `${data.length} of ${adminData[tab].length} loaded records`;
-  if (!data.length) {
+  if (!data.length && !(tab === 'payouts' && adminData.payoutAccounts.length)) {
     $('#admin-panel-content').innerHTML = empty('No matching records', query || statusSelect.value ? 'Try another search or choose all statuses.' : 'New submissions will appear here when they are received.');
     return;
   }
@@ -2102,6 +2124,41 @@ function renderAdminView(tab) {
                   ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">Receipt</a>` : ''}
                 </td>
               </tr>`).join('')}
+          </tbody>
+        </table>
+      </section>`;
+  }
+
+  if (tab === 'payouts') {
+    $('#admin-panel-content').innerHTML = `
+      <section class="panel table-wrap">
+        <h3>Host and dealer payout accounts</h3>
+        <table>
+          <thead><tr><th>Account holder</th><th>Bank details</th><th>Verification</th><th>Payout history</th></tr></thead>
+          <tbody>
+            ${adminData.payoutAccounts.map(account => `
+              <tr>
+                <td>${esc((account.user?.firstName || '') + ' ' + (account.user?.lastName || ''))}<p class="text-muted">${esc(account.user?.email || '')} · ${esc(account.user?.role || '')}</p></td>
+                <td>${esc(account.bankName)} · •••• ${esc(account.accountNumberLast4)}<br><span class="text-muted">IFSC ${esc(account.ifscCode)}</span></td>
+                <td>${badge(account.status)}<br><button class="btn-outline btn-sm payout-account-status-action" data-id="${esc(account.id)}">Change status</button></td>
+                <td>${account.payouts?.length || 0} payouts</td>
+              </tr>`).join('') || '<tr><td colspan="4">No payout accounts submitted.</td></tr>'}
+          </tbody>
+        </table>
+      </section>
+      <section class="panel table-wrap">
+        <h3>Created payouts</h3>
+        <table>
+          <thead><tr><th>Host / dealer</th><th>Amount</th><th>Period</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${adminData.payouts.map(payout => `
+              <tr>
+                <td>${esc((payout.account?.user?.firstName || '') + ' ' + (payout.account?.user?.lastName || ''))}<p class="text-muted">${esc(payout.account?.user?.email || '')}</p></td>
+                <td><strong>${money(payout.amount)}</strong></td>
+                <td>${payout.periodStart ? d(payout.periodStart) : '—'} → ${payout.periodEnd ? d(payout.periodEnd) : '—'}</td>
+                <td>${badge(payout.status)}${payout.reference ? `<br><span class="text-muted">${esc(payout.reference)}</span>` : ''}</td>
+                <td><button class="btn-outline btn-sm payout-status-action" data-id="${esc(payout.id)}">Update payout</button></td>
+              </tr>`).join('') || '<tr><td colspan="5">No payouts created.</td></tr>'}
           </tbody>
         </table>
       </section>`;
@@ -2188,6 +2245,19 @@ function renderAdminView(tab) {
     const reason = window.prompt(blocking ? 'Reason for blocking this account:' : 'Reason for unblocking this account:');
     if (!reason || !reason.trim()) return;
     try { await post('/admin/users/' + encodeURIComponent(btn.dataset.id) + '/block', { blocked: blocking, note: reason.trim() }); await adminPage('users'); toast(blocking ? 'Customer account blocked.' : 'Customer account unblocked.'); }
+    catch (err) { toast(err.message, true); }
+  });
+  $$('.payout-account-status-action').forEach(btn => btn.onclick = async () => {
+    const status = window.prompt('Set payout account status (PENDING, VERIFIED or REJECTED):', 'VERIFIED');
+    if (!status) return;
+    try { await post('/payouts/accounts/' + encodeURIComponent(btn.dataset.id) + '/status', { status: status.trim().toUpperCase() }); await adminPage('payouts'); toast('Payout account status updated.'); }
+    catch (err) { toast(err.message, true); }
+  });
+  $$('.payout-status-action').forEach(btn => btn.onclick = async () => {
+    const status = window.prompt('Set payout status (PENDING, PROCESSING, PAID, FAILED or CANCELLED):', 'PAID');
+    if (!status) return;
+    const reference = window.prompt('Payment reference / UTR (optional):', '');
+    try { await post('/payouts/' + encodeURIComponent(btn.dataset.id) + '/status', { status: status.trim().toUpperCase(), reference: reference?.trim() || undefined }); await adminPage('payouts'); toast('Payout status updated.'); }
     catch (err) { toast(err.message, true); }
   });
   $$('.vehicle-review-action').forEach(btn => btn.onclick = () => {
