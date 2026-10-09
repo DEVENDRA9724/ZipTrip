@@ -1423,22 +1423,33 @@ async function host() {
     </section>
 
     <section id="section-my-fleet" hidden>
-      ${vehicles.length ? vehicles.map(v => `
-        <div class="panel">
-          <div class="heading">
+      ${vehicles.length ? `<div class="admin-vehicle-grid">` + vehicles.map(v => {
+        const front = v.media?.find(m => m.kind === 'FRONT');
+        const cover = front ? `/api/media/${front.id}` : (v.images ? v.images.split(',')[0].trim() : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80');
+        return `
+        <article class="panel admin-vehicle-tile">
+          <div class="admin-tile-media">
+            <img loading="lazy" src="${cover}" alt="${esc(v.make + ' ' + v.model)}">
+            <div class="admin-tile-badge">${badge(v.status)}</div>
+          </div>
+          <div class="admin-tile-content">
+            <div class="admin-tile-header">
             <div>
               <h3>${esc(v.make + ' ' + v.model + ' ' + v.year)}</h3>
-              <p class="text-muted">${esc(v.registrationNumber)} · ${money(v.pricePerDay)}/day · ${esc(v.locationCity)}</p>
+              <p class="text-muted">${esc(v.registrationNumber || 'Pending Reg')} · ${esc(v.locationCity)}</p>
+              <p class="admin-tile-price"><strong>${money(v.pricePerDay)}</strong> <span class="text-muted" style="font-size:12px">/ day</span></p>
             </div>
-            ${badge(v.status)}
+
           </div>
           <p>${esc(v.reviewNote || 'Awaiting document and listing review by administrator.')}</p>
-          <div class="actions">
+          <div class="admin-tile-actions" style="flex-wrap:wrap">
             <a class="button btn-ghost btn-sm" href="kyc.html?vehicle=${encodeURIComponent(v.id)}">Upload RC, Insurance &amp; PUC →</a>
             <button type="button" class="button btn-outline btn-sm host-schedule" data-id="${v.id}">Manage availability</button>
             <a class="button btn-ghost btn-sm" href="host-agreement.html?id=${encodeURIComponent(v.id)}">Host–Safar agreement</a>
           </div>
-        </div>`).join('') : empty('No cars listed yet', 'Use the form above to register your first self-drive car.')}
+          </div>
+        </article>`;
+      }).join('') + `</div>` : empty('No cars listed yet', 'Use the form above to register your first self-drive car.')}
     </section>`;
 
   $('#tab-register-car').onclick = () => {
@@ -2087,22 +2098,46 @@ function renderAdminView(tab) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:var(--color-surface);padding:12px 16px;border-radius:8px;border:1px solid var(--color-border)">
         <div><strong>Fleet Vehicle Management</strong><p class="text-muted" style="margin:0;font-size:13px">Directly register cars, review compliance documents and adjust daily rates.</p></div>
         <button id="admin-add-vehicle-btn" class="button btn-orange btn-sm">Add New Car to Fleet</button>
-      </div>` + data.map(v => `
-      <section class="panel admin-vehicle">
-        <div class="admin-vehicle-heading">
-          <div>
+      </div>
+      <div class="admin-vehicle-grid">
+        ${data.map(v => {
+          const front = v.media?.find(m => m.kind === 'FRONT');
+          const cover = front ? `/api/media/${front.id}` : (v.images ? v.images.split(',')[0].trim() : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80');
+          return `
+          <article class="panel admin-vehicle-tile">
+            <div class="admin-tile-media">
+              <img loading="lazy" src="${cover}" alt="${esc(v.make + ' ' + v.model)}">
+              <div class="admin-tile-badge">${badge(v.status)}</div>
+              <div class="admin-tile-photo-count">${v.media?.length || 0} Photos</div>
+            </div>
+            <div class="admin-tile-content">
+              <div class="admin-tile-header">
+
             <h3>${esc(v.make + ' ' + v.model + ' ' + v.year)}</h3>
-            <p class="text-muted">${esc(v.registrationNumber)} · ${esc(v.locationCity)} · ${v.odometer} km · <strong>${money(v.pricePerDay)}/day</strong></p>
-          </div>
-          ${badge(v.status)}
+                <p class="text-muted">${esc(v.registrationNumber || 'Pending Reg')} · ${esc(v.locationCity)} · ${Number(v.odometer || 0).toLocaleString('en-IN')} km</p>
+
+              <p class="admin-tile-price"><strong>${money(v.pricePerDay)}</strong> <span class="text-muted" style="font-size:12px">/ day</span></p>
         </div>
-        <div class="admin-photo-grid">
+              <div class="admin-tile-compliance">
+                ${v.documents.map(d => `<span>${esc(d.kind)} ${badge(d.status)}</span>`).join('') || '<span class="text-muted">Compliance docs pending</span>'}
+              </div>
+
+              <details class="admin-tile-photos-toggle">
+                <summary>Inspect Photos (${v.media.filter(m => PHOTO_ANGLES.includes(m.kind)).length}) 📷</summary>
+                <div class="admin-photo-grid compact" style="margin-top:8px">
           ${v.media.filter(m => PHOTO_ANGLES.includes(m.kind)).map(m =>
             `<figure><a href="/api/media/${m.id}" target="_blank" rel="noopener noreferrer" aria-label="Open ${esc((m.kind || '').toLowerCase())} photo"><img loading="lazy" src="/api/media/${m.id}" alt="${esc(m.kind)}"></a><figcaption>${esc((m.kind || '').replaceAll('_', ' '))}</figcaption></figure>`).join('') || '<p class="text-muted">No vehicle photos uploaded.</p>'}
         </div>
-        <div class="admin-vehicle-footer"><div class="admin-compliance">${v.documents.map(d => `<span>${esc(d.kind)} ${badge(d.status)}</span>`).join('') || '<span class="text-muted">Compliance documents not submitted</span>'}</div>
-        <div class="actions"><button class="btn-outline btn-sm vehicle-pricing-action" data-id="${v.id}">Edit daily rate</button><button class="btn-outline btn-sm vehicle-schedule-action" data-id="${v.id}">Schedule &amp; holds</button><button class="button btn-orange btn-sm vehicle-review-action" data-id="${v.id}">Review listing →</button></div></div>
-      </section>`).join('');
+                </div>
+              </details>
+              <div class="admin-tile-actions">
+                <button class="btn-outline btn-sm vehicle-pricing-action" data-id="${v.id}">Edit rate</button>
+                <button class="btn-outline btn-sm vehicle-schedule-action" data-id="${v.id}">Schedule</button>
+                <button class="button btn-orange btn-sm vehicle-review-action" data-id="${v.id}">Review →</button>
+              </div>
+            </div>
+          </article>`).join('')}
+      </div>`;
   }
 
   if (tab === 'documents') {
