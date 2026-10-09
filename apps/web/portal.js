@@ -2082,7 +2082,11 @@ function renderAdminView(tab) {
   }
 
   if (tab === 'vehicles') {
-    $('#admin-panel-content').innerHTML = data.map(v => `
+    $('#admin-panel-content').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:var(--color-surface);padding:12px 16px;border-radius:8px;border:1px solid var(--color-border)">
+        <div><strong>Fleet Vehicle Management</strong><p class="text-muted" style="margin:0;font-size:13px">Directly register cars, review compliance documents and adjust daily rates.</p></div>
+        <button id="admin-add-vehicle-btn" class="button btn-orange btn-sm">Add New Car to Fleet</button>
+      </div>` + data.map(v => `
       <section class="panel admin-vehicle">
         <div class="admin-vehicle-heading">
           <div>
@@ -2218,6 +2222,36 @@ function renderAdminView(tab) {
   }
 
   // Admin action dialog bindings
+  if ($('#admin-add-vehicle-btn')) {
+    $('#admin-add-vehicle-btn').onclick = () => {
+      showDialog(`
+        <h3>Add New Vehicle to Fleet</h3>
+        <p class="text-muted">Directly register a new car into the active rental fleet. Compliance documents and photos are automatically generated.</p>
+        <form id="admin-add-vehicle-form" class="form-stack">
+          ${inp('make', 'Vehicle Make (e.g. Hyundai)', 'text', 'required maxlength="50"')}
+          ${inp('model', 'Model (e.g. Creta)', 'text', 'required maxlength="50"')}
+          ${inp('year', 'Year of Manufacture', 'number', 'required min="2000" max="2030" value="2024"')}
+          ${inp('registrationNumber', 'Registration Number (e.g. GJ01AB1234)', 'text', 'required maxlength="30" style="text-transform:uppercase"')}
+          ${inp('city', 'City (e.g. Ahmedabad)', 'text', 'required maxlength="50" value="Ahmedabad"')}
+          ${sel('category', 'Category', ['SUV', 'SEDAN', 'HATCHBACK', 'LUXURY', 'EV'])}
+          ${sel('transmission', 'Transmission', ['AUTOMATIC', 'MANUAL'])}
+          ${sel('fuelType', 'Fuel Type', ['PETROL', 'DIESEL', 'ELECTRIC', 'HYBRID', 'CNG'])}
+          ${inp('seats', 'Seating Capacity', 'number', 'required min="1" max="50" value="5"')}
+          ${inp('pricePerDay', 'Daily Rate (₹)', 'number', 'required min="1" max="1000000" value="2500"')}
+          ${inp('odometer', 'Current Odometer (km)', 'number', 'required min="0" max="1000000" value="5000"')}
+          ${inp('images', 'Image URL (optional)', 'url', 'placeholder="https://images.unsplash.com/..."')}
+          <button type="submit" class="button btn-orange">Create &amp; Activate Vehicle</button>
+        </form>
+      `);
+
+      bindForm('#admin-add-vehicle-form', async data => {
+        await post('/admin/vehicles', data);
+        $('dialog').close();
+        await adminPage('vehicles');
+        toast('New vehicle added to fleet and activated.');
+      });
+    };
+  }
   $$('.vehicle-schedule-action').forEach(btn => btn.onclick = () => openVehicleSchedule(adminData.vehicles.find(v => v.id === btn.dataset.id)));
   $$('.vehicle-pricing-action').forEach(btn => btn.onclick = () => {
     const vehicle = adminData.vehicles.find(v => v.id === btn.dataset.id);

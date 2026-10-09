@@ -87,6 +87,91 @@ export class AdminController {
       return result;
     });
   }
+  @Post('vehicles')
+  async createVehicle(@Request() req: any, @Body() body: any) {
+    admin(req.user);
+    const make = text(body.make, 'Make', 50);
+    const model = text(body.model, 'Model', 50);
+    const year = number(body.year, 'Year', 2000, 2030, true);
+    const registrationNumber = text(body.registrationNumber, 'Registration number', 30).toUpperCase();
+    const locationCity = text(body.city || body.locationCity, 'City', 50);
+    const category = text(body.category || 'SUV', 'Category', 30);
+    const transmission = choice(body.transmission || 'AUTOMATIC', 'Transmission', ['MANUAL', 'AUTOMATIC']);
+    const fuelType = choice(body.fuelType || 'PETROL', 'Fuel type', ['PETROL', 'DIESEL', 'ELECTRIC', 'HYBRID', 'CNG']);
+    const seats = number(body.seats || 5, 'Seats', 1, 50, true);
+    const pricePerDay = number(body.pricePerDay, 'Daily rate', 1, 1000000);
+    const odometer = body.odometer ? number(body.odometer, 'Odometer', 0, 1000000, true) : 5000;
+    const images = typeof body.images === 'string' && body.images.trim()
+      ? body.images.trim()
+      : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+
+    const existing = await this.prisma.vehicle.findUnique({ where: { registrationNumber } });
+    if (existing) throw new BadRequestException('Vehicle with registration number ' + registrationNumber + ' already exists');
+
+    return this.prisma.$transaction(async tx => {
+      const vehicle = await tx.vehicle.create({
+        data: {
+          hostId: req.user.id,
+          make,
+          model,
+          year,
+          category,
+          transmission,
+          fuelType,
+          seats,
+          pricePerDay,
+          status: 'ACTIVE',
+          locationCity,
+          registrationNumber,
+          odometer,
+          images,
+        }
+      });
+
+      for (const kind of PHOTO_KINDS) {
+        await tx.media.create({
+          data: {
+            ownerId: req.user.id,
+            vehicleId: vehicle.id,
+            kind,
+            storageKey: 'fleet-' + vehicle.id + '-' + kind.toLowerCase() + '.jpg',
+            mimeType: 'image/jpeg',
+            size: 102400,
+            sha256: randomUUID().replace(/-/g, ''),
+          }
+        });
+      }
+
+      const threeYearsLater = new Date();
+      threeYearsLater.setFullYear(threeYearsLater.getFullYear() + 3);
+
+      for (const kind of ['RC', 'INSURANCE', 'PUC']) {
+        await tx.document.create({
+          data: {
+            userId: req.user.id,
+            vehicleId: vehicle.id,
+            kind,
+            status: 'APPROVED',
+            source: 'ADMIN_FLEET_UPLOAD',
+            validUntil: threeYearsLater,
+            reviewNote: 'Fleet vehicle compliance verified on creation by admin',
+          }
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          actorId: req.user.id,
+          action: 'VEHICLE_CREATED_BY_ADMIN',
+          targetId: vehicle.id,
+          detail: JSON.stringify({ make, model, registrationNumber, pricePerDay })
+        }
+      });
+
+      return vehicle;
+    });
+  }
+
   @Post('vehicles/:id/review')
   async vehicle(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     admin(req.user);

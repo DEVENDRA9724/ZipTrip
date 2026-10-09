@@ -15,6 +15,7 @@ import { AdminController } from './admin/admin.controller';
 import { AccountModule } from './account/account.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { PayoutsModule } from './payouts/payouts.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PayoutsModule } from './payouts/payouts.module';
     AccountModule,
     ReviewsModule,
     PayoutsModule,
+    NotificationsModule,
   ],
   controllers: [AppController, MediaController, KycController, AdminController],
   providers: [AppService, MediaService, SandboxService, DocumentEvidenceService],

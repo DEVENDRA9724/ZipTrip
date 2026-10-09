@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -10,15 +10,16 @@ import { rentalPeriod, overlappingReservations } from './availability';
 import { rentalQuote } from './pricing';
 import { rentalPolicy, cancellationRefundPercent } from './rental-policy';
 import { agreementPolicySnapshot, carSharingAgreementTerms, CAR_SHARING_AGREEMENT_VERSION } from './car-sharing-agreement';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, @Optional() private notifications?: NotificationsService) {}
   async create(customerId: string, data: any) {
     const vehicleId = text(data.vehicleId, 'Vehicle');
     const requestKey = customerId + ':' + text(data.requestKey, 'Request key', 80);
     const { start, end } = rentalPeriod(data.startDate, data.endDate);
-    return this.prisma.$transaction(async tx => {
+    const booking = await this.prisma.$transaction(async tx => {
       const previous = await tx.booking.findUnique({ where: { requestKey }, include: { vehicle: true, payment: true, invoice: true } });
       if (previous) {
         if (previous.vehicleId !== vehicleId || +previous.startDate !== +start || +previous.endDate !== +end) throw new ConflictException('Request key already used for another booking');
@@ -57,6 +58,8 @@ export class BookingsService {
         agreementVersion: CAR_SHARING_AGREEMENT_VERSION, agreementSnapshot: JSON.stringify({ policy: policySnapshot, terms: termsSnapshot, createdAt: new Date().toISOString() }) },
         include: { vehicle: true, payment: true, invoice: true } });
     }, { timeout: 10000 });
+    await this.notifyBooking(booking, 'BOOKING_CREATED', 'Booking request received', `Booking ${booking.bookingRef} is awaiting payment and host confirmation.`);
+    return booking;
   }
   getMyTrips(customerId: string) {
     return this.prisma.booking.findMany({ where: { customerId }, include: { vehicle: true, payment: true, invoice: true, inspections: true }, orderBy: { createdAt: 'desc' }, take: 200 });
@@ -248,7 +251,7 @@ export class BookingsService {
     const damageNote = text(body.damageNote, 'Vehicle condition', 2000);
     const mediaIds = Array.from(new Set([mediaId, ...(Array.isArray(body.mediaIds) ? body.mediaIds : [])].map(item => text(item, 'Inspection photo', 100))));
     if (mediaIds.length > 12) throw new BadRequestException('Upload up to 12 inspection photos');
-    return this.prisma.$transaction(async tx => {
+    const booking = await this.prisma.$transaction(async tx => {
       const booking = await tx.booking.findUnique({ where: { id }, include: { vehicle: true, inspections: true } });
       if (!booking) throw new NotFoundException('Booking not found');
       const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN';
@@ -280,5 +283,13 @@ export class BookingsService {
       await tx.auditLog.create({ data: { actorId: user.id, action: stage, targetId: id, detail: 'Odometer ' + odometer } });
       return { message: stage === 'PICKUP' ? 'Trip started' : 'Trip completed' };
     });
+  }
+
+  private async notifyBooking(booking: any, type: string, title: string, message: string) {
+    if (!this.notifications || !booking?.vehicle) return;
+    await Promise.allSettled([
+      this.notifications.create(booking.customerId, { type, title, message, bookingId: booking.id }),
+      this.notifications.create(booking.vehicle.hostId, { type, title, message, bookingId: booking.id }),
+    ]);
   }
 }

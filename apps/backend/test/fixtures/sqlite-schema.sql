@@ -207,6 +207,19 @@ CREATE TABLE "PartyRating" (
     CONSTRAINT "PartyRating_targetId_fkey" FOREIGN KEY ("targetId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "bookingId" TEXT,
+    "metadata" TEXT,
+    "readAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
 -- CreateTable
 CREATE TABLE "PayoutAccount" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -292,5 +305,6 @@ CREATE UNIQUE INDEX "Payment_transactionId_key" ON "Payment"("transactionId");
 CREATE UNIQUE INDEX "Wallet_userId_key" ON "Wallet"("userId");
 CREATE UNIQUE INDEX "PartyRating_bookingId_authorId_targetId_key" ON "PartyRating"("bookingId", "authorId", "targetId");
 CREATE INDEX "PartyRating_targetId_createdAt_idx" ON "PartyRating"("targetId", "createdAt");
+CREATE INDEX "Notification_userId_readAt_createdAt_idx" ON "Notification"("userId", "readAt", "createdAt");
 CREATE UNIQUE INDEX "PayoutAccount_userId_key" ON "PayoutAccount"("userId");
 CREATE INDEX "Payout_accountId_status_idx" ON "Payout"("accountId", "status");
