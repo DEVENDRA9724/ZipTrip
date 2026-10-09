@@ -115,6 +115,16 @@ function carLink(id) {
   return 'cars.html?' + next.toString();
 }
 
+function getVehicleCover(v) {
+  const front = v.media?.find(m => m.kind === 'FRONT');
+  if (front) return `/api/media/${front.id}`;
+  if (v.images) {
+    const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
+    if (u) return u;
+  }
+  return 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+}
+
 const badge = s => {
   const cls = ['ACTIVE','APPROVED','CONFIRMED','PAID','COMPLETED','SUCCESS','VERIFIED'].includes(s) ? 'good'
     : ['REJECTED','CANCELLED','FAILED','EXPIRED'].includes(s) ? 'red' : 'warn';
@@ -2100,13 +2110,10 @@ function renderAdminView(tab) {
         <button id="admin-add-vehicle-btn" class="button btn-orange btn-sm">Add New Car to Fleet</button>
       </div>
       <div class="admin-vehicle-grid">
-        ${data.map(v => {
-          const front = v.media?.find(m => m.kind === 'FRONT');
-          const cover = front ? `/api/media/${front.id}` : (v.images ? v.images.split(',')[0].trim() : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80');
-          return `
+        ${data.map(v => `
           <article class="panel admin-vehicle-tile">
             <div class="admin-tile-media">
-              <img loading="lazy" src="${cover}" alt="${esc(v.make + ' ' + v.model)}">
+              <img loading="lazy" src="${getVehicleCover(v)}" alt="${esc(v.make + ' ' + v.model)}">
               <div class="admin-tile-badge">${badge(v.status)}</div>
               <div class="admin-tile-photo-count">${v.media?.length || 0} Photos</div>
             </div>
