@@ -2111,7 +2111,7 @@ function renderAdminView(tab) {
       </div>
       <div class="admin-vehicle-grid">
         ${data.map(v => `
-          <article class="panel admin-vehicle-tile">
+          <article class="panel admin-vehicle-tile open-car-folder-tile" data-id="${v.id}" style="cursor:pointer">
             <div class="admin-tile-media">
               <img loading="lazy" src="${getVehicleCover(v)}" alt="${esc(v.make + ' ' + v.model)}">
               <div class="admin-tile-badge">${badge(v.status)}</div>
@@ -2138,9 +2138,9 @@ function renderAdminView(tab) {
                 </div>
               </details>
               <div class="admin-tile-actions">
+                <button class="button btn-orange btn-sm vehicle-folder-btn" data-id="${v.id}">Open Folder &amp; Edit</button>
                 <button class="btn-outline btn-sm vehicle-pricing-action" data-id="${v.id}">Edit rate</button>
                 <button class="btn-outline btn-sm vehicle-schedule-action" data-id="${v.id}">Schedule</button>
-                <button class="button btn-orange btn-sm vehicle-review-action" data-id="${v.id}">Review →</button>
               </div>
             </div>
           </article>`).join('')}
@@ -2295,6 +2295,18 @@ function renderAdminView(tab) {
       });
     };
   }
+  $$('.open-car-folder-tile').forEach(tile => {
+    tile.onclick = (e) => {
+      if (e.target.closest('summary') || e.target.closest('a') || e.target.closest('details') || e.target.closest('button')) return;
+      const vehicle = adminData.vehicles.find(v => v.id === tile.dataset.id);
+      if (vehicle) openCarFolder(vehicle);
+    };
+  });
+  $$('.vehicle-folder-btn').forEach(btn => btn.onclick = (e) => {
+    e.stopPropagation();
+    const vehicle = adminData.vehicles.find(v => v.id === btn.dataset.id);
+    if (vehicle) openCarFolder(vehicle);
+  });
   $$('.vehicle-schedule-action').forEach(btn => btn.onclick = () => openVehicleSchedule(adminData.vehicles.find(v => v.id === btn.dataset.id)));
   $$('.vehicle-pricing-action').forEach(btn => btn.onclick = () => {
     const vehicle = adminData.vehicles.find(v => v.id === btn.dataset.id);
@@ -2521,4 +2533,180 @@ async function openVehicleSchedule(vehicle) {
     };
     try { await renderSchedule(); } catch (error) { showDialog('<h3>Unable to load availability</h3><p class="error">' + esc(error.message) + '</p>'); }
 
+}
+
+function openCarFolder(v) {
+  const contentHtml = `
+    <div class="car-folder-workspace">
+      <div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border-main)">
+        <img src="${getVehicleCover(v)}" alt="${esc(v.make + ' ' + v.model)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border-main)">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <h3 style="margin:0">${esc(v.make + ' ' + v.model + ' ' + v.year)}</h3>
+            ${badge(v.status)}
+          </div>
+          <p class="text-muted" style="margin:4px 0 0 0;font-size:13px">
+            Reg: <strong>${esc(v.registrationNumber || 'Pending')}</strong> · City: ${esc(v.locationCity)} · ${Number(v.odometer || 0).toLocaleString('en-IN')} km · Rate: <strong>${money(v.pricePerDay)}/day</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="folder-tabs" id="car-folder-tab-bar">
+        <button type="button" class="active" data-folder-tab="overview">Overview &amp; Decision</button>
+        <button type="button" data-folder-tab="pricing">Edit Rate</button>
+        <button type="button" data-folder-tab="photos">Photos (${v.media?.length || 0})</button>
+        <button type="button" data-folder-tab="compliance">Compliance (${v.documents?.length || 0})</button>
+        <button type="button" data-folder-tab="schedule">Schedule</button>
+      </div>
+
+      <div id="folder-tab-content-overview" class="folder-tab-content">
+        <div class="card" style="margin-bottom:14px;padding:16px">
+          <h4 style="margin:0 0 10px 0">Vehicle Details &amp; Specifications</h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;font-size:13px">
+            <div><span class="text-muted">Category:</span><br><strong>${esc(v.category || 'SUV')}</strong></div>
+            <div><span class="text-muted">Transmission:</span><br><strong>${esc(v.transmission || 'AUTOMATIC')}</strong></div>
+            <div><span class="text-muted">Fuel Type:</span><br><strong>${esc(v.fuelType || 'PETROL')}</strong></div>
+            <div><span class="text-muted">Seats:</span><br><strong>${v.seats || 5} Seats</strong></div>
+            <div><span class="text-muted">Daily Rate:</span><br><strong>${money(v.pricePerDay)}</strong></div>
+            <div><span class="text-muted">Odometer:</span><br><strong>${Number(v.odometer || 0).toLocaleString('en-IN')} km</strong></div>
+          </div>
+        </div>
+        <form id="folder-decision-form" class="form-stack">
+          <h4 style="margin:0 0 8px 0">Update Vehicle Status &amp; Decision Notes</h4>
+          ${sel('status', 'Set Vehicle Status', ['ACTIVE', 'PENDING_APPROVAL', 'INACTIVE', 'MAINTENANCE'])}
+          <label>Reviewer Note / Decision Reason
+            <textarea name="note" required maxlength="1000" placeholder="Notes on inspection, compliance, or vehicle condition…"></textarea>
+          </label>
+          <button type="submit" class="button btn-orange">Save Vehicle Decision</button>
+        </form>
+      </div>
+
+      <div id="folder-tab-content-pricing" class="folder-tab-content" hidden>
+        <form id="folder-pricing-form" class="form-stack">
+          <h4 style="margin:0 0 8px 0">Edit Daily Rental Rate</h4>
+          <p class="text-muted" style="font-size:13px">Applies to new reservations. Existing booking totals stay unchanged.</p>
+          ${inp('pricePerDay', 'Daily Rate (₹)', 'number', `required min="1" max="1000000" step="0.01" value="${Number(v.pricePerDay)}"`)}
+          ${inp('reason', 'Reason for price change', 'text', 'maxlength="1000" placeholder="e.g. Seasonal pricing adjustment"')}
+          <button type="submit" class="button btn-orange">Save Daily Rate</button>
+        </form>
+      </div>
+
+      <div id="folder-tab-content-photos" class="folder-tab-content" hidden>
+        <h4 style="margin:0 0 10px 0">Vehicle Inspection Photos (${v.media?.length || 0})</h4>
+        <div class="admin-photo-grid" style="margin-top:12px">
+          ${PHOTO_ANGLES.map(angle => {
+            const m = v.media?.find(item => item.kind === angle);
+            if (m) {
+              return `<figure><a href="/api/media/${m.id}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="/api/media/${m.id}" alt="${esc(m.kind)}"></a><figcaption>${esc((m.kind || '').replaceAll('_', ' '))}</figcaption></figure>`;
+            } else {
+              return `<figure style="opacity:0.6;background:var(--bg-subtle,#f5f5f7);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;text-align:center;padding:12px"><span style="font-size:24px">📷</span><figcaption style="padding:4px 0">${esc(angle.replaceAll('_', ' '))}<br><small class="text-muted">Not uploaded</small></figcaption></figure>`;
+            }
+          }).join('')}
+        </div>
+      </div>
+
+      <div id="folder-tab-content-compliance" class="folder-tab-content" hidden>
+        <h4 style="margin:0 0 10px 0">Compliance &amp; Legal Documents</h4>
+        ${v.documents?.length ? `
+          <div class="table-wrap">
+            <table style="margin-top:8px">
+              <thead><tr><th>Document Type</th><th>Status</th><th>Valid Until</th><th>Action</th></tr></thead>
+              <tbody>
+                ${v.documents.map(d => `
+                  <tr>
+                    <td><strong>${esc(d.kind)}</strong></td>
+                    <td>${badge(d.status)}</td>
+                    <td>${d.validUntil ? dt(d.validUntil) : 'N/A'}</td>
+                    <td><a href="/api/media/${d.id || ''}" target="_blank" class="btn-ghost btn-sm" ${!d.id ? 'style="pointer-events:none;opacity:0.5"' : ''}>View Document</a></td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : '<p class="text-muted" style="margin-top:10px">No compliance documents attached to this vehicle.</p>'}
+      </div>
+
+      <div id="folder-tab-content-schedule" class="folder-tab-content" hidden>
+        <h4 style="margin:0 0 10px 0">Availability &amp; Schedule Management</h4>
+        <div id="folder-schedule-container" class="loading">Loading vehicle schedule…</div>
+      </div>
+    </div>
+  `;
+
+  showDialog(contentHtml);
+
+  const statusSel = $('#folder-decision-form select[name="status"]');
+  if (statusSel) statusSel.value = v.status || 'ACTIVE';
+
+  const tabButtons = $$('#car-folder-tab-bar button');
+  tabButtons.forEach(btn => {
+    btn.onclick = () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.dataset.folderTab;
+      $$('.folder-tab-content').forEach(el => el.hidden = true);
+      const targetEl = $(`#folder-tab-content-${target}`);
+      if (targetEl) targetEl.hidden = false;
+      if (target === 'schedule' && $('#folder-schedule-container')?.classList.contains('loading')) {
+        loadFolderSchedule(v.id);
+      }
+    };
+  });
+
+  bindForm('#folder-decision-form', async data => {
+    await post('/admin/vehicles/' + v.id + '/review', data);
+    $('dialog').close();
+    await adminPage('vehicles');
+    toast('Vehicle decision updated.');
+  });
+
+  bindForm('#folder-pricing-form', async data => {
+    await post('/admin/vehicles/' + v.id + '/pricing', { ...data, expectedRate: Number(v.pricePerDay) });
+    $('dialog').close();
+    await adminPage('vehicles');
+    toast('Daily rate updated.');
+  });
+}
+
+async function loadFolderSchedule(vehicleId) {
+  const container = $('#folder-schedule-container');
+  if (!container) return;
+  try {
+    const schedule = await api('/vehicles/' + vehicleId + '/schedule');
+    container.className = '';
+    container.innerHTML = `
+      <p class="text-muted" style="font-size:13px;margin-bottom:12px">Block dates for personal use or maintenance. Existing reservations cannot be displaced.</p>
+      <h5 style="margin:12px 0 6px">Upcoming Reservations</h5>
+      <div class="schedule-list">${schedule.bookings.map(item => `<div>${badge(item.status)}<p>${dt(item.startDate)} → ${dt(item.endDate)}</p></div>`).join('') || '<p class="text-muted" style="font-size:13px">No upcoming reservations.</p>'}</div>
+      <h5 style="margin:16px 0 6px">Blocked Dates / Maintenance</h5>
+      <div class="schedule-list">${schedule.blocks.map(item => `<div><strong>${esc(item.reason)}</strong><p>${dt(item.startDate)} → ${dt(item.endDate)}</p><button type="button" class="btn-outline btn-sm release-folder-block" data-id="${item.id}">Reopen dates</button></div>`).join('') || '<p class="text-muted" style="font-size:13px">No blocked periods.</p>'}</div>
+      <form id="folder-availability-form" class="form-stack" style="margin-top:16px">
+        <h5 style="margin:0 0 8px">Block Dates</h5>
+        ${inp('startDate','Unavailable from','datetime-local')}
+        ${inp('endDate','Available again','datetime-local')}
+        ${inp('reason','Reason','text','maxlength="300" placeholder="Maintenance or personal use"')}
+        <button type="submit" class="button btn-orange btn-sm">Block These Dates</button>
+      </form>
+    `;
+    bindForm('#folder-availability-form', async data => {
+      const start = new Date(data.startDate), end = new Date(data.endDate);
+      if (!Number.isFinite(+start) || !Number.isFinite(+end) || end <= start) throw new Error('Choose a valid period');
+      await post('/vehicles/' + vehicleId + '/availability-blocks', {...data, startDate: start.toISOString(), endDate: end.toISOString()});
+      await loadFolderSchedule(vehicleId);
+      toast('Availability updated.');
+    });
+    $$('.release-folder-block').forEach(rel => rel.onclick = async () => {
+      rel.disabled = true;
+      try {
+        await post('/vehicles/' + vehicleId + '/availability-blocks/' + rel.dataset.id + '/release', {});
+        await loadFolderSchedule(vehicleId);
+        toast('Dates reopened.');
+      } catch (err) {
+        rel.disabled = false;
+        toast(err.message, true);
+      }
+    });
+  } catch (err) {
+    container.className = '';
+    container.innerHTML = `<p class="error">Unable to load schedule: ${esc(err.message)}</p>`;
+  }
 }

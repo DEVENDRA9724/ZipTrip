@@ -1072,13 +1072,47 @@ textarea { resize: vertical; min-height: 100px; }
 .admin-toolbar .admin-search { flex: 1; }
 .admin-toolbar label { margin: 0; }
 .admin-toolbar > span { padding-bottom: 12px; color: var(--text-muted); font-size: 12px; white-space: nowrap; }
-#admin-panel-content { display: grid; gap: 20px; }
+#admin-panel-content { display: flex; flex-direction: column; gap: 20px; width: 100%; }
 
 /* Individual Vehicle Tile Grid Layout */
 .admin-vehicle-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
   gap: 20px;
+  width: 100%;
+}
+
+.car-folder-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.folder-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-main);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.folder-tabs button {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border-main);
+  background: var(--bg-subtle, #f5f5f7);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.folder-tabs button.active {
+  background: var(--purple, #3B1259);
+  color: #fff;
+  border-color: var(--purple, #3B1259);
 }
 
 .admin-vehicle-tile {
