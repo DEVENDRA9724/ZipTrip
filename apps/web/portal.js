@@ -118,7 +118,8 @@ function carLink(id) {
 const badge = s => {
   const cls = ['ACTIVE','APPROVED','CONFIRMED','PAID','COMPLETED','SUCCESS','VERIFIED'].includes(s) ? 'good'
     : ['REJECTED','CANCELLED','FAILED','EXPIRED'].includes(s) ? 'red' : 'warn';
-  return `<span class="badge ${cls}">${esc(s.replaceAll('_',' '))}</span>`;
+  const val = String(s || '');
+  return `<span class="badge ${cls}">${esc(val.replaceAll('_',' '))}</span>`;
 };
 
 const page = location.pathname.split('/').pop() || 'index.html';
@@ -1912,7 +1913,7 @@ async function agreement() {
       </div>
       <div class="agreement-meta-grid">
         <div><span>Booking reference</span><strong>${esc(B.reference)}</strong></div>
-        <div><span>Payment status</span><strong>${esc(B.paymentStatus.replaceAll('_', ' '))}</strong></div>
+        <div><span>Payment status</span><strong>${esc((B.paymentStatus || 'PENDING').replaceAll('_', ' '))}</strong></div>
         <div><span>Pickup</span><strong>${dt(B.startDate)}</strong></div>
         <div><span>Return</span><strong>${dt(B.endDate)}</strong></div>
       </div>
@@ -1934,7 +1935,7 @@ async function agreement() {
           <tr><th>Pickup location</th><td>${esc(S.trip?.pickupLocation || V.locationCity)}</td></tr>
           <tr><th>Return location</th><td>${esc(S.trip?.returnLocation || V.locationCity)}</td></tr>
           <tr><th>Trip status</th><td>${esc(B.status)} · ${Number(B.rentalDays)} billed day${Number(B.rentalDays) === 1 ? '' : 's'}</td></tr>
-          <tr><th>Payment status</th><td>${esc(B.paymentStatus.replaceAll('_', ' '))}</td></tr>
+          <tr><th>Payment status</th><td>${esc((B.paymentStatus || 'PENDING').replaceAll('_', ' '))}</td></tr>
         </tbody></table></div>
       </div>
       <div class="agreement-section">
@@ -2071,7 +2072,7 @@ function renderAdminView(tab) {
   const statusSelect = $('#admin-status');
   const selectedStatus = statusSelect.value;
   const statuses = [...new Set(adminData[tab].map(item => tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action).filter(Boolean))].sort();
-  statusSelect.innerHTML = '<option value="">All statuses</option>' + statuses.map(status => `<option value="${esc(status)}">${esc(status.replaceAll('_', ' '))}</option>`).join('');
+  statusSelect.innerHTML = '<option value="">All statuses</option>' + statuses.map(status => `<option value="${esc(status)}">${esc((status || '').replaceAll('_', ' '))}</option>`).join('');
   statusSelect.value = statuses.includes(selectedStatus) ? selectedStatus : '';
   const query = $('#admin-search').value.trim().toLowerCase();
   const data = adminData[tab].filter(item => (!statusSelect.value || (tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action) === statusSelect.value) && (!query || JSON.stringify(item).toLowerCase().includes(query)));
@@ -2097,7 +2098,7 @@ function renderAdminView(tab) {
         </div>
         <div class="admin-photo-grid">
           ${v.media.filter(m => PHOTO_ANGLES.includes(m.kind)).map(m =>
-            `<figure><a href="/api/media/${m.id}" target="_blank" rel="noopener noreferrer" aria-label="Open ${esc(m.kind.toLowerCase())} photo"><img loading="lazy" src="/api/media/${m.id}" alt="${esc(m.kind)}"></a><figcaption>${esc(m.kind.replaceAll('_', ' '))}</figcaption></figure>`).join('') || '<p class="text-muted">No vehicle photos uploaded.</p>'}
+            `<figure><a href="/api/media/${m.id}" target="_blank" rel="noopener noreferrer" aria-label="Open ${esc((m.kind || '').toLowerCase())} photo"><img loading="lazy" src="/api/media/${m.id}" alt="${esc(m.kind)}"></a><figcaption>${esc((m.kind || '').replaceAll('_', ' '))}</figcaption></figure>`).join('') || '<p class="text-muted">No vehicle photos uploaded.</p>'}
         </div>
         <div class="admin-vehicle-footer"><div class="admin-compliance">${v.documents.map(d => `<span>${esc(d.kind)} ${badge(d.status)}</span>`).join('') || '<span class="text-muted">Compliance documents not submitted</span>'}</div>
         <div class="actions"><button class="btn-outline btn-sm vehicle-pricing-action" data-id="${v.id}">Edit daily rate</button><button class="btn-outline btn-sm vehicle-schedule-action" data-id="${v.id}">Schedule &amp; holds</button><button class="button btn-orange btn-sm vehicle-review-action" data-id="${v.id}">Review listing →</button></div></div>
