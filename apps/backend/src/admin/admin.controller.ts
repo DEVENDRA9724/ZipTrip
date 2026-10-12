@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DocumentEvidenceService } from '../kyc/document-evidence.service';
 import { admin, choice, text, number, PHOTO_KINDS } from '../common/validation';
 import { randomUUID } from 'node:crypto';
+import * as bcrypt from 'bcryptjs';
 import { rentalPolicy, lateReturnCharge } from '../bookings/rental-policy';
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
@@ -20,9 +21,9 @@ export class AdminController {
     const documentStatus = query.documentStatus ? choice(query.documentStatus, 'Document status', ['PENDING', 'APPROVED', 'REJECTED']) : undefined;
     const role = query.role ? choice(query.role, 'User role', ['CUSTOMER', 'HOST', 'DEALER', 'ADMIN']) : undefined;
     const [users, vehicles, bookings, documents, audit] = await Promise.all([
-      this.prisma.user.findMany({ where: { ...(role ? { role: role as any } : {}), ...(search ? { OR: [{ email: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }] } : {}) }, select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true, isBlocked: true, dlValidUntil: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.user.findMany({ where: { ...(role ? { role: role as any } : {}), ...(search ? { OR: [{ email: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }] } : {}) }, select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isBlocked: true, dlValidUntil: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.vehicle.findMany({ where: { ...(vehicleStatus ? { status: vehicleStatus as any } : {}), ...(search ? { OR: [{ make: { contains: search } }, { model: { contains: search } }, { registrationNumber: { contains: search } }, { locationCity: { contains: search } }] } : {}) }, include: { media: { select: { id: true, kind: true } }, documents: true, host: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: true, payment: true, invoice: true, customer: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: true, payment: true, invoice: true, customer: { select: { firstName: true, lastName: true, email: true, phone: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.document.findMany({ where: { ...(documentStatus ? { status: documentStatus } : {}), ...(search ? { OR: [{ kind: { contains: search } }, { user: { email: { contains: search } } }, { user: { firstName: { contains: search } } }, { user: { lastName: { contains: search } } }] } : {}) }, include: { user: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.auditLog.findMany({ where: search ? { OR: [{ action: { contains: search } }, { targetId: { contains: search } }, { detail: { contains: search } }] } : {}, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
     ]);
@@ -306,4 +307,155 @@ export class AdminController {
       return { message: 'Refund recorded' };
     });
   }
+
+  @Post('users/:id/password')
+  async resetUserPassword(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const password = text(body.password, 'Password', 72);
+    if (password.length < 8) throw new BadRequestException('Password must be at least 8 characters');
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+    return this.prisma.$transaction(async tx => {
+      const user = await tx.user.findUnique({ where: { id } });
+      if (!user) throw new NotFoundException('User not found');
+      await tx.user.update({ where: { id }, data: { passwordHash } });
+      await tx.auditLog.create({
+        data: {
+          actorId: req.user.id,
+          action: 'USER_PASSWORD_RESET',
+          targetId: id,
+          detail: `Password reset by administrator for ${user.email}`,
+        },
+      });
+      return { success: true, message: `Password successfully updated for ${user.email}` };
+    });
+  }
+
+  @Get('bookings/:id/swap-candidates')
+  async swapCandidates(@Request() req: any, @Param('id') id: string) {
+    admin(req.user);
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: { vehicle: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: {
+        id: { not: booking.vehicleId },
+        status: 'ACTIVE',
+      },
+      include: {
+        bookings: {
+          where: {
+            id: { not: id },
+            status: { in: ['CONFIRMED', 'ACTIVE'] },
+            startDate: { lt: booking.endDate },
+            endDate: { gt: booking.startDate },
+          },
+        },
+        availabilityBlocks: {
+          where: {
+            releasedAt: null,
+            startDate: { lt: booking.endDate },
+            endDate: { gt: booking.startDate },
+          },
+        },
+      },
+    });
+    const candidates = vehicles
+      .filter(v => v.bookings.length === 0 && v.availabilityBlocks.length === 0)
+      .map(v => ({
+        id: v.id,
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        registrationNumber: v.registrationNumber,
+        category: v.category,
+        pricePerDay: Number(v.pricePerDay),
+        locationCity: v.locationCity,
+        seats: v.seats,
+      }));
+    return { currentBooking: booking, candidates };
+  }
+
+  @Post('bookings/:id/swap')
+  async swapBooking(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const newVehicleId = text(body.newVehicleId, 'New vehicle ID', 80);
+    const reason = text(body.reason, 'Reason for swapping', 1000);
+    return this.prisma.$transaction(async tx => {
+      const booking = await tx.booking.findUnique({
+        where: { id },
+        include: { vehicle: true },
+      });
+      if (!booking) throw new NotFoundException('Booking not found');
+      if (['CANCELLED', 'COMPLETED'].includes(booking.status)) {
+        throw new BadRequestException('Cannot swap a cancelled or completed booking');
+      }
+      if (booking.vehicleId === newVehicleId) {
+        throw new BadRequestException('Select a different replacement vehicle');
+      }
+      const newCar = await tx.vehicle.findUnique({ where: { id: newVehicleId } });
+      if (!newCar || newCar.status !== 'ACTIVE') {
+        throw new BadRequestException('Replacement vehicle is not active in fleet');
+      }
+      const conflict = await tx.booking.findFirst({
+        where: {
+          id: { not: id },
+          vehicleId: newVehicleId,
+          status: { in: ['CONFIRMED', 'ACTIVE'] },
+          startDate: { lt: booking.endDate },
+          endDate: { gt: booking.startDate },
+        },
+      });
+      if (conflict) {
+        throw new ConflictException('Replacement vehicle is already booked for these dates');
+      }
+      const oldCar = booking.vehicle;
+      await tx.booking.update({
+        where: { id },
+        data: { vehicleId: newVehicleId },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: req.user.id,
+          action: 'BOOKING_VEHICLE_SWAPPED',
+          targetId: id,
+          detail: `Transferred from ${oldCar.make} ${oldCar.model} (${oldCar.registrationNumber}) to ${newCar.make} ${newCar.model} (${newCar.registrationNumber}). Reason: ${reason}`,
+        },
+      });
+      return {
+        success: true,
+        message: `Booking successfully transferred to ${newCar.make} ${newCar.model} (${newCar.registrationNumber})`,
+      };
+    });
+  }
+
+  @Post('bookings/:id/cancel')
+  async adminCancelBooking(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const reason = text(body.reason, 'Cancellation reason', 1000);
+    return this.prisma.$transaction(async tx => {
+      const booking = await tx.booking.findUnique({ where: { id }, include: { payment: true } });
+      if (!booking) throw new NotFoundException('Booking not found');
+      if (['CANCELLED', 'COMPLETED'].includes(booking.status)) {
+        throw new BadRequestException(`Booking is already ${booking.status.toLowerCase()}`);
+      }
+      await tx.booking.update({ where: { id }, data: { status: 'CANCELLED' } });
+      if (booking.payment && booking.payment.status === 'SUCCESS') {
+        await tx.payment.update({ where: { id: booking.payment.id }, data: { status: 'REFUND_PENDING' } });
+        await tx.invoice.updateMany({ where: { bookingId: id }, data: { status: 'REFUND_PENDING' } });
+      }
+      await tx.auditLog.create({
+        data: {
+          actorId: req.user.id,
+          action: 'ADMIN_BOOKING_CANCELLED',
+          targetId: id,
+          detail: `Cancelled by administrator. Reason: ${reason}`,
+        },
+      });
+      return { success: true, message: 'Booking cancelled by admin', refundPending: booking.payment?.status === 'SUCCESS' };
+    });
+  }
+
 }

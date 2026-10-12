@@ -1710,9 +1710,9 @@ function renderBookingTable(list, isHost) {
                   ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">Receipt</a>` : ''}
                   ${!isHost && b.status === 'COMPLETED' ? `<button class="button btn-outline btn-sm review-booking-btn" data-id="${b.id}">Rate vehicle</button><button class="button btn-outline btn-sm party-review-btn" data-id="${b.id}" data-target-role="HOST">Rate host</button>` : ''}
                   ${isHost && b.status === 'COMPLETED' ? `<button class="button btn-outline btn-sm party-review-btn" data-id="${b.id}" data-target-role="CUSTOMER">Rate customer</button>` : ''}
+                  ${['CONFIRMED','ACTIVE'].includes(b.status)
+                    ? `<button class="button btn-orange btn-sm inspection-btn" data-id="${b.id}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? 'Start Trip (Pickup)' : 'End Trip (Return)'}</button>` : ''}
                   ${!isHost && b.status === 'ACTIVE' ? `<button class="button btn-outline btn-sm inspection-btn" data-id="${b.id}" data-stage="DAMAGE">Report damage</button>` : ''}
-                  ${isHost && ['CONFIRMED','ACTIVE'].includes(b.status)
-                    ? `<button class="button btn-orange btn-sm inspection-btn" data-id="${b.id}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? 'Record Pickup' : 'Record Return'}</button>` : ''}
                 </div>
               </td>
             </tr>`).join('')}
@@ -2344,7 +2344,83 @@ function renderAdminView(tab) {
         <div class="notice"><p><strong>Deposit held:</strong> ${money(s.depositHeld)}</p><p><strong>Distance:</strong> ${s.travelledKilometres == null ? 'Not recorded' : Number(s.travelledKilometres).toLocaleString('en-IN') + ' km'} · Included ${s.includedKilometres == null ? '—' : Number(s.includedKilometres).toLocaleString('en-IN') + ' km'}</p><p><strong>Excess distance charge:</strong> ${money(s.excessCharge)}</p><p><strong>Late return charge:</strong> ${money(s.lateCharge)} (${Number(s.lateMinutes)} minutes after grace)</p><p><strong>Suggested automatic deduction:</strong> ${money(s.suggestedDepositDeduction)}</p><p><strong>Estimated release:</strong> ${money(s.estimatedDepositRelease)}</p></div><p class="text-muted">${esc(s.note)}${s.damageReviewRequired ? ' A damage note is present; complete a documented damage review before releasing the balance.' : ''}</p>`);
     } catch (err) { toast(err.message, true); }
   });
-  $$('.user-block-action').forEach(btn => btn.onclick = async () => {
+  $('.user-password-action').forEach(btn => btn.onclick = () => {
+    const email = btn.dataset.email || 'this user';
+    showDialog(`
+      <h3>Reset User Password</h3>
+      <p class="text-muted">Set a new secure password for <strong>${esc(email)}</strong>. The user can immediately log in with this new password.</p>
+      <form id="admin-user-password-form" class="form-stack">
+        <label>New Password (min 8 characters)
+          <input name="password" type="password" required minlength="8" placeholder="••••••••">
+        </label>
+        <button type="submit" class="button btn-orange">Update Password</button>
+      </form>
+    `);
+    bindForm('#admin-user-password-form', async data => {
+      await post('/admin/users/' + encodeURIComponent(btn.dataset.id) + '/password', data);
+      $('dialog').close();
+      toast('Password updated successfully for ' + email);
+    });
+  });
+
+  $('.booking-swap-action').forEach(btn => btn.onclick = async () => {
+    try {
+      btn.disabled = true;
+      const data = await api('/admin/bookings/' + btn.dataset.id + '/swap-candidates');
+      if (!data.candidates?.length) {
+        btn.disabled = false;
+        return toast('No available replacement vehicles found for these dates in this location.', true);
+      }
+      showDialog(`
+        <h3>Swap Booking Vehicle</h3>
+        <p class="text-muted">Current vehicle: <strong>${esc(data.currentBooking.vehicle.make + ' ' + data.currentBooking.vehicle.model)} (${esc(data.currentBooking.vehicle.registrationNumber || 'N/A')})</strong></p>
+        <form id="admin-booking-swap-form" class="form-stack">
+          <label>Select Replacement Vehicle (${data.candidates.length} available)
+            <select name="newVehicleId" required>
+              ${data.candidates.map(c => `
+                <option value="${c.id}">${esc(c.make + ' ' + c.model + ' (' + (c.registrationNumber || 'No Reg') + ') · ' + c.category + ' · ₹' + c.pricePerDay + '/day')}</option>
+              `).join('')}
+            </select>
+          </label>
+          <label>Reason for Swap / Transfer
+            <textarea name="reason" required maxlength="1000" placeholder="e.g. Mechanical maintenance, AC repair, or upgrade…"></textarea>
+          </label>
+          <button type="submit" class="button btn-orange">Confirm Vehicle Swap</button>
+        </form>
+      `);
+      bindForm('#admin-booking-swap-form', async formData => {
+        await post('/admin/bookings/' + btn.dataset.id + '/swap', formData);
+        $('dialog').close();
+        await adminPage('bookings');
+        toast('Vehicle swapped successfully.');
+      });
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('.booking-cancel-admin-action').forEach(btn => btn.onclick = () => {
+    showDialog(`
+      <h3>Cancel Booking</h3>
+      <p class="text-muted">Cancel this booking. If payment was received, a refund record will be queued automatically.</p>
+      <form id="admin-booking-cancel-form" class="form-stack">
+        <label>Reason for Cancellation
+          <textarea name="reason" required maxlength="1000" placeholder="Reason for administrator cancellation…"></textarea>
+        </label>
+        <button type="submit" class="button btn-orange" style="background:var(--red);border-color:var(--red)">Confirm Cancellation</button>
+      </form>
+    `);
+    bindForm('#admin-booking-cancel-form', async formData => {
+      await post('/admin/bookings/' + btn.dataset.id + '/cancel', formData);
+      $('dialog').close();
+      await adminPage('bookings');
+      toast('Booking cancelled.');
+    });
+  });
+
+  $('.user-block-action').forEach(btn => btn.onclick = async () => {
     const blocking = btn.dataset.blocked === 'true';
     const reason = window.prompt(blocking ? 'Reason for blocking this account:' : 'Reason for unblocking this account:');
     if (!reason || !reason.trim()) return;

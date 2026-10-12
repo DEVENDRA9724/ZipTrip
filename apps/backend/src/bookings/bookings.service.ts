@@ -62,7 +62,7 @@ export class BookingsService {
     return booking;
   }
   getMyTrips(customerId: string) {
-    return this.prisma.booking.findMany({ where: { customerId }, include: { vehicle: true, payment: true, invoice: true, inspections: true }, orderBy: { createdAt: 'desc' }, take: 200 });
+    return this.prisma.booking.findMany({ where: { customerId }, include: { vehicle: { include: { host: { select: { id: true, firstName: true, lastName: true, phone: true } } } }, payment: true, invoice: true, inspections: true }, orderBy: { createdAt: 'desc' }, take: 200 });
   }
   getHostBookings(hostId: string) {
     return this.prisma.booking.findMany({ where: { vehicle: { hostId } }, include: { vehicle: true, customer: { select: { firstName: true, lastName: true, phone: true } }, payment: true, inspections: true }, orderBy: { createdAt: 'desc' }, take: 200 });
@@ -256,8 +256,8 @@ export class BookingsService {
       if (!booking) throw new NotFoundException('Booking not found');
       const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN';
       const isCustomer = booking.customerId === user.id;
-      if (stage === 'DAMAGE' ? !isCustomer && !isHost : !isHost) throw new ForbiddenException(stage === 'DAMAGE' ? 'Booking customer, host or administrator required' : 'Host or administrator required');
-      if (stage === 'PICKUP' && (booking.status !== 'CONFIRMED' || booking.startDate > new Date() || booking.endDate <= new Date())) throw new BadRequestException('Pickup is available during the confirmed rental period');
+      if (!isCustomer && !isHost) throw new ForbiddenException('Booking customer, host or administrator required');
+      if (stage === 'PICKUP' && (booking.status !== 'CONFIRMED' || (+booking.startDate - 2 * 3600000 > +new Date()) || booking.endDate <= new Date())) throw new BadRequestException('Pickup is available from 2 hours before your scheduled start time through your rental period');
       if (stage === 'RETURN' && booking.status !== 'ACTIVE') throw new BadRequestException('Only active trips can be returned');
       if (stage === 'DAMAGE' && booking.status !== 'ACTIVE') throw new BadRequestException('Damage reports are available during an active trip');
       const minimum = stage === 'RETURN' ? booking.inspections.find(i => i.stage === 'PICKUP')?.odometer : booking.vehicle.odometer;
