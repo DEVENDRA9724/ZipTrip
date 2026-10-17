@@ -25,7 +25,16 @@ if [[ "${USE_IAM_ROLE,,}" == "n" ]]; then
 fi
 
 echo ""
-echo "[1/6] Installing system packages (Node.js 22, Docker, Nginx, Python3 ReportLab/Docx)..."
+echo "[1/6] Checking memory (creating 2GB swap for t2.micro/t3.micro) & installing system packages..."
+if [[ ! -f /swapfile ]]; then
+  sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+  sudo chmod 600 /swapfile
+  sudo mkswap /swapfile
+  sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+  echo "  -> Enabled 2GB swap memory for smooth TypeScript/Prisma builds on t2.micro."
+fi
+
 if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update -y
   sudo apt-get install -y curl git nginx python3 python3-pip python3-venv docker.io docker-compose-v2
