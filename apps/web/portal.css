@@ -1690,3 +1690,327 @@ dialog[open] {
   border-color: var(--orange-border);
 }
 
+/* ══ COMPREHENSIVE PADDING, SPACING & LAYOUT FIXES ══════════════════ */
+:root {
+  --line: var(--border-main);
+  --line-soft: var(--border-light);
+  --muted: var(--text-muted);
+  --ink: var(--text-main);
+  --color-surface: var(--bg-card);
+  --color-border: var(--border-main);
+}
+
+[data-theme="dark"] {
+  --line: var(--border-main);
+  --line-soft: var(--border-light);
+  --muted: var(--text-muted);
+  --ink: var(--text-main);
+  --color-surface: var(--bg-card);
+  --color-border: var(--border-main);
+}
+
+/* 1. Container & Page Breathability */
+.container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 36px 36px 80px;
+  width: 100%;
+}
+
+/* 2. Header Spacing & Right-Edge Overflow Prevention */
+.header {
+  height: auto;
+  min-height: 68px;
+  padding: 10px 32px;
+  gap: 16px;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+
+.header .nav {
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.header .nav a {
+  padding: 7px 13px;
+  white-space: nowrap;
+}
+
+.header .account {
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1360px) {
+  .header .header-phone-pill {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1220px) {
+  .header .header-location-badge {
+    display: none !important;
+  }
+}
+
+/* 3. Panels & Cards Vertical Rhythm & Inner Padding */
+.panel {
+  padding: 28px 30px;
+  margin-bottom: 24px;
+  border-radius: var(--r-lg);
+}
+
+.panel:last-child {
+  margin-bottom: 0;
+}
+
+/* Keep grid/layout child panels without extra bottom margin when inside grid */
+.kyc-action-grid > .panel,
+.two > .panel,
+.details-layout > .panel,
+.cars-layout > .panel {
+  margin-bottom: 0;
+}
+
+/* 4. Dashboard Stat Cards (.stat inside .stats) */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin: 20px 0 28px;
+}
+
+.stats .stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--r-lg);
+  padding: 22px 24px;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stats .stat .stat-lbl {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.stats .stat .stat-num {
+  color: var(--text-main);
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+/* 5. Notice Banners (.notice, .notice.info, .notice.warn) */
+.notice {
+  padding: 16px 20px;
+  border-radius: var(--r);
+  border: 1px solid var(--orange-border);
+  background: var(--orange-soft);
+  color: var(--text-main);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 14px 0 20px;
+}
+
+.notice.info {
+  border-color: var(--border-main);
+  background: var(--bg-subtle);
+  color: var(--text-body);
+}
+
+.notice strong {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+/* 6. Tabs & Section Headers Spacing */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 20px;
+  padding: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--r-lg);
+  box-shadow: var(--card-shadow);
+}
+
+.tabs .button,
+.tabs button {
+  border-radius: var(--r);
+  padding: 10px 18px;
+}
+
+/* 7. Two-Column Layout & Agreement Grids */
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin: 18px 0;
+}
+
+.agreement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 18px 0;
+}
+
+.agreement-grid > div {
+  padding: 18px 20px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-main);
+  border-radius: var(--r);
+}
+
+.agreement-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border-main);
+}
+
+@media (max-width: 768px) {
+  .two,
+  .agreement-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 8. Admin Workspace, Summary, Toolbar & Vehicle Grid Padding */
+.admin-workspace {
+  padding: 4px 0 40px;
+}
+
+.admin-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px;
+  margin: 22px 0 26px;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding: 18px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--r-lg);
+  box-shadow: var(--card-shadow);
+}
+
+.admin-vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 24px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.admin-vehicle-tile.panel {
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+  border-radius: var(--r-lg);
+}
+
+.admin-tile-content {
+  padding: 20px 22px 22px;
+  gap: 14px;
+}
+
+.admin-tile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-main);
+}
+
+.admin-tile-actions button,
+.admin-tile-actions a {
+  flex: 1 1 auto;
+  min-width: 88px;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+/* 9. Table Cell & Action Button Breathing Room */
+.table-wrap {
+  margin-top: 14px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r);
+  background: var(--bg-card);
+}
+
+th {
+  padding: 14px 16px;
+  background: var(--bg-subtle);
+}
+
+td {
+  padding: 16px 16px;
+  line-height: 1.55;
+}
+
+td .actions {
+  gap: 8px;
+  padding: 2px 0;
+}
+
+td .actions button,
+td .actions .button {
+  padding: 7px 14px;
+  font-size: 12.5px;
+}
+
+/* 10. Car Cards & Listing Layout Padding */
+.cars-layout {
+  gap: 28px;
+  margin-top: 20px;
+}
+
+.car-grid {
+  gap: 22px;
+}
+
+.car-card-info {
+  padding: 18px 20px 20px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 20px 16px 84px;
+  }
+  .panel {
+    padding: 20px 18px;
+    margin-bottom: 18px;
+  }
+  .admin-toolbar {
+    padding: 16px;
+  }
+  .admin-vehicle-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+

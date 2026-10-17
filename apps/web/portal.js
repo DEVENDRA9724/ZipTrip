@@ -1721,7 +1721,9 @@ function renderBookingTable(list, isHost) {
             <tr>
               <td>
                 <strong>${esc(b.vehicle.make + ' ' + b.vehicle.model)}</strong>
-                <p class="text-muted" style="font-size:12px">${esc(b.bookingRef)}</p>
+                <p class="text-muted" style="font-size:12px;margin:2px 0">${esc(b.bookingRef)}</p>
+                ${!isHost && b.vehicle?.host ? `<p style="font-size:12px;margin:4px 0 0;color:var(--purple)">Host: <strong>${esc(b.vehicle.host.firstName + ' ' + b.vehicle.host.lastName)}</strong>${b.vehicle.host.phone && ['CONFIRMED','ACTIVE'].includes(b.status) ? ` · <a href="tel:${esc(b.vehicle.host.phone)}" style="color:var(--orange);font-weight:700">📞 ${esc(b.vehicle.host.phone)}</a>` : ''}</p>` : ''}
+                ${isHost && b.customer ? `<p style="font-size:12px;margin:4px 0 0;color:var(--orange)">Guest: <strong>${esc(b.customer.firstName + ' ' + b.customer.lastName)}</strong>${b.customer.phone ? ` · <a href="tel:${esc(b.customer.phone)}" style="color:var(--purple);font-weight:700">📞 ${esc(b.customer.phone)}</a>` : ''}</p>` : ''}
               </td>
               <td>${dt(b.startDate)}<br><span class="text-muted">${dt(b.endDate)}</span></td>
               <td><strong>${money(b.totalAmount)}</strong>
@@ -2138,9 +2140,12 @@ function renderAdminView(tab) {
 
   if (tab === 'vehicles') {
     $('#admin-panel-content').innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:var(--color-surface);padding:12px 16px;border-radius:8px;border:1px solid var(--color-border)">
-        <div><strong>Fleet Vehicle Management</strong><p class="text-muted" style="margin:0;font-size:13px">Directly register cars, review compliance documents and adjust daily rates.</p></div>
-        <button id="admin-add-vehicle-btn" class="button btn-orange btn-sm">Add New Car to Fleet</button>
+      <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 24px;margin-bottom:4px">
+        <div>
+          <strong style="font-size:16px;color:var(--text-main)">Fleet Vehicle Management</strong>
+          <p class="text-muted" style="margin:4px 0 0;font-size:13px">Click any car folder tile to inspect photos, verify compliance documents, manage availability, or adjust daily rates.</p>
+        </div>
+        <button id="admin-add-vehicle-btn" class="button btn-orange btn-sm">+ Add New Car to Fleet</button>
       </div>
       <div class="admin-vehicle-grid">
         ${data.map(v => `
@@ -2152,22 +2157,18 @@ function renderAdminView(tab) {
             </div>
             <div class="admin-tile-content">
               <div class="admin-tile-header">
-
-            <h3>${esc(v.make + ' ' + v.model + ' ' + v.year)}</h3>
+                <h3>${esc(v.make + ' ' + v.model + ' ' + v.year)}</h3>
                 <p class="text-muted">${esc(v.registrationNumber || 'Pending Reg')} · ${esc(v.locationCity)} · ${Number(v.odometer || 0).toLocaleString('en-IN')} km</p>
-
-              <p class="admin-tile-price"><strong>${money(v.pricePerDay)}</strong> <span class="text-muted" style="font-size:12px">/ day</span></p>
-        </div>
+                <p class="admin-tile-price"><strong>${money(v.pricePerDay)}</strong> <span class="text-muted" style="font-size:12px">/ day</span></p>
+              </div>
               <div class="admin-tile-compliance">
                 ${v.documents.map(d => `<span>${esc(d.kind)} ${badge(d.status)}</span>`).join('') || '<span class="text-muted">Compliance docs pending</span>'}
               </div>
-
               <details class="admin-tile-photos-toggle">
                 <summary>Inspect Photos (${v.media.filter(m => PHOTO_ANGLES.includes(m.kind)).length}) 📷</summary>
-                <div class="admin-photo-grid compact" style="margin-top:8px">
-          ${v.media.filter(m => PHOTO_ANGLES.includes(m.kind)).map(m =>
-            `<figure><a href="/api/media/${m.id}" target="_blank" rel="noopener noreferrer" aria-label="Open ${esc((m.kind || '').toLowerCase())} photo"><img loading="lazy" src="/api/media/${m.id}" alt="${esc(m.kind)}"></a><figcaption>${esc((m.kind || '').replaceAll('_', ' '))}</figcaption></figure>`).join('') || '<p class="text-muted">No vehicle photos uploaded.</p>'}
-        </div>
+                <div class="admin-photo-grid compact" style="margin-top:10px">
+                  ${v.media.filter(m => PHOTO_ANGLES.includes(m.kind)).map(m =>
+                    `<figure><a href="/api/media/${m.id}" target="_blank" rel="noopener noreferrer" aria-label="Open ${esc((m.kind || '').toLowerCase())} photo"><img loading="lazy" src="/api/media/${m.id}" alt="${esc(m.kind)}"></a><figcaption>${esc((m.kind || '').replaceAll('_', ' '))}</figcaption></figure>`).join('') || '<p class="text-muted">No vehicle photos uploaded.</p>'}
                 </div>
               </details>
               <div class="admin-tile-actions">
@@ -2203,20 +2204,30 @@ function renderAdminView(tab) {
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap">
         <table>
-          <thead><tr><th>Customer / Vehicle</th><th>Trip Schedule</th><th>Total</th><th>Status</th><th>Payment &amp; Invoicing</th></tr></thead>
+          <thead><tr><th>Customer / Vehicle</th><th>Trip Schedule</th><th>Total</th><th>Status</th><th>Booking &amp; Fleet Actions</th></tr></thead>
           <tbody>
             ${data.map(b => `
               <tr>
-                <td>${esc(b.customer.firstName + ' ' + b.customer.lastName)}<p>${esc(b.vehicle.make + ' ' + b.vehicle.model)}</p></td>
-                <td>${dt(b.startDate)}<br>${dt(b.endDate)}<p class="text-muted">${esc(b.bookingRef)}</p>${formatBookingStatus(b) === 'PENDING' ? `<small>Hold expires: ${dt(b.expiresAt)}</small>` : ''}</td>
-                <td><strong>${money(b.totalAmount)}</strong></td>
-                <td>${badge(formatBookingStatus(b))}${b.payment ? `<br>${badge(b.payment.status)}` : ''}</td>
                 <td>
-                  ${formatBookingStatus(b) === 'PENDING' ? `<button class="button btn-sm record-pmt-action" data-id="${b.id}" data-amount="${b.totalAmount}">Record Payment</button><button class="btn-outline btn-sm booking-hold-action" data-id="${b.id}">Manage hold</button>` : ''}
-                  ${b.payment?.status === 'REFUND_PENDING' ? `<button class="button btn-ghost btn-sm record-ref-action" data-id="${b.id}">Record Refund</button>` : ''}
-                  ${['ACTIVE','COMPLETED'].includes(formatBookingStatus(b)) ? `<button class="btn-outline btn-sm booking-settlement-action" data-id="${b.id}">Settlement preview</button>` : ''}
-                  <a class="button btn-ghost btn-sm" href="agreement.html?id=${b.id}">Agreement</a>
-                  ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">Receipt</a>` : ''}
+                  <strong>${esc(b.customer.firstName + ' ' + b.customer.lastName)}</strong>
+                  ${b.customer.phone ? `<br><small><a href="tel:${esc(b.customer.phone)}" style="color:var(--purple);font-weight:600">📞 ${esc(b.customer.phone)}</a></small>` : ''}
+                  <p style="margin:4px 0 0;font-size:12.5px;color:var(--orange);font-weight:600">${esc(b.vehicle.make + ' ' + b.vehicle.model)} (${esc(b.vehicle.registrationNumber || 'No Reg')})</p>
+                </td>
+                <td>${dt(b.startDate)}<br>${dt(b.endDate)}<p class="text-muted" style="margin:4px 0 0;font-size:12px">${esc(b.bookingRef)}</p>${formatBookingStatus(b) === 'PENDING' ? `<small>Hold expires: ${dt(b.expiresAt)}</small>` : ''}</td>
+                <td><strong>${money(b.totalAmount)}</strong></td>
+                <td>${badge(formatBookingStatus(b))}${b.payment ? `<br><span style="display:inline-block;margin-top:4px">${badge(b.payment.status)}</span>` : ''}</td>
+                <td>
+                  <div class="actions">
+                    ${formatBookingStatus(b) === 'PENDING' ? `<button class="button btn-sm record-pmt-action" data-id="${b.id}" data-amount="${b.totalAmount}">Record Payment</button><button class="btn-outline btn-sm booking-hold-action" data-id="${b.id}">Hold</button>` : ''}
+                    ${b.payment?.status === 'REFUND_PENDING' ? `<button class="button btn-ghost btn-sm record-ref-action" data-id="${b.id}">Record Refund</button>` : ''}
+                    ${['CONFIRMED','ACTIVE','PENDING'].includes(formatBookingStatus(b)) ? `
+                      <button class="btn-outline btn-sm booking-swap-action" data-id="${b.id}">Swap Car</button>
+                      <button class="btn-ghost btn-sm booking-cancel-admin-action" data-id="${b.id}" style="color:var(--red);border-color:var(--red-border)">Cancel</button>
+                    ` : ''}
+                    ${['ACTIVE','COMPLETED'].includes(formatBookingStatus(b)) ? `<button class="btn-outline btn-sm booking-settlement-action" data-id="${b.id}">Settlement</button>` : ''}
+                    <a class="button btn-ghost btn-sm" href="agreement.html?id=${b.id}">Agreement</a>
+                    ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">Receipt</a>` : ''}
+                  </div>
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -2263,16 +2274,21 @@ function renderAdminView(tab) {
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>KYC Approval</th><th>DL Expiry</th><th>Account control</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email &amp; Contact</th><th>Role</th><th>KYC Approval</th><th>DL Expiry</th><th>Account Control</th></tr></thead>
           <tbody>
             ${data.map(u => `
               <tr>
-                <td>${esc(u.firstName + ' ' + u.lastName)}</td>
-                <td>${esc(u.email)}</td>
+                <td><strong>${esc(u.firstName + ' ' + u.lastName)}</strong></td>
+                <td>${esc(u.email)}${u.phone ? `<br><small><a href="tel:${esc(u.phone)}" style="color:var(--purple);font-weight:600">📞 ${esc(u.phone)}</a></small>` : ''}</td>
                 <td>${badge(u.role)}</td>
                 <td>${badge(u.isVerified ? 'APPROVED' : 'PENDING')}</td>
                 <td>${d(u.dlValidUntil)}</td>
-                <td>${u.role === 'ADMIN' ? '<span class="text-muted">Protected admin</span>' : `<button class="btn-${u.isBlocked ? 'outline' : 'ghost'} btn-sm user-block-action" data-id="${u.id}" data-blocked="${u.isBlocked ? 'false' : 'true'}">${u.isBlocked ? 'Unblock' : 'Block account'}</button>`}</td>
+                <td>
+                  <div class="actions">
+                    <button class="btn-outline btn-sm user-password-action" data-id="${u.id}" data-email="${esc(u.email)}">Password</button>
+                    ${u.role === 'ADMIN' ? '<span class="text-muted" style="font-size:12px">Protected admin</span>' : `<button class="btn-${u.isBlocked ? 'outline' : 'ghost'} btn-sm user-block-action" data-id="${u.id}" data-blocked="${u.isBlocked ? 'false' : 'true'}">${u.isBlocked ? 'Unblock' : 'Block account'}</button>`}
+                  </div>
+                </td>
               </tr>`).join('')}
           </tbody>
         </table>
