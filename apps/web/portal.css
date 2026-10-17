@@ -2458,3 +2458,626 @@ html {
   }
 }
 
+
+
+/* ==========================================================================
+   PRO ENTERPRISE COMMAND CENTER (ADMIN, HOST, BIOMETRIC e-KYC & HANDOVER)
+   ========================================================================== */
+.pro-console-shell {
+  display: grid;
+  grid-template-columns: 265px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-top: 8px;
+}
+.pro-sidebar {
+  position: sticky;
+  top: 88px;
+  background: linear-gradient(165deg, #160B28 0%, #24113F 60%, #1B0D30 100%);
+  color: #F8FAFC;
+  border-radius: 22px;
+  padding: 20px 16px;
+  box-shadow: 0 20px 45px rgba(22, 11, 40, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+.pro-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 14px;
+}
+.pro-sidebar-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #E86A17, #FF9447);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(232, 106, 23, 0.35);
+}
+.pro-sidebar-brand h4 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+.pro-sidebar-brand p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.65);
+}
+.pro-nav-group-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+  padding: 8px 10px 6px;
+}
+.pro-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pro-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+.pro-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.pro-nav-btn.active {
+  background: linear-gradient(135deg, #E86A17 0%, #D95B08 100%);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(232, 106, 23, 0.32);
+}
+.pro-nav-btn .nav-count {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pro-nav-btn.active .nav-count {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.pro-main-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.pro-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-main, rgba(59, 18, 89, 0.1));
+  border-radius: 20px;
+  padding: 20px 24px;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, 0.04);
+}
+.pro-topbar-title h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.pro-topbar-title p {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.pro-kpi-ribbon {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 14px;
+}
+.pro-kpi-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-main, rgba(59, 18, 89, 0.1));
+  border-radius: 18px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.035);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pro-kpi-card.highlight {
+  background: linear-gradient(145deg, #210E3B 0%, #3B1259 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.pro-kpi-card .kpi-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.pro-kpi-card.highlight .kpi-label {
+  color: rgba(255, 255, 255, 0.72);
+}
+.pro-kpi-card .kpi-val {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.pro-kpi-card.highlight .kpi-val {
+  color: #fff;
+}
+.pro-kpi-card .kpi-sub {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pro-kpi-card.highlight .kpi-sub {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* Revenue Split Pill & Ledger */
+.revenue-split-box {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(59, 18, 89, 0.04);
+  border: 1px solid rgba(59, 18, 89, 0.1);
+  border-radius: 10px;
+  padding: 8px 11px;
+  font-size: 12px;
+}
+[data-theme="dark"] .revenue-split-box {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Biometric e-KYC + Live Camera Selfie Wizard */
+.kyc-wizard-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 22px;
+  align-items: start;
+}
+.biometric-camera-card {
+  background: linear-gradient(160deg, #160B28 0%, #271247 100%);
+  color: #fff;
+  border-radius: 22px;
+  padding: 24px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(22, 11, 40, 0.2);
+}
+.biometric-viewport {
+  width: 220px;
+  height: 220px;
+  margin: 16px auto;
+  border-radius: 50%;
+  border: 3px dashed #FF9447;
+  position: relative;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 8px rgba(232, 106, 23, 0.12);
+}
+.biometric-viewport video,
+.biometric-viewport img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.face-score-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* 9-Photo Handover Grid (8 Car Angles + 1 Customer Selfie) */
+.handover-grid-9 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.handover-slot {
+  border: 1.5px dashed rgba(59, 18, 89, 0.22);
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+  background: var(--surface, #fff);
+  position: relative;
+  transition: all 0.18s ease;
+}
+.handover-slot.selfie-highlight {
+  border-color: #E86A17;
+  background: rgba(232, 106, 23, 0.05);
+}
+.handover-slot.done {
+  border-style: solid;
+  border-color: #10B981;
+  background: rgba(16, 185, 129, 0.05);
+}
+.handover-slot img {
+  width: 100%;
+  height: 82px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+@media (max-width: 960px) {
+  .pro-console-shell {
+    grid-template-columns: 1fr;
+  }
+  .pro-sidebar {
+    position: static;
+  }
+  .pro-nav-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .pro-nav-btn {
+    width: auto;
+    flex: 1 1 140px;
+  }
+  .kyc-wizard-grid {
+    grid-template-columns: 1fr;
+  }
+  .handover-grid-9 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SAFAR HORIZON — NEXT-GEN DISCOVERY & CAR COCKPIT UI (BEATS ZOOMCAR)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pro-sidebar-brand {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pro-sidebar-brand span {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #FF9447;
+}
+.pro-sidebar-brand strong {
+  display: block;
+  font-size: 17px;
+  color: #fff;
+  margin-top: 3px;
+}
+.pro-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pro-sidebar-nav button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+}
+.pro-sidebar-nav button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.pro-sidebar-nav button.active {
+  background: linear-gradient(135deg, #E86A17 0%, #FF8533 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(232, 106, 23, 0.35);
+}
+.pro-sidebar-nav .nav-count {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.pro-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.pro-kpi-card.kpi-highlight {
+  background: linear-gradient(135deg, #1E0E36 0%, #3B1259 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.pro-kpi-card .kpi-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted, #64748B);
+}
+.pro-kpi-card.kpi-highlight .kpi-label {
+  color: #FF9447;
+}
+.pro-kpi-card .kpi-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 900;
+  margin: 6px 0 4px;
+  color: var(--text-main, #0F172A);
+}
+.pro-kpi-card.kpi-highlight .kpi-value {
+  color: #fff;
+}
+.pro-kpi-card .kpi-sub {
+  font-size: 12px;
+  color: var(--text-muted, #64748B);
+}
+.pro-kpi-card.kpi-highlight .kpi-sub {
+  color: rgba(255, 255, 255, 0.76);
+}
+.handover-slot.is-ready {
+  border-style: solid;
+  border-color: #10B981;
+  background: rgba(16, 185, 129, 0.06);
+}
+.handover-slot .slot-tag {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--purple, #3B1259);
+  margin-bottom: 4px;
+}
+
+/* Safar Horizon Floating Trip Bar */
+.horizon-search-bar {
+  background: linear-gradient(135deg, #160A28 0%, #2B1046 55%, #3B1259 100%);
+  border-radius: 22px;
+  padding: 20px 24px;
+  color: #fff;
+  margin-bottom: 20px;
+  box-shadow: 0 20px 44px rgba(22, 10, 40, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.horizon-search-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.horizon-location-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: #fff;
+}
+.horizon-km-toggle {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.32);
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.horizon-km-toggle button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.72);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.horizon-km-toggle button.active {
+  background: linear-gradient(135deg, #E86A17, #FF8533);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(232, 106, 23, 0.35);
+}
+
+/* Safar Horizon Quick Section Jump Bar on Car Detail Page */
+.horizon-jump-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 14px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-main, rgba(59, 18, 89, 0.1));
+  border-radius: 14px;
+  margin-bottom: 18px;
+  position: sticky;
+  top: 72px;
+  z-index: 25;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+.horizon-jump-nav a {
+  white-space: nowrap;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted, #475569);
+  text-decoration: none;
+  transition: all 0.16s ease;
+}
+.horizon-jump-nav a:hover {
+  background: rgba(232, 106, 23, 0.1);
+  color: var(--orange, #E86A17);
+}
+
+/* Safar AI Concierge Interactive Box */
+.safar-ai-concierge {
+  background: linear-gradient(145deg, #160A28 0%, #271142 100%);
+  color: #fff;
+  border-radius: 20px;
+  padding: 22px;
+  margin-bottom: 22px;
+  border: 1px solid rgba(255, 148, 71, 0.28);
+  box-shadow: 0 16px 36px rgba(22, 10, 40, 0.16);
+}
+.ai-question-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+.ai-q-pill {
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.ai-q-pill:hover,
+.ai-q-pill.active {
+  background: #E86A17;
+  border-color: #FF9447;
+  color: #fff;
+  transform: translateY(-1px);
+}
+.ai-answer-box {
+  background: rgba(0, 0, 0, 0.32);
+  border-left: 3px solid #FF9447;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* Meet Your Host & AI Guest Review Summary */
+.host-spotlight-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(59, 18, 89, 0.05), rgba(232, 106, 23, 0.06));
+  border: 1px solid rgba(59, 18, 89, 0.12);
+}
+.ai-review-summary-box {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 14px 0;
+}
+.cancellation-timeline-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 12px 0;
+  border: 1px solid var(--border-main, rgba(59, 18, 89, 0.12));
+}
+.cancel-stage-free {
+  background: rgba(16, 185, 129, 0.12);
+  padding: 12px 14px;
+  border-right: 1px solid rgba(16, 185, 129, 0.25);
+}
+.cancel-stage-late {
+  background: rgba(245, 158, 11, 0.12);
+  padding: 12px 14px;
+}
+
+/* Sticky Right Configurator Package Selector Cards */
+.pkg-selector-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0;
+}
+.pkg-option-card {
+  border: 1.5px solid var(--border-main, rgba(59, 18, 89, 0.15));
+  border-radius: 13px;
+  padding: 11px 12px;
+  cursor: pointer;
+  background: var(--surface, #fff);
+  transition: all 0.16s ease;
+  text-align: left;
+}
+.pkg-option-card.active {
+  border-color: #E86A17;
+  background: rgba(232, 106, 23, 0.06);
+  box-shadow: 0 4px 14px rgba(232, 106, 23, 0.12);
+}
+.pkg-option-card strong {
+  display: block;
+  font-size: 13px;
+  color: var(--text-main, #0F172A);
+}
+.pkg-option-card small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted, #64748B);
+  margin-top: 2px;
+}
+

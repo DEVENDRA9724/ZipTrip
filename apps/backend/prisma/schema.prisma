@@ -29,19 +29,22 @@ enum VehicleStatus {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  username      String?   @unique
-  email         String    @unique
-  phone         String?   @unique
-  passwordHash  String
-  firstName     String
-  lastName      String
-  role          Role      @default(CUSTOMER)
-  isVerified    Boolean   @default(false)
-  isBlocked     Boolean   @default(false)
-  profileImage  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  username        String?   @unique
+  email           String    @unique
+  phone           String?   @unique
+  phoneVerifiedAt DateTime?
+  otpCodeHash     String?
+  otpExpiresAt    DateTime?
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            Role      @default(CUSTOMER)
+  isVerified      Boolean   @default(false)
+  isBlocked       Boolean   @default(false)
+  profileImage    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   profile         UserProfile?
   vehicles        Vehicle[] @relation("HostVehicles")
@@ -69,12 +72,17 @@ model UserProfile {
   city                 String    @default("Ahmedabad")
   state                String    @default("Gujarat")
   postalCode           String?
+  aadhaarNumberHash    String?   @unique
+  aadhaarNumberMasked  String?
   panNumberHash        String?   @unique
   panNumberMasked      String?
   drivingLicenseHash   String?   @unique
   drivingLicenseMasked String?
   dlExpiryDate         DateTime?
   profileImageUrl      String?
+  selfieMediaId        String?
+  faceMatchScore       Float?
+  faceMatchStatus      String?   @default("UNVERIFIED")
   isKycVerified        Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -185,12 +193,15 @@ model Booking {
   dropoffHubId        String?
   startDate           DateTime
   endDate             DateTime
+  tenureHours         Int           @default(24)
   serviceType         String        @default("self_drive")
   baseFare            Decimal       @default(0)
   securityDeposit     Decimal       @default(0)
   insuranceFee        Decimal       @default(0)
   discountAmount      Decimal       @default(0)
   taxAmount           Decimal       @default(0)
+  platformFee         Decimal       @default(0)
+  hostRevenue         Decimal       @default(0)
   totalAmount         Decimal
   status              BookingStatus @default(PENDING)
   createdAt           DateTime      @default(now())
@@ -230,6 +241,8 @@ model Trip {
   endFuelLevel         Int?
   startChecklistImages String?
   endChecklistImages   String?
+  startSelfieUrl       String?
+  endSelfieUrl         String?
   extraKmDriven        Int              @default(0)
   extraHours           Decimal          @default(0.0)
   penaltyCharges       Decimal          @default(0.0)
@@ -324,6 +337,7 @@ model Inspection {
   odometer Int
   mediaId String
   mediaIds String?
+  selfieMediaId String?
   note String?
   fuelPercent Int?
   damageNote String?

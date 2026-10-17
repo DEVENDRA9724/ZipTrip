@@ -21,22 +21,23 @@ export class AdminController {
     const documentStatus = query.documentStatus ? choice(query.documentStatus, 'Document status', ['PENDING', 'APPROVED', 'REJECTED']) : undefined;
     const role = query.role ? choice(query.role, 'User role', ['CUSTOMER', 'HOST', 'DEALER', 'ADMIN']) : undefined;
     const [users, vehicles, bookings, documents, audit] = await Promise.all([
-      this.prisma.user.findMany({ where: { ...(role ? { role: role as any } : {}), ...(search ? { OR: [{ email: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }] } : {}) }, select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isVerified: true, isBlocked: true, dlValidUntil: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.vehicle.findMany({ where: { ...(vehicleStatus ? { status: vehicleStatus as any } : {}), ...(search ? { OR: [{ make: { contains: search } }, { model: { contains: search } }, { registrationNumber: { contains: search } }, { locationCity: { contains: search } }] } : {}) }, include: { media: { select: { id: true, kind: true } }, documents: true, host: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: true, payment: true, invoice: true, customer: { select: { firstName: true, lastName: true, email: true, phone: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.document.findMany({ where: { ...(documentStatus ? { status: documentStatus } : {}), ...(search ? { OR: [{ kind: { contains: search } }, { user: { email: { contains: search } } }, { user: { firstName: { contains: search } } }, { user: { lastName: { contains: search } } }] } : {}) }, include: { user: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.user.findMany({ where: { ...(role ? { role: role as any } : {}), ...(search ? { OR: [{ email: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }] } : {}) }, select: { id: true, firstName: true, lastName: true, email: true, phone: true, phoneVerifiedAt: true, role: true, isVerified: true, isBlocked: true, dlValidUntil: true, profileImage: true, profile: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.vehicle.findMany({ where: { ...(vehicleStatus ? { status: vehicleStatus as any } : {}), ...(search ? { OR: [{ make: { contains: search } }, { model: { contains: search } }, { registrationNumber: { contains: search } }, { locationCity: { contains: search } }] } : {}) }, include: { media: { select: { id: true, kind: true } }, documents: true, currentHub: true, host: { select: { firstName: true, lastName: true, email: true, phone: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: { include: { host: { select: { firstName: true, lastName: true, email: true, phone: true } }, currentHub: true } }, payment: true, invoice: true, trip: true, inspections: true, customer: { select: { firstName: true, lastName: true, email: true, phone: true, profile: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.document.findMany({ where: { ...(documentStatus ? { status: documentStatus } : {}), ...(search ? { OR: [{ kind: { contains: search } }, { user: { email: { contains: search } } }, { user: { firstName: { contains: search } } }, { user: { lastName: { contains: search } } }] } : {}) }, include: { user: { select: { firstName: true, lastName: true, email: true, phone: true, profile: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.auditLog.findMany({ where: search ? { OR: [{ action: { contains: search } }, { targetId: { contains: search } }, { detail: { contains: search } }] } : {}, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
     ]);
     const today = new Date(); today.setUTCHours(0, 0, 0, 0);
-    const [vehiclePending, documentPending, refunds, activeBookings, todayRevenue, paidRevenue] = await Promise.all([
+    const [vehiclePending, documentPending, refunds, activeBookings, todayRevenue, paidRevenue, bookingRevenueAgg] = await Promise.all([
       this.prisma.vehicle.count({ where: { status: 'PENDING_APPROVAL' } }),
       this.prisma.document.count({ where: { status: 'PENDING' } }),
       this.prisma.payment.count({ where: { status: 'REFUND_PENDING' } }),
       this.prisma.booking.count({ where: { status: { in: ['CONFIRMED', 'ACTIVE'] } } }),
       this.prisma.payment.aggregate({ where: { status: 'SUCCESS', createdAt: { gte: today } }, _sum: { amount: true } }),
       this.prisma.payment.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
+      this.prisma.booking.aggregate({ where: { status: { in: ['CONFIRMED', 'ACTIVE', 'COMPLETED'] } }, _sum: { platformFee: true, hostRevenue: true, securityDeposit: true } }),
     ]);
-    return { users, vehicles, bookings, documents, audit, metrics: { vehiclePending, documentPending, refunds, activeBookings, todayRevenue: Number(todayRevenue._sum.amount || 0), paidRevenue: Number(paidRevenue._sum.amount || 0) }, nextOffset: [users, vehicles, bookings, documents, audit].some(rows => rows.length === 200) ? offset + 200 : null };
+    return { users, vehicles, bookings, documents, audit, metrics: { vehiclePending, documentPending, refunds, activeBookings, todayRevenue: Number(todayRevenue._sum.amount || 0), paidRevenue: Number(paidRevenue._sum.amount || 0), platformRevenue: Number(bookingRevenueAgg._sum.platformFee || 0), hostRevenue: Number(bookingRevenueAgg._sum.hostRevenue || 0), depositEscrow: Number(bookingRevenueAgg._sum.securityDeposit || 0) }, nextOffset: [users, vehicles, bookings, documents, audit].some(rows => rows.length === 200) ? offset + 200 : null };
   }
   // Redirect legacy certificate links to the original document after authorization.
   @Get('documents/:id/certificate')
@@ -458,4 +459,87 @@ export class AdminController {
     });
   }
 
+  @Post('users/:id/verify-kyc')
+  async adminVerifyUserKyc(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const verified = body.verified !== false;
+    const dlExpiry = body.dlValidUntil ? new Date(body.dlValidUntil) : new Date('2029-12-31T23:59:59Z');
+    return this.prisma.$transaction(async tx => {
+      const user = await tx.user.update({
+        where: { id },
+        data: {
+          isVerified: verified,
+          dlValidUntil: verified ? dlExpiry : null,
+          phoneVerifiedAt: verified ? new Date() : undefined,
+        },
+      });
+      await tx.userProfile.upsert({
+        where: { userId: id },
+        update: {
+          isKycVerified: verified,
+          dlExpiryDate: verified ? dlExpiry : null,
+          faceMatchStatus: verified ? 'ADMIN_APPROVED' : 'REJECTED',
+        },
+        create: {
+          userId: id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isKycVerified: verified,
+          dlExpiryDate: verified ? dlExpiry : null,
+          faceMatchStatus: verified ? 'ADMIN_APPROVED' : 'REJECTED',
+        },
+      });
+      if (verified) {
+        await tx.document.updateMany({
+          where: { userId: id },
+          data: { status: 'APPROVED', verifiedById: req.user.id, verifiedAt: new Date(), validUntil: dlExpiry },
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          actorId: req.user.id,
+          action: verified ? 'ADMIN_KYC_APPROVED' : 'ADMIN_KYC_REVOKED',
+          targetId: id,
+          detail: body.note ? String(body.note).slice(0, 500) : `Admin ${verified ? 'approved' : 'revoked'} driver e-KYC`,
+        },
+      });
+      return { success: true, isVerified: verified };
+    });
+  }
+
+  @Post('documents/:id/quick-review')
+  async quickReviewDocument(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const status = choice(body.status, 'Decision', ['APPROVED', 'REJECTED']);
+    const note = text(body.note || (status === 'APPROVED' ? 'Approved by Admin Operations' : 'Rejected by Admin Operations'), 'Note', 1000);
+    const validUntil = body.validUntil ? new Date(body.validUntil) : new Date('2029-12-31T23:59:59Z');
+    return this.prisma.$transaction(async tx => {
+      const doc = await tx.document.findUnique({ where: { id } });
+      if (!doc) throw new NotFoundException('Document not found');
+      const updated = await tx.document.update({
+        where: { id },
+        data: {
+          status,
+          reviewNote: note,
+          validUntil: status === 'APPROVED' ? validUntil : doc.validUntil,
+          verifiedById: req.user.id,
+          verifiedAt: status === 'APPROVED' ? new Date() : null,
+        },
+      });
+      if (!doc.vehicleId && status === 'APPROVED') {
+        await tx.user.update({
+          where: { id: doc.userId },
+          data: { isVerified: true, dlValidUntil: validUntil },
+        });
+        await tx.userProfile.updateMany({
+          where: { userId: doc.userId },
+          data: { isKycVerified: true, dlExpiryDate: validUntil },
+        });
+      }
+      await tx.auditLog.create({
+        data: { actorId: req.user.id, action: 'DOCUMENT_' + status, targetId: id, detail: note },
+      });
+      return updated;
+    });
+  }
 }

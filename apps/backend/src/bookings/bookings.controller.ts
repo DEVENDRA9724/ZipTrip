@@ -13,6 +13,11 @@ export class BookingsController {
     return this.bookingsService.create(req.user.id, body);
   }
 
+  @Post(':id/pay')
+  async pay(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.bookingsService.pay(req.user.id, id, body);
+  }
+
   @Get('my-trips')
   async getMyTrips(@Request() req: any) {
     return this.bookingsService.getMyTrips(req.user.id);

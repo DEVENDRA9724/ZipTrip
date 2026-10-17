@@ -105,8 +105,10 @@ export class MediaService {
     const media = await this.prisma.media.findUnique({ where: { id }, include: { vehicle: { select: { status: true } } } });
     if (!media) throw new NotFoundException('Image not found');
     const isPrivate = PRIVATE_DOCUMENT_KINDS.has(media.kind);
-    const publicPhoto = !isPrivate && media.vehicle?.status === 'ACTIVE';
-    if (!publicPhoto && (!user || (user.id !== media.ownerId && user.role !== 'ADMIN'))) throw new ForbiddenException('Image access denied');
+    const publicPhoto = !isPrivate && (media.vehicle?.status === 'ACTIVE' || (!media.vehicleId && Boolean(user)));
+    if (!publicPhoto && (!user || (user.id !== media.ownerId && !['ADMIN', 'HOST', 'DEALER'].includes(user.role)))) {
+      throw new ForbiddenException('Image access denied');
+    }
     let buffer = await this.readStorage(media.storageKey);
     if (isPrivate) {
       const decipher = createDecipheriv('aes-256-gcm', this.key(), buffer.subarray(0, 12));

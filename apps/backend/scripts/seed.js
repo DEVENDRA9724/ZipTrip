@@ -237,6 +237,7 @@ async function seed() {
     update: {
       username: 'aarav_shah',
       isVerified: true,
+      phoneVerifiedAt: new Date(),
       dlValidUntil: dlExpiry,
       role: 'CUSTOMER',
       passwordHash: custPasswordHash,
@@ -247,6 +248,7 @@ async function seed() {
       firstName: 'Aarav',
       lastName: 'Shah',
       phone: '+919812345678',
+      phoneVerifiedAt: new Date(),
       role: 'CUSTOMER',
       isVerified: true,
       dlValidUntil: dlExpiry,
@@ -259,14 +261,43 @@ async function seed() {
           city: 'Ahmedabad',
           state: 'Gujarat',
           postalCode: '380009',
+          aadhaarNumberHash: sha256Hex('987654324829'),
+          aadhaarNumberMasked: 'XXXX-XXXX-4829',
           panNumberHash: sha256Hex('FGHIJ5678K'),
           panNumberMasked: 'XXXXXX678K',
           drivingLicenseHash: sha256Hex('GJ0120180098765'),
           drivingLicenseMasked: 'GJ01XXXXXXX8765',
           dlExpiryDate: dlExpiry,
+          faceMatchScore: 96.4,
+          faceMatchStatus: 'VERIFIED_AUTO',
           isKycVerified: true,
         },
       },
+    },
+  });
+  await prisma.userProfile.upsert({
+    where: { userId: customer.id },
+    update: {
+      aadhaarNumberMasked: 'XXXX-XXXX-4829',
+      drivingLicenseMasked: 'GJ01XXXXXXX8765',
+      dlExpiryDate: dlExpiry,
+      faceMatchScore: 96.4,
+      faceMatchStatus: 'VERIFIED_AUTO',
+      isKycVerified: true,
+    },
+    create: {
+      userId: customer.id,
+      firstName: 'Aarav',
+      lastName: 'Shah',
+      city: 'Ahmedabad',
+      state: 'Gujarat',
+      postalCode: '380009',
+      aadhaarNumberMasked: 'XXXX-XXXX-4829',
+      drivingLicenseMasked: 'GJ01XXXXXXX8765',
+      dlExpiryDate: dlExpiry,
+      faceMatchScore: 96.4,
+      faceMatchStatus: 'VERIFIED_AUTO',
+      isKycVerified: true,
     },
   });
 
@@ -552,10 +583,23 @@ async function seed() {
   // 5. Seed a Sample Confirmed Booking + Trip + Telematics + Payment + Invoice
   const firstCar = await prisma.vehicle.findFirst({ where: { status: 'ACTIVE' } });
   const existingBooking = await prisma.booking.findFirst({ where: { customerId: customer.id } });
-  if (firstCar && !existingBooking) {
+  if (firstCar && existingBooking) {
+    const bf = Number(existingBooking.baseFare) || Number(firstCar.pricePerDay) * 2;
+    await prisma.booking.update({
+      where: { id: existingBooking.id },
+      data: {
+        tenureHours: 48,
+        baseFare: bf,
+        platformFee: Math.round(bf * 0.20),
+        hostRevenue: Math.round(bf * 0.80),
+      },
+    });
+  } else if (firstCar && !existingBooking) {
     const startDate = new Date(Date.now() + 3600 * 1000);
     const endDate = new Date(Date.now() + 50 * 3600 * 1000);
     const baseFare = Number(firstCar.pricePerDay) * 2;
+    const platformFee = Math.round(baseFare * 0.20);
+    const hostRevenue = Math.round(baseFare * 0.80);
     const deposit = 2000;
     const taxAmount = Math.round(baseFare * 0.18);
     const total = baseFare + deposit + taxAmount;
@@ -570,11 +614,14 @@ async function seed() {
         dropoffHubId: hub?.id,
         startDate,
         endDate,
+        tenureHours: 48,
         expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
         serviceType: 'self_drive',
         dailyRate: firstCar.pricePerDay,
         rentalDays: 2,
         baseFare,
+        platformFee,
+        hostRevenue,
         securityDeposit: deposit,
         taxAmount,
         totalAmount: total,
@@ -601,6 +648,8 @@ async function seed() {
               invoiceNumber: 'INV-2026-0001',
               bookingRef: 'SAF-2026-DEMO01',
               baseFare,
+              platformFee,
+              hostRevenue,
               securityDeposit: deposit,
               taxAmount,
               totalAmount: total,
