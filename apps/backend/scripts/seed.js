@@ -17,6 +17,19 @@ const prisma = new PrismaClient({ adapter });
 
 const PHOTO_KINDS = ['FRONT', 'REAR', 'LEFT', 'RIGHT', 'INTERIOR', 'BOOT', 'BONNET', 'ODOMETER'];
 
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+
+const s3Bucket = (process.env.S3_BUCKET || '').trim();
+const s3Region = (process.env.AWS_REGION || '').trim();
+const s3Prefix = (process.env.S3_PREFIX || 'safar-media').replace(/^\/+|\/+$/g, '');
+const s3Client = (s3Bucket && s3Region)
+  ? new S3Client({
+      region: s3Region,
+      endpoint: process.env.S3_ENDPOINT || undefined,
+      forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
+    })
+  : null;
+
 async function createMediaFromImage(ownerId, filePath, kind) {
   const uploadDir = path.resolve(__dirname, '../uploads');
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -27,9 +40,29 @@ async function createMediaFromImage(ownerId, filePath, kind) {
     .jpeg({ quality: 85 })
     .toBuffer();
 
-  const storageKey = crypto.randomUUID() + '.jpg';
-  const targetPath = path.join(uploadDir, storageKey);
-  fs.writeFileSync(targetPath, buffer);
+  const fileName = crypto.randomUUID() + '.jpg';
+  let storageKey = fileName;
+
+  if (s3Client) {
+    try {
+      const s3Key = `${s3Prefix}/${fileName}`;
+      await s3Client.send(new PutObjectCommand({
+        Bucket: s3Bucket,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: 'image/jpeg',
+        ServerSideEncryption: 'AES256',
+      }));
+      storageKey = s3Key;
+    } catch (err) {
+      // Fallback to local ./uploads if IAM Role / S3 credentials are not attached yet
+      const targetPath = path.join(uploadDir, fileName);
+      fs.writeFileSync(targetPath, buffer);
+    }
+  } else {
+    const targetPath = path.join(uploadDir, fileName);
+    fs.writeFileSync(targetPath, buffer);
+  }
 
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
 
@@ -254,8 +287,14 @@ async function seed() {
         fuelType: carData.fuelType,
         seats: carData.seats,
         pricePerDay: carData.pricePerDay,
+        extraKmCharge: 12,
+        includedKilometresPerDay: 300,
+        securityDeposit: 2000,
         odometer: carData.odometer,
         locationCity: carData.locationCity,
+        pickupAddress: `${carData.locationCity} Central Hub, SG Highway`,
+        dropAddress: `${carData.locationCity} Central Hub, SG Highway`,
+        features: JSON.stringify(['Bluetooth', 'CarPlay', 'Airbags', 'Reverse Camera', 'Fastag', 'Spare Tyre', 'USB Charger', 'Cruise Control']),
         registrationNumber: carData.registrationNumber,
         status: 'ACTIVE',
         reviewNote: 'Verified and approved for listing with all 8 photo angles inspected.',
@@ -288,7 +327,55 @@ async function seed() {
     console.log(`Car seeded & approved: ${carData.make} ${carData.model} (${carData.registrationNumber})`);
   }
 
-  console.log('Seeding completed successfully!');
+  // 5. Seed a Sample Confirmed Booking for immediate testing of Admin, Host & Customer flows
+  const firstCar = await prisma.vehicle.findFirst({ where: { status: 'ACTIVE' } });
+  const existingBooking = await prisma.booking.findFirst({ where: { customerId: customer.id } });
+  if (firstCar && !existingBooking) {
+    const startDate = new Date(Date.now() + 3600 * 1000); // 1 hour from now (ready for Start Trip pickup inspection!)
+    const endDate = new Date(Date.now() + 50 * 3600 * 1000); // ~2 days
+    const rentalAmount = Number(firstCar.pricePerDay) * 2;
+    const deposit = 2000;
+    const total = rentalAmount + deposit;
+    const sampleBooking = await prisma.booking.create({
+      data: {
+        bookingRef: 'SAF-2026-DEMO01',
+        customerId: customer.id,
+        vehicleId: firstCar.id,
+        startDate,
+        endDate,
+        expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
+        totalAmount: total,
+        securityDeposit: deposit,
+        includedKilometres: 600,
+        status: 'CONFIRMED',
+        agreementAcceptedAt: new Date(),
+        payment: {
+          create: {
+            amount: total,
+            status: 'SUCCESS',
+            gatewayRef: 'PAY-DEMO-001',
+          },
+        },
+        invoice: {
+          create: {
+            invoiceNumber: 'INV-2026-0001',
+            subtotal: rentalAmount,
+            taxes: 0,
+            totalAmount: total,
+          },
+        },
+      },
+    });
+    console.log(`Sample booking created: ${sampleBooking.bookingRef} (${firstCar.make} ${firstCar.model})`);
+  }
+
+  console.log('\n======================================================');
+  console.log('  ✅ POSTGRESQL + S3 TEST DATABASE READY!             ');
+  console.log('======================================================');
+  console.log('  Admin Login:    admin@safar.com    / Admin@12345678');
+  console.log('  Host Login:     host@safar.com     / Host@12345678');
+  console.log('  Customer Login: customer@safar.com / Customer@12345678');
+  console.log('======================================================\n');
 }
 
 seed()

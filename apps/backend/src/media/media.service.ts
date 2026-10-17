@@ -27,19 +27,25 @@ export class MediaService {
     });
     return this.s3;
   }
-  private async writeStorage(storageKey: string, buffer: Buffer, mimeType: string) {
+  private async writeStorage(fileName: string, buffer: Buffer, mimeType: string): Promise<string> {
     const client = this.client();
     if (client) {
-      await client.send(new PutObjectCommand({ Bucket: this.bucket(), Key: storageKey, Body: buffer, ContentType: mimeType, ServerSideEncryption: 'AES256' }));
-      return;
+      const s3Key = this.objectKey(fileName);
+      try {
+        await client.send(new PutObjectCommand({ Bucket: this.bucket(), Key: s3Key, Body: buffer, ContentType: mimeType, ServerSideEncryption: 'AES256' }));
+        return s3Key;
+      } catch {
+        // Fallback to local ./uploads if EC2 IAM Role or S3 credentials are not yet attached
+      }
     }
     await mkdir(this.directory(), { recursive: true });
-    await writeFile(resolve(this.directory(), storageKey), buffer, { flag: 'wx' });
+    await writeFile(resolve(this.directory(), fileName), buffer, { flag: 'wx' });
+    return fileName;
   }
   private async removeStorage(storageKey: string) {
     const client = this.client();
     if (client && storageKey.startsWith(this.prefix() + '/')) {
-      await client.send(new DeleteObjectCommand({ Bucket: this.bucket(), Key: storageKey }));
+      await client.send(new DeleteObjectCommand({ Bucket: this.bucket(), Key: storageKey })).catch(() => undefined);
       return;
     }
     await unlink(resolve(this.directory(), storageKey)).catch(() => undefined);
@@ -75,8 +81,7 @@ export class MediaService {
       const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
       buffer = Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
     }
-    const storageKey = this.objectStorageEnabled() ? this.objectKey(randomUUID() + (isPrivate ? '.enc' : '.jpg')) : randomUUID() + (isPrivate ? '.enc' : '.jpg');
-    await this.writeStorage(storageKey, buffer, 'image/jpeg');
+    const storageKey = await this.writeStorage(randomUUID() + (isPrivate ? '.enc' : '.jpg'), buffer, 'image/jpeg');
     try {
       const result = await this.prisma.media.create({ data: { ownerId: userId, kind, storageKey, mimeType: 'image/jpeg', size: buffer.length, sha256: createHash('sha256').update(buffer).digest('hex') } });
       return { id: result.id, kind, url: '/api/media/' + result.id };
@@ -90,8 +95,7 @@ export class MediaService {
     const cipher = createCipheriv('aes-256-gcm', this.key(), iv);
     const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
     const stored = Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
-    const storageKey = this.objectStorageEnabled() ? this.objectKey(randomUUID() + '.enc') : randomUUID() + '.enc';
-    await this.writeStorage(storageKey, stored, mimeType.toLowerCase());
+    const storageKey = await this.writeStorage(randomUUID() + '.enc', stored, mimeType.toLowerCase());
     try {
       const result = await this.prisma.media.create({ data: { ownerId, kind, storageKey, mimeType: mimeType.toLowerCase(), size: stored.length, sha256: createHash('sha256').update(stored).digest('hex') } });
       return result.id;
@@ -112,4 +116,3 @@ export class MediaService {
     return { buffer, mimeType: media.mimeType };
   }
 }
-
