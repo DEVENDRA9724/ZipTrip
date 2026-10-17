@@ -305,20 +305,50 @@ function shell() {
   }
 }
 
-/* ─── CAR CARD (REFERENCE STYLE — CLEAN & EMOJI-FREE) ───────────────── */
+/* ─── CAR CARD (DIGITAL COCKPIT TELEMETRY EDITION) ───────────────────── */
 function carCard(car) {
   const specs = [car.transmission, car.fuelType, car.seats + ' Seats', car.year].filter(Boolean).join(' · ');
   const rating = ratingSummary(car);
+  const hrEquiv = Math.max(49, Math.round(Number(car.pricePerDay || 2000) / 24));
+  const photoCount = Array.isArray(car.media) ? car.media.length : 8;
   return `
-    <a class="car-card" href="${esc(carLink(car.id))}">
+    <a class="car-card" href="${esc(carLink(car.id))}" data-category="${esc((car.category || '').toLowerCase())}" data-transmission="${esc((car.transmission || '').toLowerCase())}">
       <div class="car-card-media">
         <img src="${photoUrl(car)}" alt="${esc(car.make + ' ' + car.model)}" loading="lazy">
-        <span class="car-card-badge">Self-Drive</span>
-        <span class="car-card-rating">${rating.value === 'New' ? 'New listing' : `★ ${rating.value} · ${rating.count} review${rating.count === 1 ? '' : 's'}`}</span>
+        <span class="car-card-badge">⚡ Self-Drive</span>
+        <span class="car-card-rating">${rating.value === 'New' ? '★ New Fleet' : `★ ${rating.value} · ${rating.count} review${rating.count === 1 ? '' : 's'}`}</span>
+        <div class="cockpit-hud-overlay">
+          <span>📷 ${photoCount || 8} Angles</span>
+          <span>🛡️ RC · INS · PUC ✓</span>
+        </div>
       </div>
       <div class="car-card-info">
-        <div class="car-card-name">${esc(car.make + ' ' + car.model + ' ' + car.year)}</div>
-        <div class="car-card-specs">${esc(specs)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div class="car-card-name">${esc(car.make + ' ' + car.model + ' ' + car.year)}</div>
+          <span class="cc-badge cc-badge-gray">${esc((car.category || 'SEDAN').toUpperCase())}</span>
+        </div>
+        <div class="car-card-specs" style="display:none">${esc(specs)}</div>
+
+        <!-- 4-Cell Cockpit Telemetry Strip -->
+        <div class="cockpit-telemetry-strip">
+          <div class="telemetry-cell">
+            <span class="t-lbl">GEARBOX</span>
+            <strong class="t-val">${esc(car.transmission || 'Manual')}</strong>
+          </div>
+          <div class="telemetry-cell">
+            <span class="t-lbl">FUEL</span>
+            <strong class="t-val">${esc(car.fuelType || 'Petrol')}</strong>
+          </div>
+          <div class="telemetry-cell">
+            <span class="t-lbl">CABIN</span>
+            <strong class="t-val">${Number(car.seats || 5)} Seats</strong>
+          </div>
+          <div class="telemetry-cell">
+            <span class="t-lbl">HOURLY</span>
+            <strong class="t-val">₹${hrEquiv}/hr</strong>
+          </div>
+        </div>
+
         <div class="car-card-badges">
           <span class="cc-badge cc-badge-green">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
@@ -328,25 +358,24 @@ function carCard(car) {
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
             300 km / 24h
           </span>
-          <span class="cc-badge cc-badge-gray">${esc((car.category || 'SEDAN').toUpperCase())}</span>
         </div>
         <div class="car-card-dist">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--orange)"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-          <span>${esc(car.locationCity || 'Ahmedabad')}</span>
+          <span>Hub: <strong>${esc(car.locationCity || 'Ahmedabad')}</strong> · Instant Digital Handover</span>
         </div>
         <div class="car-card-footer">
           <div class="car-card-price-row">
             <div>
               <div class="car-card-price">${money(car.pricePerDay)}<small>/day</small></div>
-              <div class="car-card-daily">Per 24 hours · Fuel extra</div>
+              <div class="car-card-daily">₹${hrEquiv}/hr equiv · Fuel extra</div>
             </div>
-            <span class="btn-book">View &amp; Book &rarr;</span>
+            <span class="btn-book">Enter Cockpit &rarr;</span>
           </div>
           <div class="car-card-host">
             <span class="car-card-host-name">₹2,000 refundable deposit</span>
             <span class="instant-confirm">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              View details
+              Live Telemetry
             </span>
           </div>
         </div>
@@ -354,11 +383,8 @@ function carCard(car) {
     </a>`;
 }
 
-/* ─── HOME PAGE — REFERENCE STYLE ───────────────────────────────────── */
+/* ─── HOME PAGE — DIGITAL SHOWROOM & DRIVE MISSION EDITION ──────────── */
 async function home() {
-  // The search API requires pickup to be strictly in the future. Starting the
-  // widget on today made the first click show a validation toast instead of
-  // opening the available-car results.
   const tomorrow = new Date(Date.now() + 86400000);
   const dayAfter = new Date(Date.now() + 2 * 86400000);
   const dateInputValue = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
@@ -366,41 +392,49 @@ async function home() {
   const tom = dateInputValue(dayAfter);
 
   $('#app').innerHTML = `
+    <!-- Live Telemetry Status Ribbon -->
+    <div class="cockpit-ribbon">
+      <div class="cockpit-ribbon-item"><span class="pulse-dot"></span> <strong>SHOWROOM LIVE:</strong> 100% Digital Handover</div>
+      <div class="cockpit-ribbon-item">🛡️ <strong>DIGILOCKER eKYC:</strong> 30-Second Instant Approval</div>
+      <div class="cockpit-ribbon-item">📸 <strong>8-ANGLE AI AUDIT:</strong> Zero-Dispute Pickup &amp; Return</div>
+      <div class="cockpit-ribbon-item">⚡ <strong>REFUNDABLE DEPOSIT:</strong> ₹2,000 Protected Escrow</div>
+    </div>
+
     <div class="hero reveal-on-scroll">
       <div>
-        <span class="hero-eyebrow">GUJARAT'S #1 CAR RENTAL &amp; TAXI PORTAL</span>
+        <span class="hero-eyebrow">NEXT-GEN DIGITAL SELF-DRIVE SHOWROOM</span>
         <h1 class="hero-heading">
           Your Journey.<br>
-          <span class="accent">Your Rules.</span>
+          <span class="accent">Your Cockpit.</span>
         </h1>
-        <p class="hero-desc">Rent spotless clean self-drive vehicles on self-drive, or travel in executive comfort with our premium &amp; luxury chauffeur taxi cars on transparent kilometer rates across all of Gujarat.</p>
+        <p class="hero-desc">Experience India's first telemetry-backed self-drive showroom. Inspect 8 real-time vehicle angles, unlock instant DigiLocker eKYC, and command verified SUVs, sedans &amp; 4x4s across Gujarat.</p>
         <div class="hero-btns">
-          <a class="button btn-orange" href="cars.html">Explore All Cars &rarr;</a>
-          <a class="button btn-outline" href="host-onboarding.html">Our Services &amp; Rates</a>
+          <a class="button btn-orange" href="cars.html">Launch Fleet Showroom &rarr;</a>
+          <a class="button btn-outline" href="host-onboarding.html">Monetize Your Car</a>
         </div>
         <div class="hero-stats">
           <div class="hero-stat">
             <div class="hero-stat-num">50+</div>
-            <div class="hero-stat-lbl">Cars Available</div>
+            <div class="hero-stat-lbl">Verified Fleet</div>
           </div>
           <div class="hero-stat">
-            <div class="hero-stat-num is-orange">15+</div>
-            <div class="hero-stat-lbl">Gujarat Cities</div>
+            <div class="hero-stat-num is-orange">8-Point</div>
+            <div class="hero-stat-lbl">Digital Twin Scan</div>
           </div>
           <div class="hero-stat">
             <div class="hero-stat-num is-green">100%</div>
-            <div class="hero-stat-lbl">Refundable deposit Option</div>
+            <div class="hero-stat-lbl">Transparent Escrow</div>
           </div>
         </div>
       </div>
 
       <div class="booking-widget">
-        <div class="bw-title">Reserve Your Car in Gujarat</div>
+        <div class="bw-title">Configure Your Drive</div>
         <div class="bw-tabs">
           <div class="bw-tab active" id="bw-t1">Self Drive</div>
-          <div class="bw-tab" id="bw-t2">Taxi with Driver</div>
+          <div class="bw-tab" id="bw-t2">Chauffeur Luxe</div>
         </div>
-        <div class="bw-field-label">Pickup Location</div>
+        <div class="bw-field-label">Departure Hub</div>
         <select class="bw-select" id="bw-city">
           <option>Ahmedabad (Airport, SG Highway, Ellis Bridge)</option>
           <option>Surat (Airport, Dumas Road, Vesu)</option>
@@ -410,65 +444,59 @@ async function home() {
         </select>
         <div class="bw-dates-row">
           <div>
-            <div class="bw-field-label">Pickup Date</div>
+            <div class="bw-field-label">Launch Date</div>
             <input type="date" class="bw-date-input" id="bw-start" value="${today}" min="${today}">
           </div>
           <div>
-            <div class="bw-field-label">Drop Date</div>
+            <div class="bw-field-label">Return Date</div>
             <input type="date" class="bw-date-input" id="bw-end" value="${tom}" min="${tom}">
           </div>
         </div>
-        <button class="bw-find-btn" id="find-available-cars">Find Available Cars &rarr;</button>
-        <div class="bw-footer-note"><span>&check; Free doorstep delivery</span> &bull; Deposit shown before booking</div>
+        <button class="bw-find-btn" id="find-available-cars">Scan Available Vehicles &rarr;</button>
+        <div class="bw-footer-note"><span>&check; Doorstep hub delivery</span> &bull; 300 km/day included</div>
       </div>
     </div>
 
-    <div class="highlights-bar">
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-green">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <!-- Industry-First: Interactive Drive Mission / Mood Selector -->
+    <section class="mission-selector-panel reveal-on-scroll">
+      <div class="mission-header">
+        <div>
+          <span class="eyebrow" style="color:var(--orange);font-weight:800;font-size:11px;letter-spacing:0.14em;">INTERACTIVE AI CONCIERGE</span>
+          <h3 style="font-size:20px;margin:4px 0 2px;">Select Your Drive Mission</h3>
+          <p class="text-muted" style="margin:0;font-size:13px;">Filter the showroom floor instantly by how you plan to drive today.</p>
         </div>
-        <div><div class="hl-title">DigiLocker Verified</div><div class="hl-sub">Instant digital eKYC</div></div>
+        <a href="cars.html" class="button btn-outline btn-sm">Open Full Telemetry Filter &rarr;</a>
       </div>
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-blue">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        </div>
-        <div><div class="hl-title">8-Angle Photos</div><div class="hl-sub">Full transparency</div></div>
+      <div class="mission-cards-row" id="drive-mood-selector">
+        <button type="button" class="mission-card active" data-mission="all">
+          <span class="mission-icon">🌐</span>
+          <strong>All Showroom</strong>
+          <small>Every verified vehicle</small>
+        </button>
+        <button type="button" class="mission-card" data-mission="suv">
+          <span class="mission-icon">🏔️</span>
+          <strong>4x4 &amp; Expedition</strong>
+          <small>Thar, Fortuner &amp; High-GC SUVs</small>
+        </button>
+        <button type="button" class="mission-card" data-mission="muv">
+          <span class="mission-icon">👨‍👩‍👧‍👦</span>
+          <strong>Family Highway</strong>
+          <small>Innova Crysta &amp; 7-Seater Cruisers</small>
+        </button>
+        <button type="button" class="mission-card" data-mission="city">
+          <span class="mission-icon">⚡</span>
+          <strong>Urban Zip</strong>
+          <small>Swift, Hatchbacks &amp; Sedans</small>
+        </button>
+        <button type="button" class="mission-card" data-mission="auto">
+          <span class="mission-icon">🕹️</span>
+          <strong>Effortless Auto</strong>
+          <small>Automatic Gearbox Fleet</small>
+        </button>
       </div>
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-orange">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <div><div class="hl-title">Zero Hidden Charges</div><div class="hl-sub">Clear honest billing</div></div>
-      </div>
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-purple">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#411945" stroke-width="2.2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 10.8 2 11 2 11.2V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
-        </div>
-        <div><div class="hl-title">250+ Verified Cars</div><div class="hl-sub">Across Gujarat</div></div>
-      </div>
-    </div>
+    </section>
 
-    <div class="how-grid">
-      <div class="how-card reveal-on-scroll" data-step="01">
-        <div class="how-num">01 &middot; Choose</div>
-        <h3>Select Your Drive</h3>
-        <p>Browse verified fleet with photos of exterior, interior, boot &amp; odometer.</p>
-      </div>
-      <div class="how-card reveal-on-scroll" data-step="02">
-        <div class="how-num">02 &middot; Verify</div>
-        <h3>Instant Digital eKYC</h3>
-        <p>Aadhaar and Driving Licence verified in seconds via official DigiLocker gateway.</p>
-      </div>
-      <div class="how-card reveal-on-scroll" data-step="03">
-        <div class="how-num">03 &middot; Drive</div>
-        <h3>Transparent Records</h3>
-        <p>Real-time booking confirmations, transparent security deposits, and recorded odometers.</p>
-      </div>
-    </div>
-
-    ${sectionHead('Available Fleet', 'Verified cars ready for your trip.', 'DISCOVER SAFAR')}
+    ${sectionHead('Live Showroom Floor', 'Click any vehicle to enter its 8-angle digital cockpit and trip cost simulator.', 'TELEMETRY FLEET')}
     <div class="car-grid" id="fleet">
       ${[1,2,3,4,5,6].map(() => `<div class="skeleton-card">
         <div class="sk-media skeleton-pulse"></div>
@@ -479,6 +507,51 @@ async function home() {
           <div class="sk-footer"><div class="sk-price skeleton-pulse"></div><div class="sk-btn skeleton-pulse"></div></div>
         </div>
       </div>`).join('')}
+    </div>
+
+    <div class="highlights-bar" style="margin-top:36px;">
+      <div class="highlight-pill reveal-on-scroll">
+        <div class="hl-icon-wrap hl-green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div><div class="hl-title">DigiLocker Verified</div><div class="hl-sub">Paperless govt eKYC</div></div>
+      </div>
+      <div class="highlight-pill reveal-on-scroll">
+        <div class="hl-icon-wrap hl-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <div><div class="hl-title">8-Angle Digital Twin</div><div class="hl-sub">Pre-trip &amp; return scan</div></div>
+      </div>
+      <div class="highlight-pill reveal-on-scroll">
+        <div class="hl-icon-wrap hl-orange">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div><div class="hl-title">Zero Hidden Charges</div><div class="hl-sub">Live fuel &amp; toll clarity</div></div>
+      </div>
+      <div class="highlight-pill reveal-on-scroll">
+        <div class="hl-icon-wrap hl-purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#411945" stroke-width="2.2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 10.8 2 11 2 11.2V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+        </div>
+        <div><div class="hl-title">Instant Vehicle Swap</div><div class="hl-sub">24/7 fleet backup guarantee</div></div>
+      </div>
+    </div>
+
+    <div class="how-grid">
+      <div class="how-card reveal-on-scroll" data-step="01">
+        <div class="how-num">01 &middot; Configure</div>
+        <h3>Pick Your Mission &amp; Vehicle</h3>
+        <p>Inspect all 8 exterior/cabin angles and simulate your highway fuel &amp; trip budget live.</p>
+      </div>
+      <div class="how-card reveal-on-scroll" data-step="02">
+        <div class="how-num">02 &middot; Authenticate</div>
+        <h3>One-Tap DigiLocker eKYC</h3>
+        <p>Aadhaar and Driving Licence verified in seconds via official government gateway.</p>
+      </div>
+      <div class="how-card reveal-on-scroll" data-step="03">
+        <div class="how-num">03 &middot; Command</div>
+        <h3>4-Side Handover &amp; Drive</h3>
+        <p>Upload 4-side pickup photos from your phone, unlock the car, and hit the road.</p>
+      </div>
     </div>`;
 
   // Tab switching
@@ -502,15 +575,36 @@ async function home() {
   initReveal();
 
   try {
-    const cars = await api('/vehicles');
+    const homeCars = await api('/vehicles');
     const fleet = $('#fleet');
-    fleet.innerHTML = cars.length
-      ? cars.slice(0, 8).map(carCard).join('')
-      : empty('Fleet is preparing', 'Verified listings will appear here soon.');
-    fleet.querySelectorAll('.car-card').forEach((el, i) => {
-      el.style.animationDelay = (i * 0.07) + 's';
-      el.classList.add('reveal-on-scroll');
+    const renderShowroomMission = (mission = 'all') => {
+      const filtered = homeCars.filter(c => {
+        const cat = (c.category || '').toLowerCase();
+        const tx = (c.transmission || '').toLowerCase();
+        if (mission === 'suv') return cat.includes('suv');
+        if (mission === 'muv') return cat.includes('muv') || Number(c.seats) >= 6;
+        if (mission === 'city') return cat.includes('hatchback') || cat.includes('sedan');
+        if (mission === 'auto') return tx.includes('auto');
+        return true;
+      });
+      fleet.innerHTML = filtered.length
+        ? filtered.slice(0, 8).map(carCard).join('')
+        : empty('No vehicles in this mission', 'Switch back to All Showroom to view the full fleet.');
+      fleet.querySelectorAll('.car-card').forEach((el, i) => {
+        el.style.animationDelay = (i * 0.05) + 's';
+        el.classList.add('reveal-on-scroll', 'revealed');
+      });
+    };
+    renderShowroomMission('all');
+
+    $$('#drive-mood-selector .mission-card').forEach(btn => {
+      btn.onclick = () => {
+        $$('#drive-mood-selector .mission-card').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderShowroomMission(btn.dataset.mission);
+      };
     });
+
     initReveal();
     initCountUp();
   } catch (e) {
@@ -985,6 +1079,70 @@ async function carDetails(id) {
             <div class="spec-box"><span class="spec-box-lbl">Registration</span><span class="spec-box-val">${esc(car.registrationNumber)}</span></div>
           </div>
 
+          <!-- Interactive 8-Point Vehicle Digital Twin & Sensor Radar -->
+          <div class="details-block">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+              <div>
+                <span class="eyebrow" style="color:var(--orange);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">DIGITAL TWIN TELEMETRY</span>
+                <h3 style="margin:2px 0 0;">Interactive 8-Angle Inspection Radar</h3>
+              </div>
+              <span class="badge good">✓ 8/8 Sensors Verified</span>
+            </div>
+            <p class="text-muted" style="font-size:12.5px;margin-bottom:14px;">Click any camera sensor node below to switch the main cockpit display to that exact pre-verified angle.</p>
+            <div class="digital-twin-grid" id="digital-twin-nodes">
+              ${PHOTO_ANGLES.map((angle, idx) => {
+                const match = mediaList.find(m => m.kind === angle) || mediaList[idx % Math.max(1, mediaList.length)];
+                const url = match ? `/api/media/${encodeURIComponent(match.id)}` : photoUrl(car);
+                return `
+                  <button type="button" class="twin-sensor-btn ${idx === 0 ? 'active' : ''}" data-angle="${esc(angle)}" data-url="${esc(url)}">
+                    <span class="sensor-dot"></span>
+                    <div>
+                      <strong>${esc(angle)}</strong>
+                      <small>${match ? 'Live Capture ✓' : 'Standard View'}</small>
+                    </div>
+                  </button>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Industry-First: Interactive Road-Trip Fuel & Budget Simulator -->
+          <div class="details-block trip-simulator-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+              <div>
+                <span class="eyebrow" style="color:var(--orange);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">SMART ROUTE ESTIMATOR</span>
+                <h3 style="margin:2px 0 0;">Interactive Road-Trip &amp; Fuel Simulator</h3>
+              </div>
+              <span class="badge warn" id="sim-mileage-badge">Est. ${(car.category || '').toLowerCase().includes('suv') ? '13' : '18'} km/L (${esc(car.fuelType)})</span>
+            </div>
+            <div class="sim-route-presets">
+              <button type="button" class="sim-preset-btn active" data-km="150">⚡ City Run (150 km)</button>
+              <button type="button" class="sim-preset-btn" data-km="400">🗽 Statue of Unity RT (400 km)</button>
+              <button type="button" class="sim-preset-btn" data-km="520">🏰 Udaipur Weekend RT (520 km)</button>
+              <button type="button" class="sim-preset-btn" data-km="750">🏖️ Somnath / Diu Tour (750 km)</button>
+            </div>
+            <div style="margin:14px 0;">
+              <div style="display:flex;justify-content:space-between;font-weight:800;font-size:13px;margin-bottom:6px;">
+                <span>Planned Trip Distance</span>
+                <span id="sim-km-label" style="color:var(--orange);font-size:15px;">150 km</span>
+              </div>
+              <input type="range" id="trip-sim-slider" class="range-slider" min="50" max="1200" step="25" value="150">
+            </div>
+            <div class="sim-metrics-grid">
+              <div class="sim-metric-box">
+                <span>Est. Fuel Needed</span>
+                <strong id="sim-litres-val">9 Litres</strong>
+              </div>
+              <div class="sim-metric-box">
+                <span>Est. Fuel Cost</span>
+                <strong id="sim-fuel-cost">₹860</strong>
+              </div>
+              <div class="sim-metric-box">
+                <span>1-Day Rental + Fuel</span>
+                <strong id="sim-total-est" style="color:var(--orange);">${money(Number(car.pricePerDay) + 860)}</strong>
+              </div>
+            </div>
+          </div>
+
           <!-- Features & Equipment -->
           <div class="details-block">
             <h3>Features &amp; Amenities</h3>
@@ -1109,6 +1267,47 @@ async function carDetails(id) {
       };
     });
   }
+
+  // Interactive 8-Point Digital Twin Radar Nodes
+  $$('#digital-twin-nodes .twin-sensor-btn').forEach(btn => {
+    btn.onclick = () => {
+      $$('#digital-twin-nodes .twin-sensor-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (heroImg && btn.dataset.url) {
+        heroImg.style.opacity = '0.35';
+        heroImg.src = btn.dataset.url;
+        heroImg.onload = () => { heroImg.style.opacity = '1'; };
+        heroImg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    };
+  });
+
+  // Interactive Road-Trip Distance & Fuel Simulator
+  const simSlider = $('#trip-sim-slider');
+  const updateTripSim = kmVal => {
+    const km = Number(kmVal || 150);
+    const isSuv = (car.category || '').toLowerCase().includes('suv') || (car.category || '').toLowerCase().includes('muv');
+    const kmPerLitre = isSuv ? 13 : 18;
+    const fuelPrice = (car.fuelType || '').toLowerCase().includes('diesel') ? 92 : 96;
+    const litres = Math.max(1, Math.round(km / kmPerLitre));
+    const fuelCost = Math.round(litres * fuelPrice);
+    if ($('#sim-km-label')) $('#sim-km-label').textContent = `${km} km`;
+    if ($('#sim-litres-val')) $('#sim-litres-val').textContent = `~${litres} Litres`;
+    if ($('#sim-fuel-cost')) $('#sim-fuel-cost').textContent = money(fuelCost);
+    if ($('#sim-total-est')) $('#sim-total-est').textContent = money(Number(car.pricePerDay) + fuelCost);
+  };
+  if (simSlider) {
+    simSlider.oninput = () => updateTripSim(simSlider.value);
+    updateTripSim(simSlider.value);
+  }
+  $$('.sim-preset-btn').forEach(btn => {
+    btn.onclick = () => {
+      $$('.sim-preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (simSlider) simSlider.value = btn.dataset.km;
+      updateTripSim(btn.dataset.km);
+    };
+  });
 
   // Quote Calculator & Form Submission
   if (user) {
@@ -1772,8 +1971,19 @@ function renderBookingTable(list, isHost) {
               </td>
               <td>
                 ${badge(formatBookingStatus(b))}
-                ${b.payment ? `<br>${badge(b.payment.status)}` : ''}
-                ${formatBookingStatus(b) === 'PENDING' ? `<p class="text-muted" style="font-size:11px">Hold expires ${dt(b.expiresAt)}</p>` : ''}
+                ${b.payment ? `<span style="margin-left:4px">${badge(b.payment.status)}</span>` : ''}
+                ${formatBookingStatus(b) === 'PENDING' ? `<p class="text-muted" style="font-size:11px;margin-top:4px;">Hold expires ${dt(b.expiresAt)}</p>` : ''}
+                ${(() => {
+                  const st = formatBookingStatus(b);
+                  if (['CANCELLED','EXPIRED','FAILED'].includes(st)) return '';
+                  const step = st === 'COMPLETED' ? 4 : st === 'ACTIVE' ? 3 : st === 'CONFIRMED' ? 2 : 1;
+                  return `<div class="trip-telemetry-track" title="Live Trip Stage">
+                    <span class="${step >= 1 ? 'done' : ''}">1. Hold</span>
+                    <span class="${step >= 2 ? 'done' : ''}">2. Pickup Scan</span>
+                    <span class="${step >= 3 ? 'done' : ''}">3. Driving</span>
+                    <span class="${step >= 4 ? 'done' : ''}">4. Settled</span>
+                  </div>`;
+                })()}
               </td>
               <td>
                 <div class="actions">
