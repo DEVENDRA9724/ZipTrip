@@ -2641,7 +2641,7 @@ function renderAdminView(tab) {
         <div class="notice"><p><strong>Deposit held:</strong> ${money(s.depositHeld)}</p><p><strong>Distance:</strong> ${s.travelledKilometres == null ? 'Not recorded' : Number(s.travelledKilometres).toLocaleString('en-IN') + ' km'} · Included ${s.includedKilometres == null ? '—' : Number(s.includedKilometres).toLocaleString('en-IN') + ' km'}</p><p><strong>Excess distance charge:</strong> ${money(s.excessCharge)}</p><p><strong>Late return charge:</strong> ${money(s.lateCharge)} (${Number(s.lateMinutes)} minutes after grace)</p><p><strong>Suggested automatic deduction:</strong> ${money(s.suggestedDepositDeduction)}</p><p><strong>Estimated release:</strong> ${money(s.estimatedDepositRelease)}</p></div><p class="text-muted">${esc(s.note)}${s.damageReviewRequired ? ' A damage note is present; complete a documented damage review before releasing the balance.' : ''}</p>`);
     } catch (err) { toast(err.message, true); }
   });
-  $('.user-password-action').forEach(btn => btn.onclick = () => {
+  $$('.user-password-action').forEach(btn => btn.onclick = () => {
     const email = btn.dataset.email || 'this user';
     showDialog(`
       <h3>Reset User Password</h3>
@@ -2660,7 +2660,7 @@ function renderAdminView(tab) {
     });
   });
 
-  $('.booking-swap-action').forEach(btn => btn.onclick = async () => {
+  $$('.booking-swap-action').forEach(btn => btn.onclick = async () => {
     try {
       btn.disabled = true;
       const data = await api('/admin/bookings/' + btn.dataset.id + '/swap-candidates');
@@ -2698,7 +2698,7 @@ function renderAdminView(tab) {
     }
   });
 
-  $('.booking-cancel-admin-action').forEach(btn => btn.onclick = () => {
+  $$('.booking-cancel-admin-action').forEach(btn => btn.onclick = () => {
     showDialog(`
       <h3>Cancel Booking</h3>
       <p class="text-muted">Cancel this booking. If payment was received, a refund record will be queued automatically.</p>
@@ -2717,7 +2717,7 @@ function renderAdminView(tab) {
     });
   });
 
-  $('.user-block-action').forEach(btn => btn.onclick = async () => {
+  $$('.user-block-action').forEach(btn => btn.onclick = async () => {
     const blocking = btn.dataset.blocked === 'true';
     const reason = window.prompt(blocking ? 'Reason for blocking this account:' : 'Reason for unblocking this account:');
     if (!reason || !reason.trim()) return;

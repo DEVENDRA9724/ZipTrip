@@ -177,7 +177,7 @@ async function seed() {
   const adminPasswordHash = await bcrypt.hash('Admin@12345678', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@safar.com' },
-    update: { username: 'safar_admin', isVerified: true, role: 'ADMIN' },
+    update: { username: 'safar_admin', isVerified: true, role: 'ADMIN', passwordHash: adminPasswordHash },
     create: {
       username: 'safar_admin',
       email: 'admin@safar.com',
@@ -204,7 +204,7 @@ async function seed() {
   const hostPasswordHash = await bcrypt.hash('Host@12345678', 12);
   const host = await prisma.user.upsert({
     where: { email: 'host@safar.com' },
-    update: { username: 'rajesh_fleet', isVerified: true, role: 'HOST' },
+    update: { username: 'rajesh_fleet', isVerified: true, role: 'HOST', passwordHash: hostPasswordHash },
     create: {
       username: 'rajesh_fleet',
       email: 'host@safar.com',
@@ -239,6 +239,7 @@ async function seed() {
       isVerified: true,
       dlValidUntil: dlExpiry,
       role: 'CUSTOMER',
+      passwordHash: custPasswordHash,
     },
     create: {
       username: 'aarav_shah',
@@ -426,11 +427,53 @@ async function seed() {
       },
     });
 
+    const hub = hubsByCity[carData.locationCity] || hubsByCity['Ahmedabad'];
+
     const existing = await prisma.vehicle.findUnique({
       where: { registrationNumber: carData.registrationNumber },
+      include: { media: true },
     });
     if (existing) {
-      console.log(`Car already exists: ${carData.make} ${carData.model}`);
+      await prisma.vehicle.update({
+        where: { id: existing.id },
+        data: {
+          modelSpecId: modelSpec.id,
+          currentHubId: hub?.id,
+          vinNumber: carData.vinNumber,
+          gpsDeviceImei: carData.gpsDeviceImei,
+          pickupAddress: hub ? hub.address : `${carData.locationCity} Central Hub`,
+          dropAddress: hub ? hub.address : `${carData.locationCity} Central Hub`,
+        },
+      });
+      if (s3Client && existing.media?.length) {
+        const uploadDir = path.resolve(__dirname, '../uploads');
+        let syncedCount = 0;
+        for (const m of existing.media) {
+          if (!m.storageKey.startsWith(`${s3Prefix}/`)) {
+            const localPath = path.join(uploadDir, path.basename(m.storageKey));
+            if (fs.existsSync(localPath)) {
+              try {
+                const s3Key = `${s3Prefix}/${path.basename(m.storageKey)}`;
+                await s3Client.send(new PutObjectCommand({
+                  Bucket: s3Bucket,
+                  Key: s3Key,
+                  Body: fs.readFileSync(localPath),
+                  ContentType: m.mimeType || 'image/jpeg',
+                  ServerSideEncryption: 'AES256',
+                }));
+                await prisma.media.update({ where: { id: m.id }, data: { storageKey: s3Key } });
+                syncedCount++;
+              } catch (s3Err) {
+                console.warn(`  ! S3 sync warning for ${m.storageKey}:`, s3Err.message);
+              }
+            }
+          }
+        }
+        if (syncedCount > 0) {
+          console.log(`✔ Synced ${syncedCount} photos to S3 (${s3Bucket}) for ${carData.make} ${carData.model}`);
+        }
+      }
+      console.log(`✔ Car verified & linked to Hub: ${carData.make} ${carData.model}`);
       continue;
     }
 
@@ -445,8 +488,6 @@ async function seed() {
       const media = await createMediaFromImage(host.id, imgPath, kind);
       mediaList.push(media);
     }
-
-    const hub = hubsByCity[carData.locationCity] || hubsByCity['Ahmedabad'];
 
     const vehicle = await prisma.vehicle.create({
       data: {
