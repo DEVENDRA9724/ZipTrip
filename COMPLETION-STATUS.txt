@@ -90,6 +90,9 @@ Rental operations update — 2 October 2026
   captures camera evidence for the odometer, trip selfie and vehicle condition,
   uploads it to the authenticated media endpoint, and submits the inspection to
   the same booking state machine as the web portal.
+- Booking creation, cancellation, trip start, trip end, and damage reports now
+  create in-app notifications for the customer and vehicle host/dealer. The
+  account dashboard shows unread notifications and supports marking them read.
 
 Still required: excess-km rate, late-return policy, cancellation policy, confirmed
 hourly-vs-daily pricing policy, automatic deposit settlement/refund workflow,

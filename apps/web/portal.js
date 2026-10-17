@@ -1540,11 +1540,12 @@ async function dashboard(defaultTab = 'trips') {
   const params = new URLSearchParams(location.search);
   const activeTab = params.get('tab') || defaultTab;
 
-  const [trips, hosted, kycInfo, accountInfo] = await Promise.all([
+  const [trips, hosted, kycInfo, accountInfo, notifications] = await Promise.all([
     api('/bookings/my-trips').catch(() => []),
     ['HOST','DEALER','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
     api('/kyc').catch(() => ({ documents: [], sessions: [], environment: 'live', configured: false })),
     api('/account/dashboard').catch(() => null),
+    api('/notifications').catch(() => []),
   ]);
 
   const activeCount = trips.filter(b => b.status === 'ACTIVE').length;
@@ -1580,6 +1581,8 @@ async function dashboard(defaultTab = 'trips') {
         <span><strong>Today:</strong> ₹${Number(accountInfo.metrics?.todayCollected || 0).toLocaleString('en-IN')}</span>
       </div>` : ''}
 
+    ${renderNotificationsHtml(notifications)}
+
     <!-- Segmented Account Navigation Tabs -->
     <div class="admin-tabs" style="margin-bottom: 24px;">
       <button type="button" class="${activeTab === 'trips' ? 'active' : ''}" onclick="switchAccountTab('trips')">
@@ -1599,6 +1602,36 @@ async function dashboard(defaultTab = 'trips') {
 
   if (activeTab === 'trips') bindBookingEvents();
   if (activeTab === 'kyc') bindKycEvents(kycInfo);
+  bindNotificationEvents();
+}
+
+function renderNotificationsHtml(items) {
+  const notifications = Array.isArray(items) ? items : [];
+  const unread = notifications.filter(item => !item.readAt).length;
+  return `<section class="panel account-notifications" style="margin-bottom:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div><h3 style="margin:0">Notifications ${unread ? `<span class="badge warn">${unread} new</span>` : ''}</h3><p class="text-muted" style="margin:4px 0 0">Booking, trip inspection, KYC and payout updates.</p></div>
+      ${unread ? '<button type="button" class="button btn-outline btn-sm" id="mark-all-notifications">Mark all read</button>' : ''}
+    </div>
+    <div class="notification-list" style="display:grid;gap:10px;margin-top:16px;">
+      ${notifications.length ? notifications.slice(0, 5).map(item => `<article class="notification-item ${item.readAt ? '' : 'is-unread'}" data-notification-id="${esc(item.id)}" style="padding:12px 14px;border:1px solid var(--border-main);border-radius:12px;background:var(--bg-subtle);">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><strong>${esc(item.title)}</strong>${item.readAt ? '' : '<span class="badge warn">NEW</span>'}</div>
+        <p style="margin:5px 0;color:var(--text-main);">${esc(item.message)}</p>
+        <small class="text-muted">${dt(item.createdAt)} ${item.readAt ? '' : ' · Click to mark read'}</small>
+      </article>`).join('') : '<p class="text-muted" style="margin:14px 0 0">No notifications yet.</p>'}
+    </div>
+  </section>`;
+}
+
+function bindNotificationEvents() {
+  $$('.notification-item.is-unread').forEach(item => item.onclick = async () => {
+    try { await post('/notifications/' + encodeURIComponent(item.dataset.notificationId) + '/read', {}); item.classList.remove('is-unread'); item.querySelector('.badge')?.remove(); item.querySelector('small').textContent = item.querySelector('small').textContent.replace(' · Click to mark read', ''); }
+    catch (error) { toast(error.message, true); }
+  });
+  $('#mark-all-notifications')?.addEventListener('click', async () => {
+    try { await post('/notifications/read-all', {}); await dashboard(); }
+    catch (error) { toast(error.message, true); }
+  });
 }
 
 function switchAccountTab(tabName) {

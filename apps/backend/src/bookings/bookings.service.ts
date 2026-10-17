@@ -230,7 +230,7 @@ export class BookingsService {
     });
   }
   async cancel(userId: string, id: string) {
-    return this.prisma.$transaction(async tx => {
+    const result = await this.prisma.$transaction(async tx => {
       const booking = await tx.booking.findUnique({ where: { id }, include: { vehicle: true } });
       if (!booking) throw new NotFoundException('Booking not found');
       if (booking.customerId !== userId && booking.vehicle.hostId !== userId) throw new ForbiddenException('Booking access denied');
@@ -242,6 +242,11 @@ export class BookingsService {
       await tx.auditLog.create({ data: { actorId: userId, action: 'BOOKING_CANCELLED', targetId: id, detail: 'External refunds require administrator reconciliation' } });
       return { id, status: 'CANCELLED' };
     });
+    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { vehicle: true } });
+    if (booking) {
+      await this.notifyBooking(booking, 'BOOKING_CANCELLED', 'Booking cancelled', `Booking ${booking.bookingRef} was cancelled. Any eligible refund is pending reconciliation.`);
+    }
+    return result;
   }
   async inspect(user: any, id: string, body: any) {
     const stage = choice(body.stage, 'Inspection stage', ['PICKUP', 'RETURN', 'DAMAGE']);
@@ -251,7 +256,7 @@ export class BookingsService {
     const damageNote = text(body.damageNote, 'Vehicle condition', 2000);
     const mediaIds = Array.from(new Set([mediaId, ...(Array.isArray(body.mediaIds) ? body.mediaIds : [])].map(item => text(item, 'Inspection photo', 100))));
     if (mediaIds.length > 12) throw new BadRequestException('Upload up to 12 inspection photos');
-    const booking = await this.prisma.$transaction(async tx => {
+    const result = await this.prisma.$transaction(async tx => {
       const booking = await tx.booking.findUnique({ where: { id }, include: { vehicle: true, inspections: true } });
       if (!booking) throw new NotFoundException('Booking not found');
       const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN';
@@ -283,6 +288,16 @@ export class BookingsService {
       await tx.auditLog.create({ data: { actorId: user.id, action: stage, targetId: id, detail: 'Odometer ' + odometer } });
       return { message: stage === 'PICKUP' ? 'Trip started' : 'Trip completed' };
     });
+    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { vehicle: true } });
+    if (booking) {
+      const event = stage === 'PICKUP'
+        ? ['TRIP_STARTED', 'Trip started', `Trip ${booking.bookingRef} has started. Pickup evidence was recorded.`]
+        : stage === 'RETURN'
+          ? ['TRIP_ENDED', 'Trip ended', `Trip ${booking.bookingRef} has ended. Return evidence was recorded.`]
+          : ['DAMAGE_REPORTED', 'Damage reported', `A damage report was added to trip ${booking.bookingRef}.`];
+      await this.notifyBooking(booking, event[0], event[1], event[2]);
+    }
+    return result;
   }
 
   private async notifyBooking(booking: any, type: string, title: string, message: string) {
