@@ -112,7 +112,7 @@ cd ../..
 echo "[6/6] Starting Safar Backend with PM2 and configuring Nginx on Port 80..."
 sudo npm install -g pm2
 pm2 delete safar-portal >/dev/null 2>&1 || true
-pm2 start apps/backend/dist/main.js --name safar-portal --cwd "$PWD/apps/backend"
+pm2 start dist/main.js --name safar-portal --cwd "$PWD/apps/backend"
 pm2 save
 
 if [[ -d /etc/nginx/sites-available ]]; then
