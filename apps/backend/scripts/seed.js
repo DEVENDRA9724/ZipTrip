@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+const { PrismaPg } = require('@prisma/adapter-pg');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
@@ -8,7 +9,10 @@ const sharp = require('sharp');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL || 'file:./portal.db' });
+const dbUrl = process.env.DATABASE_URL || 'file:./portal.db';
+const adapter = /^postgres(ql)?:\/\//.test(dbUrl)
+  ? new PrismaPg({ connectionString: dbUrl })
+  : new PrismaBetterSqlite3({ url: dbUrl });
 const prisma = new PrismaClient({ adapter });
 
 const PHOTO_KINDS = ['FRONT', 'REAR', 'LEFT', 'RIGHT', 'INTERIOR', 'BOOT', 'BONNET', 'ODOMETER'];
