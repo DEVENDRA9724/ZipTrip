@@ -2013,4 +2013,86 @@ td .actions .button {
   }
 }
 
+/* ══ UI REMASTER: GLASSMORPHISM, TAB TRANSITIONS & MICRO-POLISH ═════ */
+html {
+  scroll-behavior: smooth;
+}
 
+.header {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-theme="dark"] .header {
+  background: rgba(17, 17, 19, 0.86);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@keyframes viewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#app > *,
+.view-fade-in,
+#admin-panel-content > *,
+#car-folder-tab-body > * {
+  animation: viewFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#car-hero-img {
+  transition: opacity 0.22s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.details-main-img-box:hover #car-hero-img {
+  transform: scale(1.015);
+}
+
+/* Refined Segmented Tab Pills */
+.admin-tabs {
+  padding: 6px;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: var(--r-lg);
+  box-shadow: var(--card-shadow);
+}
+
+.admin-tabs button {
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-tabs button.active {
+  background: var(--orange-soft);
+  color: var(--orange-dark);
+  box-shadow: 0 2px 8px rgba(232, 119, 34, 0.14);
+}
+
+/* Custom Sleek Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.3);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.5);
+}

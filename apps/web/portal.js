@@ -1072,13 +1072,39 @@ async function carDetails(id) {
       </aside>
     </div>`;
 
-  // Gallery thumbnail click handler
+  // Gallery thumbnail click handler & Lightbox
+  const heroImg = $('#car-hero-img');
+  if (heroImg) {
+    heroImg.style.cursor = 'zoom-in';
+    heroImg.onclick = () => {
+      let lb = $('#safar-photo-lightbox');
+      if (!lb) {
+        lb = document.createElement('dialog');
+        lb.id = 'safar-photo-lightbox';
+        lb.style.cssText = 'max-width:min(960px,95vw);padding:16px;background:rgba(17,17,19,0.96);color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:20px;';
+        document.body.append(lb);
+      }
+      lb.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <strong style="color:#fff;font-size:15px;">${esc(car.make + ' ' + car.model)} — Photo Inspection</strong>
+          <button type="button" class="button btn-outline btn-sm" id="close-lb-btn" style="color:#fff;border-color:rgba(255,255,255,0.25);">✕ Close</button>
+        </div>
+        <img src="${esc(heroImg.src)}" alt="${esc(car.make)}" style="width:100%;max-height:76vh;object-fit:contain;border-radius:12px;">`;
+      $('#close-lb-btn', lb).onclick = () => lb.close();
+      lb.onclick = e => { if (e.target === lb) lb.close(); };
+      lb.showModal();
+    };
+  }
   if (mediaList.length > 1) {
     $$('#gallery-thumbs .thumb-card').forEach((btn, i) => {
       btn.onclick = () => {
         $$('#gallery-thumbs .thumb-card').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        $('#car-hero-img').src = btn.dataset.url;
+        if (heroImg) {
+          heroImg.style.opacity = '0.35';
+          heroImg.src = btn.dataset.url;
+          heroImg.onload = () => { heroImg.style.opacity = '1'; };
+        }
         $('#gallery-counter-lbl').textContent = `${i + 1} / ${mediaList.length}`;
       };
     });
@@ -1535,19 +1561,25 @@ function formatBookingStatus(b) {
   return b.status === 'PENDING' && new Date(b.expiresAt) < new Date() ? 'EXPIRED' : b.status;
 }
 
-async function dashboard(defaultTab = 'trips') {
+let dashboardCache = null;
+
+async function dashboard(defaultTab = 'trips', forceRefresh = true) {
   if (!requireUser()) return;
   const params = new URLSearchParams(location.search);
   const activeTab = params.get('tab') || defaultTab;
 
-  const [trips, hosted, kycInfo, accountInfo, notifications] = await Promise.all([
-    api('/bookings/my-trips').catch(() => []),
-    ['HOST','DEALER','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
-    api('/kyc').catch(() => ({ documents: [], sessions: [], environment: 'live', configured: false })),
-    api('/account/dashboard').catch(() => null),
-    api('/notifications').catch(() => []),
-  ]);
+  if (forceRefresh || !dashboardCache) {
+    const [trips, hosted, kycInfo, accountInfo, notifications] = await Promise.all([
+      api('/bookings/my-trips').catch(() => []),
+      ['HOST','DEALER','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
+      api('/kyc').catch(() => ({ documents: [], sessions: [], environment: 'live', configured: false })),
+      api('/account/dashboard').catch(() => null),
+      api('/notifications').catch(() => []),
+    ]);
+    dashboardCache = { trips, hosted, kycInfo, accountInfo, notifications };
+  }
 
+  const { trips, hosted, kycInfo, accountInfo, notifications } = dashboardCache;
   const activeCount = trips.filter(b => b.status === 'ACTIVE').length;
 
   $('#app').innerHTML = `
@@ -1596,12 +1628,18 @@ async function dashboard(defaultTab = 'trips') {
       </button>
     </div>
 
-    <div id="account-tab-content">
+    <div id="account-tab-content" class="view-fade-in">
       ${activeTab === 'kyc' ? renderKycTabHtml(kycInfo) : activeTab === 'profile' ? renderProfileTabHtml(kycInfo) : renderTripsTabHtml(trips, hosted, accountInfo)}
     </div>`;
 
   if (activeTab === 'trips') bindBookingEvents();
   if (activeTab === 'kyc') bindKycEvents(kycInfo);
+  if (activeTab === 'profile') {
+    $('#profile-logout-btn')?.addEventListener('click', async () => {
+      await post('/auth/logout').catch(() => {});
+      location.href = 'index.html';
+    });
+  }
   bindNotificationEvents();
 }
 
@@ -1629,7 +1667,7 @@ function bindNotificationEvents() {
     catch (error) { toast(error.message, true); }
   });
   $('#mark-all-notifications')?.addEventListener('click', async () => {
-    try { await post('/notifications/read-all', {}); await dashboard(); }
+    try { await post('/notifications/read-all', {}); await dashboard(undefined, true); }
     catch (error) { toast(error.message, true); }
   });
 }
@@ -1638,7 +1676,7 @@ function switchAccountTab(tabName) {
   const url = new URL(location.href);
   url.searchParams.set('tab', tabName);
   history.replaceState(null, '', url.toString());
-  dashboard(tabName);
+  dashboard(tabName, false);
 }
 
 function renderTripsTabHtml(trips, hosted, accountInfo) {
