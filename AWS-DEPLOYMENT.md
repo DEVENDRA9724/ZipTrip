@@ -2,7 +2,7 @@
 
 The production shape is:
 
-`Route 53/Cloudflare DNS → AWS App Runner (NestJS + static web) → RDS PostgreSQL`
+`Route 53/Cloudflare DNS → ECS Express Mode/Fargate (NestJS + static web) → RDS PostgreSQL`
 
 Private uploads and KYC originals are stored in an S3 bucket. The bucket must
 remain private; the API reads objects with its IAM role and authorizes every
@@ -15,14 +15,14 @@ Create these resources in one AWS region (Mumbai is `ap-south-1`):
 
 1. An ECR repository for the backend image, for example `safar-api`.
 2. An RDS PostgreSQL 15 or newer instance in private subnets. Do not expose
-   port 5432 to the internet. Allow it only from the App Runner VPC connector
-   security group.
+   port 5432 to the internet. Allow it only from the ECS service security
+   group.
 3. A private S3 bucket such as `safar-production-media-<account-id>` with
    Block Public Access enabled, default SSE-S3 encryption, versioning enabled,
    and a lifecycle rule for old non-current versions.
-4. An App Runner VPC connector with access to the RDS subnets and the S3 VPC
-   endpoint (or NAT). The App Runner service should use an IAM instance role
-   that can access only this bucket.
+4. An ECS Express Mode service using Fargate. ECS Express Mode creates the
+   load balancer, HTTPS certificate, networking, logging, and auto scaling.
+   Use an ECS task role that can access only this bucket.
 5. Secrets Manager entries for `DATABASE_URL`, `JWT_SECRET`,
    `DOCUMENT_ENCRYPTION_KEY`, Sandbox credentials, and business settings.
 
@@ -50,11 +50,18 @@ The image contains the NestJS API, static frontend, Python agreement renderer,
 and ReportLab fallback. It does not contain `.env`, the SQLite database, or
 uploads.
 
-## 3. Configure the App Runner service
+## 3. Create the ECS Express Mode service
 
-Create an App Runner service from the ECR image and set port `3000`. Configure
-these environment values through Secrets Manager or App Runner environment
-variables; never commit real values:
+Create the ECS task execution role with the AWS managed policy
+`AmazonECSTaskExecutionRolePolicy`, and create the ECS infrastructure role with
+`AmazonECSInfrastructureRoleforExpressGatewayServices`. ECS Express Mode
+requires these roles to pull the image, write logs, and provision the load
+balancer and auto scaling resources.
+
+Create the service from the ECR image with port `3000`, health path
+`/api/health`, 2 vCPU, 4 GB memory, and a minimum of one task. Configure these
+environment values through Secrets Manager or ECS secrets; never commit real
+values:
 
 ```text
 NODE_ENV=production
@@ -80,8 +87,26 @@ BUSINESS_EMAIL=<support email>
 ```
 
 Do not set `S3_ENDPOINT` in AWS. The SDK uses the standard AWS endpoint and the
-App Runner IAM role. `UPLOAD_DIR` is only for local development and should not
-be used as production storage.
+ECS task role. `UPLOAD_DIR` is only for local development and should not be
+used as production storage.
+
+The equivalent CLI shape is:
+
+```powershell
+aws ecs create-express-gateway-service `
+  --service-name safar-api `
+  --execution-role-arn arn:aws:iam::$account:role/ecsTaskExecutionRole `
+  --infrastructure-role-arn arn:aws:iam::$account:role/ecsInfrastructureRoleForExpressServices `
+  --primary-container "image=$repo:latest,containerPort=3000" `
+  --cpu 2 `
+  --memory 4 `
+  --health-check-path /api/health `
+  --monitor-resources
+```
+
+If you use private subnets, provide a NAT gateway or VPC endpoints so the task
+can reach S3 and Sandbox. Express Mode can otherwise use public subnets with an
+internet-facing Application Load Balancer. [ECS Express Mode](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/express-service-overview.html)
 
 ## 4. Deploy the PostgreSQL schema before sending traffic
 
@@ -113,7 +138,7 @@ login. Do not paste it into chat or source control.
 
 ## 5. DNS, TLS, and checks
 
-Use an App Runner custom domain or CloudFront/Route 53 in front of the service.
+Use the ECS Express Mode custom domain or CloudFront/Route 53 in front of the service.
 Once HTTPS is active, verify:
 
 ```text
@@ -131,8 +156,8 @@ private-object access test proves that another user cannot read a KYC object.
 
 ## Recommended initial size
 
-For a small pilot, start with one App Runner service (1 vCPU/2 GB), a small
-RDS PostgreSQL instance with automated backups, and S3. Increase App Runner
-instances and RDS capacity after observing CPU, database connections, API
+For a small pilot, start with one ECS Express Mode task (2 vCPU/4 GB), a small
+RDS PostgreSQL instance with automated backups, and S3. Increase ECS task
+counts and RDS capacity after observing CPU, database connections, API
 latency, and storage growth. Enable CloudWatch logs, alarms, RDS snapshots,
 and a monthly AWS budget alert before accepting real payments.

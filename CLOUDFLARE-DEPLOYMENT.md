@@ -31,8 +31,8 @@ NestJS application errors still belong in the backend host's logging system.
 ## Deploy the API
 
 Wrangler's static asset deployment does not run the NestJS API. Deploy
-`apps/backend` to a Node-compatible service such as AWS App Runner, ECS/EC2,
-or another managed Node host. Configure these values on that service, not in
+`apps/backend` to a Node-compatible service such as Amazon ECS Express Mode
+  (Fargate), ECS/EC2, or another managed Node host. Configure these values on that service, not in
 the frontend:
 
 - `DATABASE_URL` (managed PostgreSQL in production)
