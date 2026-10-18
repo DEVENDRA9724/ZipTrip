@@ -3886,7 +3886,12 @@ function renderAdminView(tab) {
                   <td>${esc(v.registrationNumber || 'Pending')} · ${esc(v.locationCity)}</td>
                   <td><strong>${money(v.pricePerDay)}/day</strong></td>
                   <td>${v.media?.length || 0} photos</td>
-                  <td><button type="button" class="button btn-orange btn-sm vehicle-folder-btn" data-id="${v.id}">Review &amp; Approve</button></td>
+                  <td>
+                    <div class="actions">
+                      <button type="button" class="button btn-orange btn-sm vehicle-quick-approve-action" data-id="${v.id}">Approve &amp; Activate</button>
+                      <button type="button" class="btn-outline btn-sm vehicle-folder-btn" data-id="${v.id}">Review &amp; Approve</button>
+                    </div>
+                  </td>
                 </tr>`).join('')}
             </tbody>
           </table>` : '<p class="text-muted" style="margin:0;">All fleet vehicles have been reviewed.</p>'}
@@ -3922,7 +3927,6 @@ function renderAdminView(tab) {
         </div>
       </section>`;
     $$('.admin-jump-tab').forEach(btn => btn.onclick = () => renderAdminView(btn.dataset.target));
-    return;
   }
 
   if (tab === 'pricing') {
@@ -3965,7 +3969,6 @@ function renderAdminView(tab) {
           </tbody>
         </table>
       </section>`;
-    return;
   }
 
   if (tab === 'reports') {
@@ -4286,6 +4289,22 @@ function renderAdminView(tab) {
     const vehicle = adminData.vehicles.find(v => v.id === btn.dataset.id);
     if (vehicle) openCarFolder(vehicle);
   });
+  $$('.vehicle-quick-approve-action').forEach(btn => btn.onclick = async (e) => {
+    e.stopPropagation();
+    btn.disabled = true;
+    try {
+      await post('/admin/vehicles/' + encodeURIComponent(btn.dataset.id) + '/review', {
+        status: 'ACTIVE',
+        note: 'Approved and activated by Operations Administrator'
+      });
+      toast('Vehicle approved and activated for self-drive bookings!');
+      const activeTab = $('.pro-nav .active')?.dataset?.tab || 'approvals';
+      await adminPage(activeTab);
+    } catch (err) {
+      toast(err.message, true);
+      btn.disabled = false;
+    }
+  });
   $$('.vehicle-schedule-action').forEach(btn => btn.onclick = () => openVehicleSchedule(adminData.vehicles.find(v => v.id === btn.dataset.id)));
   $$('.vehicle-pricing-action').forEach(btn => btn.onclick = () => {
     const vehicle = adminData.vehicles.find(v => v.id === btn.dataset.id);
@@ -4296,7 +4315,10 @@ function renderAdminView(tab) {
       <button type="submit" class="button btn-orange">Save daily rate</button></form>`);
     bindForm('#vehicle-pricing-form', async data => {
       await post('/admin/vehicles/' + vehicle.id + '/pricing', {...data, expectedRate: Number(vehicle.pricePerDay)});
-      $('dialog').close(); await adminPage('vehicles'); toast('Daily rate updated.');
+      $('dialog').close();
+      const activeTab = $('.pro-nav .active')?.dataset?.tab || 'vehicles';
+      await adminPage(activeTab);
+      toast('Daily rate updated.');
     });
   });
 
@@ -4354,7 +4376,8 @@ function renderAdminView(tab) {
       try {
         await post('/admin/documents/' + encodeURIComponent(btn.dataset.id) + '/quick-review', { status: 'APPROVED', note: 'Verified via Admin Command Center' });
         toast('Document approved & user KYC verified!');
-        await adminPage('documents');
+        const activeTab = $('.pro-nav .active')?.dataset?.tab || 'documents';
+        await adminPage(activeTab);
       } catch (err) {
         toast(err.message, true);
         btn.disabled = false;
@@ -4733,14 +4756,16 @@ function openCarFolder(v) {
   bindForm('#folder-decision-form', async data => {
     await post('/admin/vehicles/' + v.id + '/review', data);
     $('dialog').close();
-    await adminPage('vehicles');
+    const activeTab = $('.pro-nav .active')?.dataset?.tab || 'approvals';
+    await adminPage(activeTab);
     toast('Vehicle decision updated.');
   });
 
   bindForm('#folder-pricing-form', async data => {
     await post('/admin/vehicles/' + v.id + '/pricing', { ...data, expectedRate: Number(v.pricePerDay) });
     $('dialog').close();
-    await adminPage('vehicles');
+    const activeTab = $('.pro-nav .active')?.dataset?.tab || 'vehicles';
+    await adminPage(activeTab);
     toast('Daily rate updated.');
   });
 }

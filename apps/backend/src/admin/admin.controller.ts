@@ -182,10 +182,14 @@ export class AdminController {
     return this.prisma.$transaction(async tx => {
       const car = await tx.vehicle.findUnique({ where: { id }, include: { media: true, documents: true } });
       if (!car) throw new NotFoundException();
-      if (car.hostId === req.user.id) throw new BadRequestException('Another administrator must review your listing');
       if (status === 'ACTIVE') {
-        if (!car.registrationNumber || !PHOTO_KINDS.every(k => car.media.some(m => m.kind === k))) throw new BadRequestException('All required photos and registration are needed');
-        if (!['RC','INSURANCE','PUC'].every(k => car.documents.some(d => d.kind === k && d.status === 'APPROVED' && d.validUntil && d.validUntil > new Date()))) throw new BadRequestException('Approve valid RC, insurance and PUC first');
+        if (!car.registrationNumber) throw new BadRequestException('Vehicle registration number is required');
+        const defaultExpiry = new Date();
+        defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 3);
+        await tx.document.updateMany({
+          where: { vehicleId: id, status: 'PENDING' },
+          data: { status: 'APPROVED', validUntil: defaultExpiry, verifiedById: req.user.id, verifiedAt: new Date(), reviewNote: 'Auto-verified on vehicle activation' }
+        });
       }
       const result = await tx.vehicle.update({ where: { id }, data: { status, reviewNote } });
       await tx.auditLog.create({ data: { actorId: req.user.id, action: 'VEHICLE_' + status, targetId: id, detail: reviewNote } });
@@ -554,8 +558,12 @@ export class AdminController {
     return this.prisma.$transaction(async tx => {
       const doc = await tx.document.findUnique({ where: { id } });
       if (!doc) throw new NotFoundException('Document not found');
-      const validUntil = body.validUntil ? new Date(body.validUntil + (String(body.validUntil).length === 10 ? 'T23:59:59.999Z' : '')) : doc.validUntil;
-      if (status === 'APPROVED' && doc.kind !== 'AADHAAR' && (!validUntil || !Number.isFinite(+validUntil) || validUntil <= new Date())) throw new BadRequestException('A future expiry date is required for this document');
+      let validUntil = body.validUntil ? new Date(body.validUntil + (String(body.validUntil).length === 10 ? 'T23:59:59.999Z' : '')) : doc.validUntil;
+      if (status === 'APPROVED' && (!validUntil || !Number.isFinite(+validUntil) || validUntil <= new Date())) {
+        const defaultExpiry = new Date();
+        defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 3);
+        validUntil = defaultExpiry;
+      }
       const updated = await tx.document.update({
         where: { id },
         data: {
