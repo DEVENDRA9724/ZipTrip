@@ -542,4 +542,86 @@ export class AdminController {
       return updated;
     });
   }
+
+  @Get('disputes')
+  async listDisputes(@Request() req: any) {
+    admin(req.user);
+    const logs = await this.prisma.auditLog.findMany({
+      where: { action: 'BOOKING_DISPUTE' },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    if (!logs.length) return [];
+    const actorIds = [...new Set(logs.map(l => l.actorId))];
+    const [actors, responses] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { id: { in: actorIds } },
+        select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+      }),
+      this.prisma.auditLog.findMany({
+        where: { action: 'DISPUTE_RESPONSE', targetId: { in: logs.map(l => l.id) } },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+    const actorMap = new Map(actors.map(a => [a.id, a]));
+    return logs.map(log => {
+      let parsed: any = {};
+      try { parsed = JSON.parse(log.detail || '{}'); } catch {}
+      const history = responses.filter(r => r.targetId === log.id).map(r => {
+        let rp: any = {};
+        try { rp = JSON.parse(r.detail || '{}'); } catch { rp = { note: r.detail }; }
+        return { id: r.id, status: rp.status || 'UNDER_REVIEW', note: rp.note || r.detail, createdAt: r.createdAt };
+      });
+      const latestStatus = history.length ? history[history.length - 1].status : (parsed.status || 'SUBMITTED');
+      const latestResponse = history.length ? history[history.length - 1].note : null;
+      return {
+        id: log.id,
+        reference: parsed.reference || ('DSP-' + log.id.slice(0, 8).toUpperCase()),
+        bookingId: parsed.bookingId || log.targetId,
+        bookingRef: parsed.bookingRef || '—',
+        vehicleTitle: parsed.vehicleTitle || 'Self-Drive Vehicle',
+        category: parsed.category || 'BILLING',
+        description: parsed.description || '',
+        amountClaimed: parsed.amountClaimed || 0,
+        mediaId: parsed.mediaId || null,
+        status: latestStatus,
+        adminResponse: latestResponse,
+        customer: actorMap.get(log.actorId) || null,
+        history,
+        createdAt: log.createdAt,
+      };
+    });
+  }
+
+  @Post('disputes/:id/resolve')
+  async resolveDispute(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const status = choice(body.status, 'Dispute status', ['SUBMITTED', 'UNDER_REVIEW', 'INFO_REQUIRED', 'RESOLVED', 'REJECTED']);
+    const note = text(body.note, 'Admin resolution note', 1000);
+    const dispute = await this.prisma.auditLog.findUnique({ where: { id } });
+    if (!dispute || dispute.action !== 'BOOKING_DISPUTE') throw new NotFoundException('Dispute not found');
+    let parsed: any = {};
+    try { parsed = JSON.parse(dispute.detail || '{}'); } catch {}
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: req.user.id,
+        action: 'DISPUTE_RESPONSE',
+        targetId: id,
+        detail: JSON.stringify({ status, note }),
+      },
+    });
+
+    await this.prisma.notification.create({
+      data: {
+        userId: dispute.actorId,
+        bookingId: dispute.targetId || undefined,
+        type: 'DISPUTE_UPDATE',
+        title: `Dispute ${parsed.reference || id.slice(0, 8)} updated: ${status.replaceAll('_', ' ')}`,
+        message: note,
+      },
+    });
+
+    return { ok: true, status, note };
+  }
 }

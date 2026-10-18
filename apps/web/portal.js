@@ -132,6 +132,70 @@ const badge = s => {
   return `<span class="badge ${cls}">${esc(val.replaceAll('_',' '))}</span>`;
 };
 
+/* ─── ICON LIBRARY (Lucide, ISC licence — inline SVG paths) ──────────── */
+const ICONS = {
+  car: '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+  pin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  calendar: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  card: '<rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/>',
+  support: '<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/>',
+  file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  idcard: '<path d="M16 10h2"/><path d="M16 14h2"/><path d="M6.17 15a3 3 0 0 1 5.66 0"/><circle cx="9" cy="11" r="2"/><rect x="2" y="5" width="20" height="14" rx="2"/>',
+  key: '<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>',
+  user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  fuel: '<line x1="3" x2="15" y1="22" y2="22"/><line x1="4" x2="14" y1="9" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>',
+  gauge: '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  gear: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  transmission: '<circle cx="6" cy="6" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="12" cy="18" r="2"/><path d="M6 8v8"/><path d="M12 8v8"/><path d="M18 8v4H6"/>',
+  star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  xCircle: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  bell: '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
+  receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  message: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  chevronRight: '<path d="m9 18 6-6-6-6"/>',
+  arrowRight: '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  chart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  banknote: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  route: '<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
+  truck: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+  scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  seat: '<path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1-1v-1a2 2 0 0 0-4 0v1a1 1 0 0 0 1 1z"/><path d="M21 20a1 1 0 0 0 1-1v-1a2 2 0 0 0-4 0v1a1 1 0 0 0 1 1z"/><path d="M7 18h10"/>',
+};
+function icon(name, cls = '') {
+  return `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[name] || ICONS.alert}</svg>`;
+}
+/* Vector brand mark: a road curve forming an "S" inside a rounded tile */
+function brandMark(size = 34, light = false) {
+  const tile = light ? '#FFFFFF' : '#3B123F';
+  const road = light ? '#3B123F' : '#FFFFFF';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
+}
+function brandLockup(light = false) {
+  return `<span class="ds-brand">${brandMark(34, light)}<span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
+}
+
 const page = location.pathname.split('/').pop() || 'index.html';
 let user = null, adminData;
 
@@ -210,402 +274,365 @@ function requireUser(roles) {
   return true;
 }
 
-/* ─── HEADER / SHELL (WITH MOBILE BOTTOM NAVIGATION) ─────────────────── */
+/* ─── COMPANY CONFIG ─────────────────────────────────────────────────── */
+const COMPANY = {
+  name: 'Safar Self Drive',
+  phone: '+91 99999 99999',
+  phoneHref: '+919999999999',
+  email: 'support@safarselfdrive.com',
+  hours: 'Every day, 8:00 AM – 10:00 PM',
+  address: 'Ellisbridge, Ahmedabad, Gujarat 380006, India',
+};
+const DEFAULT_CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'];
+const getCity = () => localStorage.getItem('safar-city') || '';
+const setCity = c => localStorage.setItem('safar-city', c || '');
+const initials = u => ((u?.firstName || '?')[0] + (u?.lastName || '')[0] || '').toUpperCase();
+
+/* ─── HEADER / SHELL ─────────────────────────────────────────────────── */
 function shell() {
+  const isPartner = ['HOST', 'DEALER'].includes(user?.role);
   const links = [
     ['cars.html', 'Explore Cars'],
-    [(['HOST','DEALER'].includes(user?.role) ? 'host-onboarding.html' : 'host-onboarding.html'), user?.role === 'DEALER' ? 'Dealer Fleet' : user?.role === 'HOST' ? 'Host Fleet' : 'List Your Car'],
-    ['dashboard.html', 'Account'],
-    ...(user?.role === 'ADMIN' ? [['admin.html', 'Admin']] : []),
+    ['index.html#how-it-works', 'How It Works'],
+    ['host-onboarding.html', isPartner ? 'Host Console' : 'Become a Host'],
+    ['index.html#support', 'Help & Support'],
+    ...(user?.role === 'ADMIN' ? [['admin.html', 'Admin Panel']] : []),
   ];
+  const city = getCity();
+  const cityOptions = ['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === city ? 'selected' : ''}>${c ? esc(c) : 'All Cities'}</option>`).join('');
+  const isActive = href => page === href.split('#')[0] && !href.includes('#');
 
   $('#header').innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;">
-      <a class="brand" href="index.html">
-        <img src="safar-logo.png" alt="Safar" class="brand-logo" onerror="this.style.display='none'">
-        <div class="brand-text">
-          <span class="brand-name">safar</span>
-          <span class="brand-tag">SELF DRIVE</span>
-        </div>
-      </a>
-      <div class="header-location-badge" title="Active Hubs Across Gujarat" style="display:inline-flex;align-items:center;gap:6px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:#334155;">
-        <span style="width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,0.25);"></span>
-        <span>Gujarat &bull; 5 Hubs Live</span>
-      </div>
-    </div>
-
-    <nav class="nav" aria-label="Main Navigation">
-      ${links.map(([href, label]) => `<a class="${page === href || (href === 'dashboard.html' && page === 'kyc.html') ? 'active' : ''}" href="${href}">${label}</a>`).join('')}
+    <a href="index.html" aria-label="Safar Self Drive Home" style="text-decoration:none">${brandLockup()}</a>
+    <nav class="ds-nav" aria-label="Main navigation">
+      ${links.map(([href, label]) => `<a href="${href}" class="${isActive(href) ? 'active' : ''}">${label}</a>`).join('')}
     </nav>
+    <div class="ds-head-right">
+      <label class="ds-city" title="Select pickup city">${icon('pin', 'ic-sm')}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">City</span><select id="ds-city-select" aria-label="Select city">${cityOptions}</select></label>
+      ${user ? `
+        <details class="ds-user-menu">
+          <summary aria-label="Account menu"><span class="ds-avatar">${esc(initials(user))}</span><span class="ds-hide-m">${esc(user.firstName)}</span></summary>
+          <div class="ds-menu-pop" role="menu">
+            <a href="dashboard.html?tab=trips" role="menuitem">${icon('calendar')} My Bookings</a>
+            <a href="dashboard.html?tab=kyc" role="menuitem">${icon('idcard')} KYC &amp; Verification</a>
+            <a href="dashboard.html?tab=disputes" role="menuitem">${icon('scale')} Booking Disputes</a>
+            <a href="dashboard.html?tab=history" role="menuitem">${icon('history')} Trip &amp; Damage History</a>
+            <a href="dashboard.html?tab=profile" role="menuitem">${icon('user')} Account Information</a>
+            ${isPartner ? `<a href="host-onboarding.html" role="menuitem">${icon('car')} Host Console</a>` : ''}
+            ${user.role === 'ADMIN' ? `<a href="admin.html" role="menuitem">${icon('layers')} Admin Panel</a>` : ''}
+            <hr>
+            <button type="button" id="logout-btn" role="menuitem">${icon('logout')} Sign out</button>
+          </div>
+        </details>`
+      : `<a class="button btn-ghost btn-sm ds-hide-m" href="auth.html">Log In</a>
+         <a class="button btn-orange btn-sm" href="auth.html?tab=register">Sign Up</a>`}
+      <button type="button" class="ds-burger btn-sm" id="ds-burger" aria-expanded="false" aria-controls="ds-drawer" aria-label="Open menu">${icon('menu')}</button>
+    </div>
+    <nav class="ds-drawer" id="ds-drawer" hidden aria-label="Mobile navigation">
+      ${links.map(([href, label]) => `<a href="${href}">${label}</a>`).join('')}
+      ${user ? `<a href="dashboard.html">My Account</a>${user.role === 'ADMIN' ? '<a href="admin.html">Admin Panel</a>' : ''}` : '<a href="auth.html">Log In / Sign Up</a>'}
+    </nav>`;
 
-    <details class="compact-menu"><summary aria-label="Open navigation menu">Menu <span aria-hidden="true">☰</span></summary><nav aria-label="Compact navigation">${links.map(([href,label]) => `<a href="${href}" ${page === href || (href === 'dashboard.html' && page === 'kyc.html') ? 'aria-current="page"' : ''}>${label}</a>`).join('')}</nav></details>
-    <div class="account">
-      <a href="tel:+919999999999" class="header-phone-pill" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:20px;font-size:12px;font-weight:700;color:#334155;text-decoration:none;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-        <span>+91 99999 99999</span>
-      </a>
-
-      <button class="dark-toggle" id="dark-toggle-btn" aria-label="Toggle dark mode" title="Toggle dark mode" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#F8FAFC;border:1px solid #E2E8F0;cursor:pointer;">
-        <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-      </button>
-
-      ${user
-        ? `<span class="user-pill">Hi, ${esc(user.firstName)}</span>
-           <button class="btn-ghost btn-sm" id="logout-btn">Sign out</button>`
-        : `<a class="btn-outline btn-sm button" href="auth.html">Sign In</a>
-           <a class="btn-orange btn-sm button" href="auth.html?tab=register">Register</a>`
-      }
-    </div>`;
-
-  // Dark mode: restore from localStorage
-  const savedTheme = localStorage.getItem('safar-theme');
-  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
-
-  $('#dark-toggle-btn')?.addEventListener('click', () => {
-    const isDark = document.documentElement.dataset.theme === 'dark';
-    document.documentElement.dataset.theme = isDark ? '' : 'dark';
-    localStorage.setItem('safar-theme', isDark ? '' : 'dark');
+  document.documentElement.dataset.theme = '';
+  $('#ds-city-select')?.addEventListener('change', e => {
+    setCity(e.target.value);
+    if (page === 'cars.html' && !new URLSearchParams(location.search).get('id')) {
+      const p = new URLSearchParams(location.search);
+      e.target.value ? p.set('city', e.target.value) : p.delete('city');
+      location.search = p.toString();
+    } else if (page === 'index.html' || page === '') home();
   });
-
+  $('#ds-burger')?.addEventListener('click', e => {
+    const d = $('#ds-drawer'); d.hidden = !d.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(!d.hidden));
+  });
+  document.addEventListener('click', e => {
+    const m = $('.ds-user-menu');
+    if (m?.open && !m.contains(e.target)) m.open = false;
+  });
   $('#logout-btn')?.addEventListener('click', async () => {
-    await post('/auth/logout', {});
-    location.href = 'auth.html';
+    await post('/auth/logout', {}).catch(() => {});
+    location.href = 'index.html';
   });
 
-  // Inject Mobile Bottom Navigation Bar for Mobile-First experience
   if (!$('#mobile-bnav')) {
     const bnav = document.createElement('nav');
     bnav.id = 'mobile-bnav';
     bnav.className = 'mobile-bnav';
     bnav.setAttribute('aria-label', 'Mobile Navigation');
     bnav.innerHTML = `
-      <a class="bnav-item ${page === 'index.html' || page === '' ? 'active' : ''}" href="index.html">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span>Home</span>
-      </a>
-      <a class="bnav-item ${page === 'cars.html' ? 'active' : ''}" href="cars.html">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 10.8 2 11 2 11.2V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
-        <span>Cars</span>
-      </a>
-      <a class="bnav-item ${page === 'dashboard.html' || page === 'kyc.html' ? 'active' : ''}" href="dashboard.html">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>Account</span>
-      </a>
-      ${user?.role === 'ADMIN' ? `
-      <a class="bnav-item ${page === 'admin.html' ? 'active' : ''}" href="admin.html">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span>Admin</span>
-      </a>` : `
-      <a class="bnav-item ${page === 'auth.html' ? 'active' : ''}" href="auth.html">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>${user ? 'Account' : 'Login'}</span>
-      </a>`}
+      <a class="bnav-item ${page === 'index.html' || page === '' ? 'active' : ''}" href="index.html">${icon('home')}<span>Home</span></a>
+      <a class="bnav-item ${page === 'cars.html' ? 'active' : ''}" href="cars.html">${icon('car')}<span>Cars</span></a>
+      <a class="bnav-item ${page === 'dashboard.html' || page === 'kyc.html' ? 'active' : ''}" href="dashboard.html">${icon('user')}<span>Account</span></a>
+      ${user?.role === 'ADMIN'
+        ? `<a class="bnav-item ${page === 'admin.html' ? 'active' : ''}" href="admin.html">${icon('layers')}<span>Admin</span></a>`
+        : `<a class="bnav-item ${page === 'host-onboarding.html' ? 'active' : ''}" href="host-onboarding.html">${icon('key')}<span>Host</span></a>`}
     `;
     document.body.appendChild(bnav);
   }
+
+  const footer = $('footer.footer');
+  if (footer) footer.innerHTML = `
+    <div class="ds-foot-grid">
+      <div class="ds-foot-brand">
+        ${brandLockup(true)}
+        <p style="margin-top:14px;max-width:320px">Verified self-drive car rentals with transparent pricing, documented vehicle handovers, and digital lease agreements.</p>
+      </div>
+      <div><h4>Book &amp; Drive</h4><a href="cars.html">Explore Cars</a><a href="index.html#how-it-works">How It Works</a><a href="index.html#faq">Frequently Asked Questions</a><a href="calculator.html">Trip Cost Estimator</a></div>
+      <div><h4>Company &amp; Hosts</h4><a href="about.html">About Safar</a><a href="host-onboarding.html">List Your Car</a><a href="services.html">Mobility Services</a><a href="contact.html">Contact Us</a></div>
+      <div><h4>Customer Support</h4><a href="tel:${COMPANY.phoneHref}">${esc(COMPANY.phone)}</a><a href="mailto:${COMPANY.email}">${esc(COMPANY.email)}</a><p style="margin:6px 0 0;font-size:13px">${esc(COMPANY.hours)}</p><p style="margin:4px 0 0;font-size:12.5px">${esc(COMPANY.address)}</p></div>
+    </div>
+    <div class="ds-foot-bottom">
+      <span>© ${new Date().getFullYear()} ${esc(COMPANY.name)}. All rights reserved.</span>
+      <span><a href="index.html#policies" style="color:inherit">Terms &amp; Conditions</a> · <a href="index.html#policies" style="color:inherit">Privacy Policy</a> · <a href="index.html#policies" style="color:inherit">Cancellation &amp; Refund Policy</a></span>
+    </div>`;
 }
 
-/* ─── CAR CARD (SAFAR HORIZON EDITION — BEATS ZOOMCAR) ───────────────── */
+/* ─── VEHICLE CARD (CLEAN MARKETPLACE DESIGN — REAL DATA ONLY) ───────── */
 function carCard(car) {
   const specs = [car.transmission, car.fuelType, car.seats + ' Seats', car.year].filter(Boolean).join(' · ');
   const rating = ratingSummary(car);
-  const numRating = rating.value === 'New' ? 4.88 : Number(rating.value);
-  const reviewCnt = rating.value === 'New' ? 14 : rating.count;
-  const ratingLabel = numRating >= 4.7 ? 'Guest Favourite' : numRating >= 4.4 ? 'Excellent' : 'Very Good';
-  const hrEquiv = Math.max(89, Math.round(Number(car.pricePerDay || 2400) / 24));
-  const photoCount = Array.isArray(car.media) && car.media.length ? car.media.length : 8;
-  // Deterministic realistic hub distance (1.2 km to 8.4 km)
+  const hasRating = rating.count > 0;
+  const numRating = hasRating ? Number(rating.value) : 0;
+  const perDay = Number(car.pricePerDay || 0);
+  const kmDay = Number(car.includedKilometresPerDay || 300);
+  const extraKm = Number(car.extraKmCharge || 12);
+  const pickup = car.currentHub?.hubName || car.pickupAddress || car.locationCity || 'Ahmedabad';
+  const verified = car.status === 'ACTIVE';
+  const params = new URLSearchParams(location.search);
+  const hasDates = params.has('startDate') && params.has('endDate');
+  const title = `${car.make || ''} ${car.model || ''}`.trim();
   const hashNum = (car.id || '1').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const distKm = ((hashNum % 72) / 10 + 1.2).toFixed(1);
-  const hostName = car.host?.firstName ? `${car.host.firstName} ${car.host.lastName || ''}`.trim() : 'Safar SuperHost';
 
   return `
-    <a class="car-card" href="${esc(carLink(car.id))}" data-category="${esc((car.category || '').toLowerCase())}" data-transmission="${esc((car.transmission || '').toLowerCase())}" data-dist="${distKm}" data-rating="${numRating}" data-year="${car.year || 2024}">
-      <div class="car-card-media">
-        <img src="${photoUrl(car)}" alt="${esc(car.make + ' ' + car.model)}" loading="lazy">
-        <span class="car-card-badge">⚡ 8-Angle S3 Verified</span>
-        <span class="car-card-rating" style="background:${numRating >= 4.7 ? 'linear-gradient(135deg,#D97706,#F59E0B)' : '#059669'};color:#fff;font-weight:800">
-          ★ ${numRating.toFixed(2)} (${reviewCnt}) · ${ratingLabel}
-        </span>
-        <div class="cockpit-hud-overlay">
-          <span>📷 ${photoCount}/8 S3 Angles</span>
-          <span>🏷️ FASTag Active</span>
-        </div>
+    <a class="vcard car-card" href="${esc(carLink(car.id))}"
+       data-category="${esc((car.category || '').toLowerCase())}"
+       data-transmission="${esc((car.transmission || '').toLowerCase())}"
+       data-dist="${distKm}"
+       data-rating="${hasRating ? numRating : 4.5}"
+       data-year="${Number(car.year) || 2024}">
+      <div class="vcard-media">
+        <img src="${photoUrl(car)}" alt="${esc(title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=70'">
+        ${verified ? `<span class="vcard-tag">${icon('shield', 'ic-sm')} Verified Listing</span>` : ''}
       </div>
-      <div class="car-card-info">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+      <div class="vcard-body">
+        <div class="vcard-title">
           <div>
-            <div class="car-card-name">${esc(car.make + ' ' + car.model + ' ' + car.year)}</div>
-            <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:2px">${esc(car.transmission || 'Automatic')} · ${esc(car.fuelType || 'Petrol')} · ${Number(car.seats || 5)} Seats</div>
+            <h3 class="car-card-name">${esc(title)}</h3>
+            <div class="sub">${esc([car.year, car.category].filter(Boolean).join(' · '))}</div>
           </div>
-          <span class="cc-badge cc-badge-gray">${esc((car.category || 'SUV').toUpperCase())}</span>
+          ${hasRating
+            ? `<span class="vcard-rating" title="${rating.count} verified customer review(s)">${icon('star')} ${rating.value} <span style="color:var(--ink-2);font-weight:500">(${rating.count})</span></span>`
+            : `<span class="vcard-rating new">New listing</span>`}
         </div>
         <div class="car-card-specs" style="display:none">${esc(specs)}</div>
-
-        <div class="car-card-badges" style="margin-top:10px">
-          <span class="cc-badge cc-badge-green">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            🚚 Doorstep Delivery
-          </span>
-          <span class="cc-badge cc-badge-green">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-            300 km / 24h incl.
-          </span>
+        <div class="vcard-specs">
+          ${car.transmission ? `<span>${icon('transmission', 'ic-sm')} ${esc(car.transmission)}</span>` : ''}
+          ${car.fuelType ? `<span>${icon('fuel', 'ic-sm')} ${esc(car.fuelType)}</span>` : ''}
+          ${car.seats ? `<span>${icon('users', 'ic-sm')} ${Number(car.seats)} Seats</span>` : ''}
         </div>
-
-        <div class="car-card-dist" style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-          <span style="display:inline-flex;align-items:center;gap:5px">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--orange)"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-            <strong>${distKm} km away</strong> · ${esc(car.locationCity || 'Ellisbridge, Ahmedabad')}
-          </span>
-        </div>
-
-        <div class="car-card-footer">
-          <div class="car-card-price-row">
-            <div>
-              <div class="car-card-price">₹${hrEquiv}<small>/hr</small></div>
-              <div class="car-card-daily" style="text-decoration:underline;font-weight:700">${money(car.pricePerDay)} / day excl. fuel</div>
-            </div>
-            <span class="btn-book">Book Drive &rarr;</span>
+        <div class="vcard-meta">${icon('pin', 'ic-sm')} <span>${esc(pickup)}</span></div>
+        ${hasDates ? `<div class="vcard-meta" style="color:var(--ok)">${icon('checkCircle', 'ic-sm')} <span>Available for selected dates</span></div>` : ''}
+        <div class="vcard-foot">
+          <div>
+            <div class="vcard-price">${money(perDay)}<small> / day</small></div>
+            <div class="vcard-price-note">${kmDay} km/day incl. · ${money(extraKm)}/km extra</div>
           </div>
-          <div class="car-card-host">
-            <span class="car-card-host-name">👤 By <strong>${esc(hostName)}</strong> · SuperHost</span>
-            <span class="instant-confirm">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              Instant e-Agreement
-            </span>
-          </div>
+          <span class="button btn-orange">View Details</span>
         </div>
       </div>
     </a>`;
 }
 
-/* ─── HOME PAGE — DIGITAL SHOWROOM & DRIVE MISSION EDITION ──────────── */
+/* ─── LANDING PAGE (10-SECTION PREMIUM AUTOMOTIVE REDESIGN) ─────────── */
 async function home() {
-  const tomorrow = new Date(Date.now() + 86400000);
-  const dayAfter = new Date(Date.now() + 2 * 86400000);
-  const dateInputValue = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
-  const today = dateInputValue(tomorrow);
-  const tom = dateInputValue(dayAfter);
+  const pad = n => String(n).padStart(2, '0');
+  const toLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(10, 0, 0, 0);
+  const end = new Date(start); end.setDate(end.getDate() + 1);
+  const minNow = new Date(Date.now() + 60 * 60000); minNow.setMinutes(0, 0, 0);
+  const city = getCity();
 
   $('#app').innerHTML = `
-    <!-- Live Telemetry Status Ribbon -->
-    <div class="cockpit-ribbon">
-      <div class="cockpit-ribbon-item"><span class="pulse-dot"></span> <strong>SHOWROOM LIVE:</strong> 100% Digital Handover</div>
-      <div class="cockpit-ribbon-item">🛡️ <strong>DIGILOCKER eKYC:</strong> 30-Second Instant Approval</div>
-      <div class="cockpit-ribbon-item">📸 <strong>8-ANGLE AI AUDIT:</strong> Zero-Dispute Pickup &amp; Return</div>
-      <div class="cockpit-ribbon-item">⚡ <strong>REFUNDABLE DEPOSIT:</strong> ₹2,000 Protected Escrow</div>
-    </div>
-
-    <div class="hero reveal-on-scroll">
-      <div>
-        <span class="hero-eyebrow">NEXT-GEN DIGITAL SELF-DRIVE SHOWROOM</span>
-        <h1 class="hero-heading">
-          Your Journey.<br>
-          <span class="accent">Your Cockpit.</span>
-        </h1>
-        <p class="hero-desc">Experience India's first telemetry-backed self-drive showroom. Inspect 8 real-time vehicle angles, unlock instant DigiLocker eKYC, and command verified SUVs, sedans &amp; 4x4s across Gujarat.</p>
-        <div class="hero-btns">
-          <a class="button btn-orange" href="cars.html">Launch Fleet Showroom &rarr;</a>
-          <a class="button btn-outline" href="host-onboarding.html">Monetize Your Car</a>
-        </div>
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <div class="hero-stat-num">50+</div>
-            <div class="hero-stat-lbl">Verified Fleet</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-num is-orange">8-Point</div>
-            <div class="hero-stat-lbl">Digital Twin Scan</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-num is-green">100%</div>
-            <div class="hero-stat-lbl">Transparent Escrow</div>
+    <section class="lp-hero" aria-labelledby="lp-title">
+      <img class="lp-hero-img" src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=2000&q=80" alt="Self-drive car on open highway" fetchpriority="high">
+      <div class="lp-hero-inner">
+        <div style="display:grid;gap:14px">
+          <span class="eyebrow" style="color:#F5D9A8">SELF-DRIVE CAR RENTALS</span>
+          <h1 id="lp-title">Your Next Drive Starts Here.</h1>
+          <p>Discover verified self-drive cars, transparent pricing, and convenient bookings for your next trip.</p>
+          <div class="lp-hero-ctas">
+            <a class="button btn-orange btn-lg" href="cars.html">Explore Cars</a>
+            <a class="button btn-outline btn-lg" href="host-onboarding.html">List Your Car</a>
           </div>
         </div>
-      </div>
-
-      <div class="booking-widget">
-        <div class="bw-title">Configure Your Drive</div>
-        <div class="bw-tabs">
-          <div class="bw-tab active" id="bw-t1">Self Drive</div>
-          <div class="bw-tab" id="bw-t2">Chauffeur Luxe</div>
-        </div>
-        <div class="bw-field-label">Departure Hub</div>
-        <select class="bw-select" id="bw-city">
-          <option>Ahmedabad (Airport, SG Highway, Ellis Bridge)</option>
-          <option>Surat (Airport, Dumas Road, Vesu)</option>
-          <option>Vadodara (Alkapuri, Railway Station)</option>
-          <option>Rajkot (Kalawad Road)</option>
-          <option>Gandhinagar (Infocity)</option>
-        </select>
-        <div class="bw-dates-row">
-          <div>
-            <div class="bw-field-label">Launch Date</div>
-            <input type="date" class="bw-date-input" id="bw-start" value="${today}" min="${today}">
-          </div>
-          <div>
-            <div class="bw-field-label">Return Date</div>
-            <input type="date" class="bw-date-input" id="bw-end" value="${tom}" min="${tom}">
-          </div>
-        </div>
-        <button class="bw-find-btn" id="find-available-cars">Scan Available Vehicles &rarr;</button>
-        <div class="bw-footer-note"><span>&check; Doorstep hub delivery</span> &bull; 300 km/day included</div>
-      </div>
-    </div>
-
-    <!-- Industry-First: Interactive Drive Mission / Mood Selector -->
-    <section class="mission-selector-panel reveal-on-scroll">
-      <div class="mission-header">
-        <div>
-          <span class="eyebrow" style="color:var(--orange);font-weight:800;font-size:11px;letter-spacing:0.14em;">INTERACTIVE AI CONCIERGE</span>
-          <h3 style="font-size:20px;margin:4px 0 2px;">Select Your Drive Mission</h3>
-          <p class="text-muted" style="margin:0;font-size:13px;">Filter the showroom floor instantly by how you plan to drive today.</p>
-        </div>
-        <a href="cars.html" class="button btn-outline btn-sm">Open Full Telemetry Filter &rarr;</a>
-      </div>
-      <div class="mission-cards-row" id="drive-mood-selector">
-        <button type="button" class="mission-card active" data-mission="all">
-          <span class="mission-icon">🌐</span>
-          <strong>All Showroom</strong>
-          <small>Every verified vehicle</small>
-        </button>
-        <button type="button" class="mission-card" data-mission="suv">
-          <span class="mission-icon">🏔️</span>
-          <strong>4x4 &amp; Expedition</strong>
-          <small>Thar, Fortuner &amp; High-GC SUVs</small>
-        </button>
-        <button type="button" class="mission-card" data-mission="muv">
-          <span class="mission-icon">👨‍👩‍👧‍👦</span>
-          <strong>Family Highway</strong>
-          <small>Innova Crysta &amp; 7-Seater Cruisers</small>
-        </button>
-        <button type="button" class="mission-card" data-mission="city">
-          <span class="mission-icon">⚡</span>
-          <strong>Urban Zip</strong>
-          <small>Swift, Hatchbacks &amp; Sedans</small>
-        </button>
-        <button type="button" class="mission-card" data-mission="auto">
-          <span class="mission-icon">🕹️</span>
-          <strong>Effortless Auto</strong>
-          <small>Automatic Gearbox Fleet</small>
-        </button>
+        <form class="lp-search" id="lp-search" novalidate aria-label="Search available cars">
+          <label>Pickup Location
+            <select name="city" id="lp-city">${['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === city ? 'selected' : ''}>${c || 'All Cities (Gujarat)'}</option>`).join('')}</select>
+          </label>
+          <label>Pickup Date &amp; Time<input type="datetime-local" name="start" id="lp-start" value="${toLocal(start)}" min="${toLocal(minNow)}" step="1800"></label>
+          <label>Return Date &amp; Time<input type="datetime-local" name="end" id="lp-end" value="${toLocal(end)}" min="${toLocal(start)}" step="1800"></label>
+          <button type="submit" class="btn-orange">${icon('search')} Search Cars</button>
+          <p id="lp-search-err" class="error" role="alert" hidden style="grid-column:1/-1;margin:0"></p>
+        </form>
       </div>
     </section>
 
-    ${sectionHead('Live Showroom Floor', 'Click any vehicle to enter its 8-angle digital cockpit and trip cost simulator.', 'TELEMETRY FLEET')}
-    <div class="car-grid" id="fleet">
-      ${[1,2,3,4,5,6].map(() => `<div class="skeleton-card">
-        <div class="sk-media skeleton-pulse"></div>
-        <div class="sk-info">
-          <div class="sk-title skeleton-pulse"></div>
-          <div class="sk-sub skeleton-pulse"></div>
-          <div class="sk-tags"><div class="sk-tag skeleton-pulse"></div><div class="sk-tag skeleton-pulse"></div><div class="sk-tag skeleton-pulse"></div></div>
-          <div class="sk-footer"><div class="sk-price skeleton-pulse"></div><div class="sk-btn skeleton-pulse"></div></div>
+    <section class="lp-section" aria-labelledby="lp-pop">
+      <div class="lp-section-head">
+        <div>
+          <div class="eyebrow">Verified Fleet</div>
+          <h2 id="lp-pop">${city ? `Cars Available in ${esc(city)}` : 'Popular Self-Drive Cars'}</h2>
         </div>
-      </div>`).join('')}
-    </div>
+        <a class="button btn-outline btn-sm" href="cars.html${city ? '?city=' + encodeURIComponent(city) : ''}">View All Cars ${icon('arrowRight', 'ic-sm')}</a>
+      </div>
+      <div class="lp-cats" id="lp-cats" role="group" aria-label="Filter by vehicle category"></div>
+      <div class="car-grid" id="fleet">${[1, 2, 3].map(() => '<div class="skeleton-card"><div class="sk-media skeleton-pulse"></div><div class="sk-info"><div class="sk-title skeleton-pulse"></div><div class="sk-sub skeleton-pulse"></div></div></div>').join('')}</div>
+    </section>
 
-    <div class="highlights-bar" style="margin-top:36px;">
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-green">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <section class="lp-section" id="how-it-works" aria-labelledby="lp-how">
+      <div class="lp-section-head">
+        <div>
+          <div class="eyebrow">How It Works</div>
+          <h2 id="lp-how">Book a Self-Drive Car in Four Steps</h2>
         </div>
-        <div><div class="hl-title">DigiLocker Verified</div><div class="hl-sub">Paperless govt eKYC</div></div>
       </div>
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-blue">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      <div class="lp-steps">
+        <div class="lp-step"><span class="num">1</span><h3>Search &amp; Compare</h3><p>Select your pickup city, dates, and times to compare available cars and complete price breakdowns.</p></div>
+        <div class="lp-step"><span class="num">2</span><h3>Verify Your Identity</h3><p>Complete driving licence and government ID verification once from your account dashboard.</p></div>
+        <div class="lp-step"><span class="num">3</span><h3>Confirm &amp; Pay Online</h3><p>Review the rental agreement, included kilometres, and security deposit before completing checkout.</p></div>
+        <div class="lp-step"><span class="num">4</span><h3>Inspect &amp; Drive</h3><p>Record pre-trip and post-trip condition photos and odometer readings at pickup and return.</p></div>
+      </div>
+    </section>
+
+    <section class="lp-section alt" aria-labelledby="lp-why">
+      <div class="lp-section-head">
+        <div>
+          <div class="eyebrow">Why Customers Choose Safar</div>
+          <h2 id="lp-why">Built Around Clarity, Documentation &amp; Trust</h2>
         </div>
-        <div><div class="hl-title">8-Angle Digital Twin</div><div class="hl-sub">Pre-trip &amp; return scan</div></div>
       </div>
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-orange">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div class="lp-values">
+        <div class="lp-value"><span class="ico">${icon('shield')}</span><div><h3>Verified Customer &amp; Vehicle Documentation</h3><p>Every listed vehicle undergoes RC, insurance, and photo verification before activation, and renters complete identity and driving licence checks.</p></div></div>
+        <div class="lp-value"><span class="ico">${icon('receipt')}</span><div><h3>Transparent Rental Pricing</h3><p>Daily rates, included kilometre allowances, excess kilometre charges, and refundable security deposits are itemized upfront before payment.</p></div></div>
+        <div class="lp-value"><span class="ico">${icon('card')}</span><div><h3>Secure Online Payments</h3><p>Each confirmed reservation generates an official digital rental agreement and downloadable tax invoice.</p></div></div>
+        <div class="lp-value"><span class="ico">${icon('camera')}</span><div><h3>Documented Pickup &amp; Return</h3><p>Multi-angle vehicle photos and odometer readings at both pickup and return protect both guests and hosts.</p></div></div>
+        <div class="lp-value"><span class="ico">${icon('clock')}</span><div><h3>Clear Cancellation &amp; Refund Policies</h3><p>Cancellation timelines and security deposit settlement calculations are documented in your rental agreement.</p></div></div>
+        <div class="lp-value"><span class="ico">${icon('support')}</span><div><h3>Responsive Booking Support</h3><p>Dedicated support team and an online dispute resolution tracker directly inside your customer account.</p></div></div>
+      </div>
+    </section>
+
+    <section class="lp-section" aria-labelledby="lp-host">
+      <div class="lp-host">
+        <div class="lp-host-copy">
+          <div class="eyebrow" style="color:#E5C9E6">Host &amp; Vehicle-Owner Onboarding</div>
+          <h2 id="lp-host">Share Your Car on Safar</h2>
+          <p>List your personal car or dealership fleet with structured inspections, verified renters, and transparent payout settlements.</p>
+          <ul>
+            <li>${icon('check')} Register your vehicle with 8-angle inspection photos, RC, and insurance documentation.</li>
+            <li>${icon('check')} Manage your availability calendar, daily pricing, and upcoming guest handovers in one console.</li>
+            <li>${icon('check')} Receive 80% net host revenue share settled directly to your verified bank account.</li>
+          </ul>
+          <div><a class="button btn-orange" href="host-onboarding.html">Become a Host</a></div>
         </div>
-        <div><div class="hl-title">Zero Hidden Charges</div><div class="hl-sub">Live fuel &amp; toll clarity</div></div>
+        <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80" alt="Vehicle owner handing over car keys" loading="lazy">
       </div>
-      <div class="highlight-pill reveal-on-scroll">
-        <div class="hl-icon-wrap hl-purple">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#411945" stroke-width="2.2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C2.1 10.8 2 11 2 11.2V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+    </section>
+
+    <section class="lp-section" id="lp-reviews-wrap" hidden aria-labelledby="lp-rev">
+      <div class="lp-section-head">
+        <div>
+          <div class="eyebrow">Customer Reviews</div>
+          <h2 id="lp-rev">Feedback from Completed Bookings</h2>
         </div>
-        <div><div class="hl-title">Instant Vehicle Swap</div><div class="hl-sub">24/7 fleet backup guarantee</div></div>
       </div>
-    </div>
+      <div class="lp-reviews" id="lp-reviews"></div>
+    </section>
 
-    <div class="how-grid">
-      <div class="how-card reveal-on-scroll" data-step="01">
-        <div class="how-num">01 &middot; Configure</div>
-        <h3>Pick Your Mission &amp; Vehicle</h3>
-        <p>Inspect all 8 exterior/cabin angles and simulate your highway fuel &amp; trip budget live.</p>
+    <section class="lp-section" id="faq" aria-labelledby="lp-faq">
+      <div class="lp-section-head">
+        <div>
+          <div class="eyebrow">Frequently Asked Questions</div>
+          <h2 id="lp-faq">Common Questions About Self-Drive Rentals</h2>
+        </div>
       </div>
-      <div class="how-card reveal-on-scroll" data-step="02">
-        <div class="how-num">02 &middot; Authenticate</div>
-        <h3>One-Tap DigiLocker eKYC</h3>
-        <p>Aadhaar and Driving Licence verified in seconds via official government gateway.</p>
+      <div class="faq">
+        <details><summary>What documents are required to book and pick up a car?</summary><p>A valid Indian Driving Licence appropriate for the vehicle category and a government-issued identity document (Aadhaar). You can complete verification online from <a href="dashboard.html?tab=kyc">your account</a> prior to pickup.</p></details>
+        <details><summary>How does fuel policy work?</summary><p>Rates exclude fuel. Vehicles are handed over with a recorded fuel percentage at pickup and must be returned with the same fuel level. Any shortfall is adjusted during settlement.</p></details>
+        <details><summary>What is the included kilometre allowance?</summary><p>Each vehicle card and detail page specifies the included kilometres per day (typically 300 km/day) and the applicable per-kilometre charge for additional distance.</p></details>
+        <details><summary>When is the refundable security deposit returned?</summary><p>Following the return inspection and odometer/fuel verification, the refundable deposit is processed within 2–5 business days after deducting any documented excess distance, late return, or damage charges.</p></details>
+        <details><summary>How can I cancel or raise a dispute on a booking?</summary><p>Upcoming reservations can be cancelled directly from <a href="dashboard.html?tab=trips">My Bookings</a> according to the Schedule IV cancellation policy. For billing or condition issues on any trip, use the <a href="dashboard.html?tab=disputes">Booking Disputes</a> tab in your account.</p></details>
+        <details id="policies"><summary>Where can I review the Lease Agreement, Privacy Policy, and Cancellation Terms?</summary><p>Every reservation includes a complete digital Car Sharing Lease Agreement covering party responsibilities, mileage schedules, deposit rules, and cancellation tiers. You can view or download it as a PDF at any time from your booking record.</p></details>
       </div>
-      <div class="how-card reveal-on-scroll" data-step="03">
-        <div class="how-num">03 &middot; Command</div>
-        <h3>4-Side Handover &amp; Drive</h3>
-        <p>Upload 4-side pickup photos from your phone, unlock the car, and hit the road.</p>
+    </section>
+
+    <section class="lp-section" id="support" aria-labelledby="lp-sup">
+      <div class="lp-section-head">
+        <div>
+          <div class="eyebrow">Customer Support</div>
+          <h2 id="lp-sup">We Are Here to Help</h2>
+        </div>
       </div>
-    </div>`;
+      <div class="lp-support">
+        <a class="ds-card" href="tel:${COMPANY.phoneHref}"><span class="lp-value"><span class="ico">${icon('phone')}</span></span><div><strong>Booking Helpline</strong><p style="margin:2px 0 0">${esc(COMPANY.phone)} · ${esc(COMPANY.hours)}</p></div></a>
+        <a class="ds-card" href="mailto:${COMPANY.email}"><span class="lp-value"><span class="ico">${icon('mail')}</span></span><div><strong>Email Support</strong><p style="margin:2px 0 0">${esc(COMPANY.email)}</p></div></a>
+        <a class="ds-card" href="dashboard.html?tab=disputes"><span class="lp-value"><span class="ico">${icon('scale')}</span></span><div><strong>Dispute &amp; Issue Tracker</strong><p style="margin:2px 0 0">Raise and track booking or refund inquiries online.</p></div></a>
+      </div>
+    </section>`;
 
-  // Tab switching
-  $$('.bw-tab').forEach(tab => tab.addEventListener('click', () => {
-    $$('.bw-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-  }));
-
-  // Sync drop date to always be >= pickup date
-  const startEl = $('#bw-start'), endEl = $('#bw-end');
-  $('#find-available-cars').onclick = () => {
-    const start = new Date(startEl.value + 'T10:00:00');
-    const end = new Date(endEl.value + 'T10:00:00');
-    if (!Number.isFinite(+start) || !Number.isFinite(+end) || start <= new Date() || end <= start) return toast('Choose a future pickup date and a later return date. Pickup and return default to 10:00 AM; you can adjust times on the next page.', true);
-    location.assign('cars.html?' + new URLSearchParams({ startDate: start.toISOString(), endDate: end.toISOString(), city: $('#bw-city').value.replace(/\s*\(.*\)$/, '') }));
-  };
-  if (startEl && endEl) {
-    startEl.addEventListener('change', () => { if (endEl.value < startEl.value) endEl.value = startEl.value; endEl.min = startEl.value; });
-  }
-
-  initReveal();
+  const startEl = $('#lp-start'), endEl = $('#lp-end'), err = $('#lp-search-err');
+  startEl.addEventListener('change', () => {
+    endEl.min = startEl.value;
+    if (endEl.value <= startEl.value) { const s = new Date(startEl.value); s.setDate(s.getDate() + 1); endEl.value = toLocal(s); }
+  });
+  $('#lp-search').addEventListener('submit', e => {
+    e.preventDefault();
+    const s = new Date(startEl.value), en = new Date(endEl.value);
+    let msg = '';
+    if (!Number.isFinite(+s) || !Number.isFinite(+en)) msg = 'Please select both pickup and return dates and times.';
+    else if (s < new Date(Date.now() - 5 * 60000)) msg = 'Pickup date and time must be in the future.';
+    else if (en - s < 4 * 3600000) msg = 'Return time must be at least 4 hours after pickup.';
+    if (msg) { err.textContent = msg; err.hidden = false; return; }
+    err.hidden = true;
+    const c = $('#lp-city').value; setCity(c);
+    const p = new URLSearchParams({ startDate: s.toISOString(), endDate: en.toISOString() });
+    if (c) p.set('city', c);
+    location.assign('cars.html?' + p);
+  });
 
   try {
-    const homeCars = await api('/vehicles');
-    const fleet = $('#fleet');
-    const renderShowroomMission = (mission = 'all') => {
-      const filtered = homeCars.filter(c => {
-        const cat = (c.category || '').toLowerCase();
-        const tx = (c.transmission || '').toLowerCase();
-        if (mission === 'suv') return cat.includes('suv');
-        if (mission === 'muv') return cat.includes('muv') || Number(c.seats) >= 6;
-        if (mission === 'city') return cat.includes('hatchback') || cat.includes('sedan');
-        if (mission === 'auto') return tx.includes('auto');
-        return true;
-      });
-      fleet.innerHTML = filtered.length
-        ? filtered.slice(0, 8).map(carCard).join('')
-        : empty('No vehicles in this mission', 'Switch back to All Showroom to view the full fleet.');
-      fleet.querySelectorAll('.car-card').forEach((el, i) => {
-        el.style.animationDelay = (i * 0.05) + 's';
-        el.classList.add('reveal-on-scroll', 'revealed');
-      });
+    const all = await api('/vehicles');
+    const pool = city ? all.filter(c => (c.locationCity || '').toLowerCase().includes(city.toLowerCase())) : all;
+    const cats = [...new Set(pool.map(c => c.category).filter(Boolean))];
+    const render = cat => {
+      const list = (cat ? pool.filter(c => c.category === cat) : pool)
+        .slice().sort((a, b) => ratingSummary(b).count - ratingSummary(a).count).slice(0, 6);
+      $('#fleet').innerHTML = list.length ? list.map(carCard).join('')
+        : empty('No vehicles available for this filter', city ? `No active listings found in ${esc(city)}. Select All Cities to browse the complete fleet.` : 'New vehicles are being onboarded.');
     };
-    renderShowroomMission('all');
-
-    $$('#drive-mood-selector .mission-card').forEach(btn => {
-      btn.onclick = () => {
-        $$('#drive-mood-selector .mission-card').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderShowroomMission(btn.dataset.mission);
-      };
+    $('#lp-cats').innerHTML = cats.length > 1
+      ? [`<button type="button" class="chip active" data-cat="">All Categories</button>`, ...cats.map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`)].join('')
+      : '';
+    $$('#lp-cats .chip').forEach(b => b.onclick = () => {
+      $$('#lp-cats .chip').forEach(x => x.classList.toggle('active', x === b));
+      render(b.dataset.cat);
     });
+    render('');
 
-    initReveal();
-    initCountUp();
+    const reviews = all.flatMap(c => (c.reviews || []).filter(r => r.comment && Number(r.rating) >= 1).map(r => ({ ...r, car: `${c.make} ${c.model}` })))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 3);
+    if (reviews.length) {
+      $('#lp-reviews').innerHTML = reviews.map(r => `
+        <figure class="lp-review">
+          <div class="stars" aria-label="${Number(r.rating)} out of 5 stars">${'★'.repeat(Math.round(r.rating))}${'☆'.repeat(5 - Math.round(r.rating))}</div>
+          <blockquote style="margin:10px 0;color:var(--ink)">${esc(r.comment)}</blockquote>
+          <figcaption class="text-muted" style="font-size:13px">${esc(r.author?.firstName || 'Verified Customer')} · ${esc(r.car)}</figcaption>
+        </figure>`).join('');
+      $('#lp-reviews-wrap').hidden = false;
+    }
   } catch (e) {
-    $('#fleet').innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    $('#fleet').innerHTML = `<p class="error">Unable to load vehicles: ${esc(e.message)}</p>`;
   }
 }
 
