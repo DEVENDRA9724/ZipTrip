@@ -265,6 +265,28 @@ export class AdminController {
     return { bookingId: id, depositHeld: Number(booking.securityDeposit), includedKilometres: booking.includedKilometres, travelledKilometres: travelled, excessKilometres: excessKm, excessKmRate: rentalPolicy.excessKmRate, excessCharge, lateGraceMinutes: rentalPolicy.lateGraceMinutes, lateMinutes: late.lateMinutes, lateCharge: late.amount, automaticCharges, suggestedDepositDeduction: Math.min(Number(booking.securityDeposit), automaticCharges), estimatedDepositRelease: Math.max(0, Number(booking.securityDeposit) - automaticCharges), damageReviewRequired: Boolean(returned?.damageNote && !/^no visible damage$/i.test(returned.damageNote.trim())), settlement: booking.settlement, note: 'Damage, fuel, tolls, fines and cleaning require documented admin review before any additional deduction.' };
   }
 
+  @Get('vehicles/:id/history')
+  async vehicleHistory(@Request() req: any, @Param('id') id: string, @Query() query: any = {}) {
+    admin(req.user);
+    const take = query.take === undefined ? 100 : number(query.take, 'History limit', 1, 500, true);
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id },
+      select: { id: true, make: true, model: true, registrationNumber: true, status: true, odometer: true, fuelLevelPercent: true },
+    });
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+    const [events, bookings, documents] = await Promise.all([
+      this.prisma.auditLog.findMany({ where: { targetId: id }, orderBy: { createdAt: 'desc' }, take }),
+      this.prisma.booking.findMany({
+        where: { vehicleId: id },
+        select: { id: true, bookingRef: true, startDate: true, endDate: true, status: true, totalAmount: true, customer: { select: { firstName: true, lastName: true } } },
+        orderBy: { createdAt: 'desc' },
+        take,
+      }),
+      this.prisma.document.findMany({ where: { vehicleId: id }, orderBy: { createdAt: 'desc' }, take: 50 }),
+    ]);
+    return { vehicle, events, bookings, documents };
+  }
+
   @Post('bookings/:id/settle')
   async settleBooking(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     admin(req.user);

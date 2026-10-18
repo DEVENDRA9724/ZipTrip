@@ -11,6 +11,7 @@ import { rentalQuote } from './pricing';
 import { rentalPolicy, cancellationRefundPercent } from './rental-policy';
 import { agreementPolicySnapshot, carSharingAgreementTerms, CAR_SHARING_AGREEMENT_VERSION } from './car-sharing-agreement';
 import { NotificationsService } from '../notifications/notifications.service';
+import { assertBookingTransition } from '../rental-domain/rental-state';
 
 @Injectable()
 export class BookingsService {
@@ -123,6 +124,11 @@ export class BookingsService {
       if (booking.customerId !== customerId) throw new ForbiddenException('You can only pay for your own booking');
       if (booking.status === 'CONFIRMED' || booking.status === 'ACTIVE') return booking;
       if (booking.status !== 'PENDING') throw new BadRequestException('Only pending bookings can be paid');
+      try {
+        assertBookingTransition(booking.status, 'CONFIRMED');
+      } catch (error: any) {
+        throw new BadRequestException(error.message);
+      }
       if (booking.expiresAt && booking.expiresAt < new Date()) {
         throw new BadRequestException('This booking hold has expired. Please create a new booking.');
       }
@@ -477,6 +483,11 @@ export class BookingsService {
       if (!['PENDING', 'CONFIRMED'].includes(booking.status) || booking.startDate <= new Date()) {
         throw new BadRequestException('Cancellation is only available before pickup');
       }
+      try {
+        assertBookingTransition(booking.status, 'CANCELLED');
+      } catch (error: any) {
+        throw new BadRequestException(error.message);
+      }
       const changed = await tx.booking.updateMany({ where: { id, status: booking.status }, data: { status: 'CANCELLED' } });
       if (changed.count !== 1) throw new ConflictException('Booking changed; refresh and retry');
       await tx.payment.updateMany({ where: { bookingId: id, status: 'SUCCESS' }, data: { status: 'REFUND_PENDING' } });
@@ -525,6 +536,13 @@ export class BookingsService {
       }
       if (stage === 'DAMAGE' && booking.status !== 'ACTIVE') {
         throw new BadRequestException('Damage reports are available during an active trip');
+      }
+      if (stage !== 'DAMAGE') {
+        try {
+          assertBookingTransition(booking.status, stage === 'PICKUP' ? 'ACTIVE' : 'COMPLETED');
+        } catch (error: any) {
+          throw new BadRequestException(error.message);
+        }
       }
 
       const pickupInspection = booking.inspections.find(i => i.stage === 'PICKUP');
@@ -673,6 +691,35 @@ export class BookingsService {
           },
         });
 
+        // Persist the automatic part of the final settlement as soon as the
+        // vehicle is returned. Admin can later add documented damage, fuel,
+        // toll, fine, cleaning, or other charges through the settlement flow.
+        const depositHeld = Number(booking.securityDeposit || 0);
+        const refundAmount = Math.max(0, depositHeld - penaltyCharges);
+        const additionalAmountDue = Math.max(0, penaltyCharges - depositHeld);
+        await tx.bookingSettlement.upsert({
+          where: { bookingId: id },
+          update: {
+            depositHeld,
+            automaticCharges: penaltyCharges,
+            totalDeduction: penaltyCharges,
+            refundAmount,
+            additionalAmountDue,
+            status: 'PENDING',
+            note: 'Automatic excess-kilometre and late-return charges calculated; operations review required for final release.',
+          },
+          create: {
+            bookingId: id,
+            depositHeld,
+            automaticCharges: penaltyCharges,
+            totalDeduction: penaltyCharges,
+            refundAmount,
+            additionalAmountDue,
+            status: 'PENDING',
+            note: 'Automatic excess-kilometre and late-return charges calculated; operations review required for final release.',
+          },
+        });
+
         // Credit Host Revenue to Host Wallet upon completed trip
         const hostShare = Number(booking.hostRevenue) > 0
           ? Number(booking.hostRevenue)
@@ -695,6 +742,14 @@ export class BookingsService {
           action: stage,
           targetId: id,
           detail: `${stage} Handover · Odometer ${odometer} km · Fuel ${fuelPercent}% · ${mediaIds.length} photos + selfie verified`,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: user.id,
+          action: 'VEHICLE_' + stage + '_LOGGED',
+          targetId: booking.vehicleId,
+          detail: JSON.stringify({ bookingId: id, odometer, fuelPercent, mediaIds, damageNote }),
         },
       });
       return {
