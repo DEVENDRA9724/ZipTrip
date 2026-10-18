@@ -262,6 +262,52 @@ footer.footer { display: block !important; background: var(--brand); color: #E9D
 .mobile-bnav { border-top: 1px solid var(--line); background: #fff; }
 .mobile-bnav .bnav-item.active { color: var(--brand); }
 
+/* ── Final viewport and form containment rules ─────────────────────
+   These rules intentionally live at the end of the design system so
+   page-specific legacy styles cannot push a panel beyond the viewport. */
+main.container {
+  width: min(calc(100% - 32px), 1360px);
+  max-width: 1360px;
+  padding: 28px 0 72px;
+}
+.header { padding-inline: max(16px, calc((100vw - 1360px) / 2)); }
+footer.footer { padding-inline: max(16px, calc((100vw - 1360px) / 2)); }
+#app.container, #app.container > * { min-width: 0; max-width: 100%; }
+.details-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: clamp(16px, 2vw, 24px);
+}
+.details-layout > *, .details-gallery, .details-content-panel, .booking-panel-sticky {
+  min-width: 0; max-width: 100%;
+}
+.booking-panel-sticky {
+  width: 100%; overflow: hidden; box-sizing: border-box;
+}
+.booking-panel-sticky form, .booking-panel-sticky label,
+.booking-panel-sticky input, .booking-panel-sticky select,
+.booking-panel-sticky textarea, .booking-panel-sticky .pkg-selector-grid,
+.booking-panel-sticky .pkg-option-card, .booking-panel-sticky .bp-fare-calc {
+  min-width: 0; max-width: 100%; box-sizing: border-box;
+}
+.booking-panel-sticky input, .booking-panel-sticky select,
+.booking-panel-sticky textarea { width: 100%; }
+.details-back-bar, .details-layout { width: 100%; }
+.gallery-thumb-row { max-width: 100%; }
+.gallery-thumb-row, .horizon-jump-nav { scrollbar-width: thin; }
+.cars-layout, .admin-workspace, .two, .agreement-grid, .kyc-action-grid { min-width: 0; }
+.cars-layout > *, .admin-workspace > *, .two > *, .agreement-grid > *, .kyc-action-grid > * { min-width: 0; }
+@media (max-width: 900px) {
+  main.container { width: min(calc(100% - 24px), 760px); padding: 22px 0 72px; }
+  .details-layout { grid-template-columns: 1fr; }
+  .booking-panel-sticky { position: static; }
+}
+@media (max-width: 760px) {
+  main.container { width: calc(100% - 28px); padding: 18px 0 84px; }
+  .lp-hero-inner { padding-inline: clamp(18px, 5vw, 28px); }
+  .details-gallery, .details-content-panel, .booking-panel-sticky { border-radius: 14px; }
+  .details-content-panel, .booking-panel-sticky { padding: 16px; }
+}
+
 /* ── Landing page ───────────────────────────────────────────────── */
 .lp-hero { position: relative; border-radius: 18px; overflow: hidden; min-height: 560px; display: grid; align-items: end; margin: 10px 0 48px; background: #1d0f20; }
 .lp-hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .62; }
