@@ -1130,3 +1130,181 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   align-items: center !important;
   gap: 6px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIVE MOBILE CAMERA VEHICLE INSPECTION & GUIDED WALKAROUND
+   ═══════════════════════════════════════════════════════════════════════════ */
+.camera-hero-banner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+  background: linear-gradient(135deg, #1E0E36 0%, #3B1259 100%) !important;
+  border-radius: 18px !important;
+  padding: 18px 22px !important;
+  color: #fff !important;
+  box-shadow: 0 8px 24px rgba(59, 18, 89, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  margin-bottom: 16px !important;
+}
+.cam-banner-content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+.cam-icon-box {
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 13px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #FF9447 !important;
+  flex-shrink: 0 !important;
+}
+.cam-banner-actions .button {
+  box-shadow: 0 4px 16px rgba(232, 106, 23, 0.45) !important;
+  font-weight: 700 !important;
+  padding: 10px 18px !important;
+  font-size: 14px !important;
+}
+.cam-progress-track {
+  width: 100% !important;
+  height: 8px !important;
+  background: var(--line, #E2E4E8) !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+}
+.cam-progress-fill {
+  height: 100% !important;
+  background: linear-gradient(90deg, #E86A17, #10B981) !important;
+  transition: width 0.3s ease !important;
+  border-radius: 999px !important;
+}
+
+/* Photo Slot Styling with Direct Camera Support */
+.photo-slot {
+  background: #FFFFFF !important;
+  border: 1.5px dashed var(--line, #CBD5E1) !important;
+  border-radius: 18px !important;
+  padding: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+.photo-slot:hover {
+  border-color: #E86A17 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+}
+.photo-slot.slot-active-walkaround {
+  border-color: #E86A17 !important;
+  box-shadow: 0 0 0 4px rgba(232, 106, 23, 0.3) !important;
+  animation: pulse-border 1.4s infinite !important;
+}
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(232, 106, 23, 0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(232, 106, 23, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 106, 23, 0); }
+}
+.photo-slot.slot-done {
+  border-style: solid !important;
+  border-color: #10B981 !important;
+  background: rgba(16, 185, 129, 0.02) !important;
+}
+.slot-header {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+.slot-header strong {
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  color: var(--ink, #0F172A) !important;
+  letter-spacing: 0.02em !important;
+}
+.slot-guide {
+  font-size: 11.5px !important;
+  color: var(--ink-2, #64748B) !important;
+  line-height: 1.3 !important;
+}
+.slot-preview-area {
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 4 / 3 !important;
+  background: var(--bg-alt, #FAF8FA) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--line, #E2E4E8) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.slot-preview-area img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+.slot-placeholder {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 6px !important;
+  padding: 12px !important;
+  color: #94A3B8 !important;
+}
+.slot-cam-icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background: #F1F5F9 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #64748B !important;
+}
+.slot-hint {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #64748B !important;
+}
+.slot-actions {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+.slot-actions .button,
+.slot-actions button {
+  flex: 1 !important;
+  font-size: 12.5px !important;
+  padding: 7px 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  font-weight: 700 !important;
+  border-radius: 9px !important;
+}
+.slot-done-meta {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding-top: 4px !important;
+}
+.slot-done-meta .badge.ok {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+}
+

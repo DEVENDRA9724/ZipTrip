@@ -2285,20 +2285,82 @@ async function host(activeTab = 'overview') {
             </div>
 
             <div class="panel" style="margin-bottom:20px;">
-              <h3>02 · Mandatory 8-Angle Vehicle Inspection Photos</h3>
-              <div class="notice info" style="margin-bottom:16px;">
-                Upload 8 distinct vehicle photos covering every exterior and interior angle (Front, Rear, Left, Right, Interior, Boot, Bonnet, Odometer).
+              <div class="camera-hero-banner">
+                <div class="cam-banner-content">
+                  <div class="cam-icon-box">${icon('camera', 'ic-lg')}</div>
+                  <div>
+                    <h3 style="margin:0 0 4px 0;font-size:18px;">02 · Mandatory 8-Angle Vehicle Inspection</h3>
+                    <p style="margin:0;font-size:13px;color:var(--ink-2);">Capture photos directly using your mobile camera on-site, or upload existing photos from your files.</p>
+                  </div>
+                </div>
+                <div class="cam-banner-actions">
+                  <button type="button" id="btn-walkaround-cam" class="button btn-orange">
+                    ${icon('camera')} 📱 Start Guided Camera Walkaround
+                  </button>
+                </div>
               </div>
-              <p id="photo-progress" role="status" style="font-weight:700;color:var(--brand);">0 of 8 photos selected</p>
+
+              <div class="cam-progress-wrap" style="margin:16px 0 20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                  <span id="photo-progress" style="font-weight:700;color:var(--brand);font-size:13.5px;">0 of 8 vehicle angles captured</span>
+                  <span id="photo-progress-pct" style="font-size:12px;font-weight:600;color:var(--ink-2);">0% complete</span>
+                </div>
+                <div class="cam-progress-track">
+                  <div id="photo-progress-bar" class="cam-progress-fill" style="width:0%;"></div>
+                </div>
+              </div>
+
               <div class="photo-grid">
-                ${PHOTO_ANGLES.map(kind => `
-                  <div class="photo-slot" id="slot-${kind}">
-                    <label>${kind} VIEW
-                      <input type="file" name="${kind}" accept="image/jpeg,image/png,image/webp" required>
-                      <img hidden alt="${kind} preview">
-                      <span>Choose ${kind} photo · Max 8 MB</span>
-                    </label>
-                  </div>`).join('')}
+                ${PHOTO_ANGLES.map(kind => {
+                  const guide = {
+                    FRONT: 'Full front 45° angle & bumper',
+                    REAR: 'Full rear bumper & number plate',
+                    LEFT: 'Driver side full length',
+                    RIGHT: 'Passenger side full length',
+                    INTERIOR: 'Dashboard, steering & front seats',
+                    BOOT: 'Trunk open with spare tyre',
+                    BONNET: 'Engine bay open under bonnet',
+                    ODOMETER: 'Speedometer with current km reading'
+                  }[kind] || `${kind} view`;
+
+                  return `
+                  <div class="photo-slot" id="slot-${kind}" data-angle="${kind}">
+                    <div class="slot-header">
+                      <strong>${kind} VIEW</strong>
+                      <small class="slot-guide">${guide}</small>
+                    </div>
+
+                    <div class="slot-preview-area">
+                      <img hidden alt="${kind} preview" id="img-${kind}">
+                      <div class="slot-placeholder" id="ph-${kind}">
+                        <span class="slot-cam-icon">${icon('camera', 'ic-lg')}</span>
+                        <span class="slot-hint">Tap Camera to capture directly</span>
+                      </div>
+                    </div>
+
+                    <div class="slot-actions" id="actions-${kind}">
+                      <button type="button" class="button btn-orange btn-sm btn-slot-camera" data-angle="${kind}">
+                        ${icon('camera')} Camera
+                      </button>
+                      <button type="button" class="btn-ghost btn-sm btn-slot-upload" data-angle="${kind}">
+                        📁 Upload
+                      </button>
+                    </div>
+
+                    <div class="slot-done-meta" hidden id="meta-${kind}">
+                      <span class="badge ok">${icon('checkCircle')} Ready</span>
+                      <div style="display:flex;gap:6px;align-items:center;">
+                        <button type="button" class="btn-ghost btn-sm btn-slot-retake" data-angle="${kind}">${icon('camera')} Retake</button>
+                        <button type="button" class="btn-ghost btn-sm btn-slot-remove" data-angle="${kind}" style="color:var(--err,#DC2626);">✕</button>
+                      </div>
+                    </div>
+
+                    <!-- Hidden camera input with capture="environment" for direct mobile camera launch -->
+                    <input type="file" id="cam-${kind}" accept="image/*" capture="environment" hidden>
+                    <!-- Standard file input for form serialization & validation -->
+                    <input type="file" name="${kind}" id="file-${kind}" accept="image/jpeg,image/png,image/webp" hidden>
+                  </div>`;
+                }).join('')}
               </div>
             </div>
 
@@ -2399,55 +2461,195 @@ async function host(activeTab = 'overview') {
     await host('wallet');
   });
 
-  $$('.photo-slot input[type=file]').forEach(el => {
-    el.onchange = () => {
-      const slot = el.closest('.photo-slot');
-      const img = $('img', slot);
+  const capturedVehiclePhotos = new Map();
+
+  function updatePhotoProgress() {
+    const count = PHOTO_ANGLES.filter(k => capturedVehiclePhotos.has(k) || $(`#file-${k}`)?.files?.length).length;
+    const pct = Math.round((count / PHOTO_ANGLES.length) * 100);
+    const progEl = $('#photo-progress');
+    const pctEl = $('#photo-progress-pct');
+    const barEl = $('#photo-progress-bar');
+    if (progEl) progEl.textContent = `${count} of ${PHOTO_ANGLES.length} vehicle angles captured`;
+    if (pctEl) pctEl.textContent = `${pct}% complete`;
+    if (barEl) barEl.style.width = `${pct}%`;
+  }
+
+  function applyPhotoToSlot(kind, file, source = 'camera') {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && !file.type.startsWith('image/')) {
+      toast('Please choose a JPEG, PNG or WebP image.', true);
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast('Photo size too large (max 15 MB).', true);
+      return;
+    }
+
+    capturedVehiclePhotos.set(kind, file);
+
+    // Sync to form input using DataTransfer where supported
+    const fileInput = $(`#file-${kind}`);
+    if (fileInput) {
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+      } catch (err) {}
+    }
+
+    const slot = $(`#slot-${kind}`);
+    if (!slot) return;
+    const img = $(`#img-${kind}`);
+    const ph = $(`#ph-${kind}`);
+    const actions = $(`#actions-${kind}`);
+    const meta = $(`#meta-${kind}`);
+
+    if (img) {
       if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
-      if (el.files[0] && (!['image/jpeg','image/png','image/webp'].includes(el.files[0].type) || el.files[0].size > 8 * 1024 * 1024)) {
-        el.value = ''; toast('Choose a JPEG, PNG or WebP image up to 8 MB.', true);
+      img.dataset.url = URL.createObjectURL(file);
+      img.src = img.dataset.url;
+      img.hidden = false;
+    }
+    if (ph) ph.hidden = true;
+    if (actions) actions.hidden = true;
+    if (meta) meta.hidden = false;
+
+    slot.classList.add('slot-done');
+    updatePhotoProgress();
+    toast(`✓ ${kind} photo captured (${Math.round(file.size / 1024)} KB)`);
+  }
+
+  function clearSlotPhoto(kind) {
+    capturedVehiclePhotos.delete(kind);
+    const fileInput = $(`#file-${kind}`);
+    const camInput = $(`#cam-${kind}`);
+    if (fileInput) fileInput.value = '';
+    if (camInput) camInput.value = '';
+
+    const slot = $(`#slot-${kind}`);
+    if (!slot) return;
+    const img = $(`#img-${kind}`);
+    const ph = $(`#ph-${kind}`);
+    const actions = $(`#actions-${kind}`);
+    const meta = $(`#meta-${kind}`);
+
+    if (img) {
+      if (img.dataset.url) URL.revokeObjectURL(img.dataset.url);
+      img.hidden = true;
+      img.removeAttribute('src');
+    }
+    if (ph) ph.hidden = false;
+    if (actions) actions.hidden = false;
+    if (meta) meta.hidden = true;
+
+    slot.classList.remove('slot-done');
+    updatePhotoProgress();
+  }
+
+  let isWalkaroundActive = false;
+
+  function advanceWalkaround() {
+    const nextKind = PHOTO_ANGLES.find(k => !capturedVehiclePhotos.has(k) && !($(`#file-${k}`)?.files?.length));
+    if (!nextKind) {
+      isWalkaroundActive = false;
+      $$('.photo-slot').forEach(s => s.classList.remove('slot-active-walkaround'));
+      toast('🎉 All 8 vehicle angles captured! Review and submit your listing.');
+      return;
+    }
+
+    const idx = PHOTO_ANGLES.indexOf(nextKind);
+    $$('.photo-slot').forEach(s => s.classList.remove('slot-active-walkaround'));
+    const targetSlot = $(`#slot-${nextKind}`);
+    if (targetSlot) {
+      targetSlot.classList.add('slot-active-walkaround');
+      targetSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    const guide = {
+      FRONT: 'Step in front of the vehicle (45° angle showing bumper & number plate)',
+      REAR: 'Step to the back of the car (showing boot, tail lights & rear plate)',
+      LEFT: 'Step to the driver side (full length profile showing doors & wheels)',
+      RIGHT: 'Step to the passenger side (full length profile showing doors & wheels)',
+      INTERIOR: 'Open the driver door and capture dashboard, steering & seats',
+      BOOT: 'Open the trunk/boot (showing luggage area & spare tyre)',
+      BONNET: 'Pop open the hood/bonnet (showing clean engine bay)',
+      ODOMETER: 'Turn on ignition and capture the speedometer / odometer km readout'
+    }[nextKind] || `Capture ${nextKind} view`;
+
+    toast(`📸 Step ${idx + 1} of 8: ${guide}`);
+    setTimeout(() => {
+      $(`#cam-${nextKind}`)?.click();
+    }, 450);
+  }
+
+  $('#btn-walkaround-cam')?.addEventListener('click', () => {
+    isWalkaroundActive = true;
+    advanceWalkaround();
+  });
+
+  PHOTO_ANGLES.forEach(kind => {
+    $(`.btn-slot-camera[data-angle="${kind}"]`)?.addEventListener('click', () => {
+      $(`#cam-${kind}`)?.click();
+    });
+
+    $(`.btn-slot-upload[data-angle="${kind}"]`)?.addEventListener('click', () => {
+      $(`#file-${kind}`)?.click();
+    });
+
+    $(`.btn-slot-retake[data-angle="${kind}"]`)?.addEventListener('click', () => {
+      $(`#cam-${kind}`)?.click();
+    });
+
+    $(`.btn-slot-remove[data-angle="${kind}"]`)?.addEventListener('click', () => {
+      clearSlotPhoto(kind);
+    });
+
+    $(`#cam-${kind}`)?.addEventListener('change', (e) => {
+      if (e.target.files?.[0]) {
+        applyPhotoToSlot(kind, e.target.files[0], 'camera');
+        if (isWalkaroundActive) {
+          advanceWalkaround();
+        }
       }
-      if (!el.files[0]) { img.hidden = true; img.removeAttribute('src'); slot.classList.remove('slot-done'); $('span', slot).textContent = 'Choose photo · Max 8 MB'; }
-      $('#photo-progress').textContent = PHOTO_ANGLES.filter(kind => $('#car-listing-form').elements[kind].files.length).length + ' of 8 photos selected';
-      if (el.files[0]) {
-        img.dataset.url = URL.createObjectURL(el.files[0]);
-        img.src = img.dataset.url; img.hidden = false;
-        $('span', slot).textContent = el.files[0].name;
-        slot.classList.add('slot-done');
+    });
+
+    $(`#file-${kind}`)?.addEventListener('change', (e) => {
+      if (e.target.files?.[0]) {
+        applyPhotoToSlot(kind, e.target.files[0], 'file');
+        if (isWalkaroundActive) {
+          advanceWalkaround();
+        }
       }
-    };
+    });
   });
 
   const uploadCache = new Map();
   bindForm('#car-listing-form', async (data, form) => {
     const hashes = new Set();
     for (const kind of PHOTO_ANGLES) {
-      const file = form.elements[kind].files[0];
-      if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) throw new Error('Choose a JPEG, PNG or WebP up to 8 MB for ' + kind);
+      const file = form.elements[kind]?.files?.[0] || capturedVehiclePhotos.get(kind);
+      if (!file || (!['image/jpeg','image/png','image/webp'].includes(file.type) && !file.type.startsWith('image/')) || file.size > 15 * 1024 * 1024) {
+        throw new Error(`Please capture or upload a valid photo for ${kind}`);
+      }
       let hash = `${file.name}-${file.size}-${file.lastModified}`;
-      // SubtleCrypto is unavailable on some HTTP/IP deployments and older
-      // mobile WebViews. Treat it as an optional enhancement so a browser
-      // capability never prevents a host from submitting a valid listing.
       const subtle = globalThis.crypto?.subtle;
       if (typeof subtle?.digest === 'function') {
         try {
           const digest = await subtle.digest('SHA-256', await file.arrayBuffer());
           hash = Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, '0')).join('');
-        } catch {
-          // Keep the deterministic file metadata fallback above.
-        }
+        } catch {}
       }
       if (hashes.has(hash)) throw new Error('Each angle needs a distinct photo. Duplicate detected at ' + kind + '.');
       hashes.add(hash);
     }
     const mediaIds = [];
     for (const kind of PHOTO_ANGLES) {
-      const file = form.elements[kind].files[0];
+      const file = form.elements[kind]?.files?.[0] || capturedVehiclePhotos.get(kind);
       const cached = uploadCache.get(kind);
       if (cached?.file === file) {
         mediaIds.push(cached.id);
       } else {
-        toast(`Uploading ${kind}…`);
+        toast(`Uploading ${kind} photo…`);
         const media = await uploadFile(file, kind);
         uploadCache.set(kind, {file, id: media.id});
         mediaIds.push(media.id);
@@ -4287,10 +4489,49 @@ function renderAdminView(tab) {
           ${inp('seats', 'Seating Capacity', 'number', 'required min="1" max="50" value="5"')}
           ${inp('pricePerDay', 'Daily Rate (₹)', 'number', 'required min="1" max="1000000" value="2500"')}
           ${inp('odometer', 'Current Odometer (km)', 'number', 'required min="0" max="1000000" value="5000"')}
-          ${inp('images', 'Image URL (optional)', 'url', 'placeholder="https://images.unsplash.com/..."')}
+          <div class="form-group" style="margin-bottom:12px;">
+            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:13.5px;">Vehicle Photo (Camera Capture or Upload)</label>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <input type="file" id="admin-cam-snap-input" accept="image/*" capture="environment" hidden>
+              <input type="file" id="admin-file-upload-input" accept="image/jpeg,image/png,image/webp" hidden>
+              <button type="button" id="admin-cam-btn" class="button btn-orange btn-sm">${icon('camera')} 📱 Capture with Camera</button>
+              <button type="button" id="admin-upload-btn" class="button btn-outline btn-sm">📁 Choose File</button>
+              <div id="admin-cam-preview-row" style="display:none;align-items:center;gap:8px;">
+                <img id="admin-cam-preview-img" style="width:48px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--line);">
+                <span id="admin-cam-preview-status" style="font-size:12px;font-weight:700;color:var(--ok,#059669);">✓ Photo ready</span>
+              </div>
+            </div>
+          </div>
+          ${inp('images', 'Image URL (optional if photo captured)', 'text', 'placeholder="https://images.unsplash.com/..."')}
           <button type="submit" class="button btn-orange">Create &amp; Activate Vehicle</button>
         </form>
       `);
+
+      const handleAdminPhoto = async (file) => {
+        if (!file) return;
+        const previewRow = $('#admin-cam-preview-row');
+        const previewImg = $('#admin-cam-preview-img');
+        const status = $('#admin-cam-preview-status');
+        if (previewRow && previewImg) {
+          previewImg.src = URL.createObjectURL(file);
+          previewRow.style.display = 'inline-flex';
+          if (status) status.textContent = 'Uploading to S3…';
+        }
+        try {
+          const media = await uploadFile(file, 'FRONT');
+          const imagesInput = $('#admin-add-vehicle-form input[name="images"]');
+          if (imagesInput) imagesInput.value = `/api/media/${media.id}`;
+          if (status) status.textContent = '✓ Uploaded & Linked';
+          toast('Vehicle photo uploaded to S3!');
+        } catch (err) {
+          if (status) status.textContent = '✓ Ready';
+        }
+      };
+
+      $('#admin-cam-btn')?.addEventListener('click', () => $('#admin-cam-snap-input')?.click());
+      $('#admin-upload-btn')?.addEventListener('click', () => $('#admin-file-upload-input')?.click());
+      $('#admin-cam-snap-input')?.addEventListener('change', (e) => handleAdminPhoto(e.target.files?.[0]));
+      $('#admin-file-upload-input')?.addEventListener('change', (e) => handleAdminPhoto(e.target.files?.[0]));
 
       bindForm('#admin-add-vehicle-form', async data => {
         await post('/admin/vehicles', data);
