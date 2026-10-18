@@ -17,6 +17,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { PayoutsModule } from './payouts/payouts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentWebhookController } from './payments/payment-webhook.controller';
+import { OperationsModule } from './operations/operations.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { PaymentWebhookController } from './payments/payment-webhook.controller'
     ReviewsModule,
     PayoutsModule,
     NotificationsModule,
+    OperationsModule,
   ],
   controllers: [AppController, MediaController, KycController, AdminController, PaymentWebhookController],
   providers: [AppService, MediaService, SandboxService, DocumentEvidenceService],

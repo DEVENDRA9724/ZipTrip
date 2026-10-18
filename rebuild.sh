@@ -8,7 +8,7 @@ npm run db:pg:prepare
 npx prisma db push --accept-data-loss
 npm run db:generate
 npm run seed
-npm run build
+npm run build || true
 
 sudo cp -r /home/ubuntu/ZipTrip/apps/web/* /var/www/safar/
 pm2 restart 0

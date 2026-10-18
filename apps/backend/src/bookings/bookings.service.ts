@@ -12,6 +12,7 @@ import { rentalPolicy, cancellationRefundPercent } from './rental-policy';
 import { agreementPolicySnapshot, carSharingAgreementTerms, CAR_SHARING_AGREEMENT_VERSION } from './car-sharing-agreement';
 import { NotificationsService } from '../notifications/notifications.service';
 import { assertBookingTransition } from '../rental-domain/rental-state';
+import { calculateSettlement } from '../rental-domain/settlement';
 
 @Injectable()
 export class BookingsService {
@@ -694,27 +695,20 @@ export class BookingsService {
         // Persist the automatic part of the final settlement as soon as the
         // vehicle is returned. Admin can later add documented damage, fuel,
         // toll, fine, cleaning, or other charges through the settlement flow.
-        const depositHeld = Number(booking.securityDeposit || 0);
-        const refundAmount = Math.max(0, depositHeld - penaltyCharges);
-        const additionalAmountDue = Math.max(0, penaltyCharges - depositHeld);
+        const automaticSettlement = calculateSettlement({
+          depositHeld: Number(booking.securityDeposit || 0),
+          automaticCharges: penaltyCharges,
+        });
         await tx.bookingSettlement.upsert({
           where: { bookingId: id },
           update: {
-            depositHeld,
-            automaticCharges: penaltyCharges,
-            totalDeduction: penaltyCharges,
-            refundAmount,
-            additionalAmountDue,
+            ...automaticSettlement,
             status: 'PENDING',
             note: 'Automatic excess-kilometre and late-return charges calculated; operations review required for final release.',
           },
           create: {
             bookingId: id,
-            depositHeld,
-            automaticCharges: penaltyCharges,
-            totalDeduction: penaltyCharges,
-            refundAmount,
-            additionalAmountDue,
+            ...automaticSettlement,
             status: 'PENDING',
             note: 'Automatic excess-kilometre and late-return charges calculated; operations review required for final release.',
           },

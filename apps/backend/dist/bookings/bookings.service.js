@@ -27,6 +27,7 @@ const rental_policy_1 = require("./rental-policy");
 const car_sharing_agreement_1 = require("./car-sharing-agreement");
 const notifications_service_1 = require("../notifications/notifications.service");
 const rental_state_1 = require("../rental-domain/rental-state");
+const settlement_1 = require("../rental-domain/settlement");
 let BookingsService = class BookingsService {
     prisma;
     notifications;
@@ -704,27 +705,20 @@ let BookingsService = class BookingsService {
                         tripStatus: 'completed',
                     },
                 });
-                const depositHeld = Number(booking.securityDeposit || 0);
-                const refundAmount = Math.max(0, depositHeld - penaltyCharges);
-                const additionalAmountDue = Math.max(0, penaltyCharges - depositHeld);
+                const automaticSettlement = (0, settlement_1.calculateSettlement)({
+                    depositHeld: Number(booking.securityDeposit || 0),
+                    automaticCharges: penaltyCharges,
+                });
                 await tx.bookingSettlement.upsert({
                     where: { bookingId: id },
                     update: {
-                        depositHeld,
-                        automaticCharges: penaltyCharges,
-                        totalDeduction: penaltyCharges,
-                        refundAmount,
-                        additionalAmountDue,
+                        ...automaticSettlement,
                         status: 'PENDING',
                         note: 'Automatic excess-kilometre and late-return charges calculated; operations review required for final release.',
                     },
                     create: {
                         bookingId: id,
-                        depositHeld,
-                        automaticCharges: penaltyCharges,
-                        totalDeduction: penaltyCharges,
-                        refundAmount,
-                        additionalAmountDue,
+                        ...automaticSettlement,
                         status: 'PENDING',
                         note: 'Automatic excess-kilometre and late-return charges calculated; operations review required for final release.',
                     },

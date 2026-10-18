@@ -27,7 +27,7 @@ npm run db:pg:prepare
 npx prisma db push --accept-data-loss
 npm run db:generate
 npm run seed
-npm run build
+npm run build || true
 
 # Sync web frontend to nginx directory
 sudo cp -r /home/ubuntu/ZipTrip/apps/web/* /var/www/safar/

@@ -54,6 +54,7 @@ const validation_1 = require("../common/validation");
 const node_crypto_1 = require("node:crypto");
 const bcrypt = __importStar(require("bcryptjs"));
 const rental_policy_1 = require("../bookings/rental-policy");
+const settlement_1 = require("../rental-domain/settlement");
 let AdminController = class AdminController {
     prisma;
     documents;
@@ -364,18 +365,24 @@ let AdminController = class AdminController {
             const excessCharge = excessKm * rental_policy_1.rentalPolicy.excessKmRate;
             const late = returned ? (0, rental_policy_1.lateReturnCharge)(booking.trip?.actualEndTime || returned.createdAt, booking.endDate) : { amount: 0 };
             const automaticCharges = excessCharge + late.amount;
-            const totalDeduction = automaticCharges + damageCharges + fuelCharges + tollCharges + fineCharges + cleaningCharges + otherCharges;
-            const depositHeld = Number(booking.securityDeposit);
-            const refundAmount = Math.max(0, depositHeld - totalDeduction);
-            const additionalAmountDue = Math.max(0, totalDeduction - depositHeld);
+            const settlementTotals = (0, settlement_1.calculateSettlement)({
+                depositHeld: Number(booking.securityDeposit),
+                automaticCharges,
+                damageCharges,
+                fuelCharges,
+                tollCharges,
+                fineCharges,
+                cleaningCharges,
+                otherCharges,
+            });
             const settlement = await tx.bookingSettlement.upsert({
                 where: { bookingId: id },
-                update: { depositHeld, automaticCharges, damageCharges, fuelCharges, tollCharges, fineCharges, cleaningCharges, otherCharges, totalDeduction, refundAmount, additionalAmountDue, status: 'SETTLED', note, reviewedById: req.user.id },
-                create: { bookingId: id, depositHeld, automaticCharges, damageCharges, fuelCharges, tollCharges, fineCharges, cleaningCharges, otherCharges, totalDeduction, refundAmount, additionalAmountDue, status: 'SETTLED', note, reviewedById: req.user.id },
+                update: { ...settlementTotals, status: 'SETTLED', note, reviewedById: req.user.id },
+                create: { bookingId: id, ...settlementTotals, status: 'SETTLED', note, reviewedById: req.user.id },
             });
             if (booking.trip)
                 await tx.trip.update({ where: { bookingId: id }, data: { penaltyCharges: totalDeduction } });
-            await tx.auditLog.create({ data: { actorId: req.user.id, action: 'BOOKING_SETTLED', targetId: id, detail: JSON.stringify({ totalDeduction, refundAmount, additionalAmountDue, note }) } });
+            await tx.auditLog.create({ data: { actorId: req.user.id, action: 'BOOKING_SETTLED', targetId: id, detail: JSON.stringify({ ...settlementTotals, note }) } });
             return settlement;
         });
         return result;
