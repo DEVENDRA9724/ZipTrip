@@ -43,6 +43,24 @@ export class ReviewsService {
     return { ratings, count: ratings.length, average: average == null ? null : Math.round(average * 10) / 10 };
   }
 
+  async listAuthored(userId: string) {
+    const [vehicleReviews, partyRatings] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { authorId: userId },
+        include: { vehicle: { select: { id: true, make: true, model: true, year: true, registrationNumber: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
+      this.prisma.partyRating.findMany({
+        where: { authorId: userId },
+        include: { target: { select: { firstName: true, lastName: true, role: true } }, booking: { select: { bookingRef: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
+    ]);
+    return { vehicleReviews, partyRatings };
+  }
+
   async createParty(author: { id: string; role: string }, body: any) {
     const bookingId = text(body.bookingId, 'Booking', 80);
     const targetRole = text(body.targetRole, 'Rating target', 20).toUpperCase();

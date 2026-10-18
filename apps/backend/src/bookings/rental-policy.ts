@@ -10,6 +10,7 @@ export const rentalPolicy = {
   excessKmRate: Number(process.env.EXCESS_KM_RATE || 10),
   lateGraceMinutes: Number(process.env.LATE_RETURN_GRACE_MINUTES || 30),
   lateRatePerHour: Number(process.env.LATE_RETURN_RATE_PER_HOUR || 500),
+  platformCommissionRate: Number(process.env.PLATFORM_COMMISSION_RATE || 0.2),
   cancellation: {
     moreThan48Hours: 'Full rental refund, excluding non-refundable gateway charges.',
     between24And48Hours: '50% of the rental amount is refundable, excluding the security deposit and gateway charges.',
@@ -20,6 +21,7 @@ export const rentalPolicy = {
 for (const [key, value] of Object.entries(rentalPolicy)) {
   if (typeof value === 'number' && (!Number.isFinite(value) || value < 0)) throw new Error(`Invalid rental policy value: ${key}`);
 }
+if (rentalPolicy.platformCommissionRate > 1) throw new Error('PLATFORM_COMMISSION_RATE must be between 0 and 1');
 
 export function lateReturnCharge(returnedAt: Date, scheduledAt: Date) {
   const lateMinutes = Math.max(0, Math.ceil((+returnedAt - +scheduledAt) / 60000) - rentalPolicy.lateGraceMinutes);
@@ -35,7 +37,7 @@ export function cancellationRefundPercent(startDate: Date, now = new Date()) {
 }
 
 export function assertPolicyConfiguration() {
-  if (rentalPolicy.deposit < 0 || rentalPolicy.kilometresPer24Hours <= 0 || rentalPolicy.excessKmRate < 0 || rentalPolicy.lateRatePerHour < 0) {
+  if (rentalPolicy.deposit < 0 || rentalPolicy.kilometresPer24Hours <= 0 || rentalPolicy.excessKmRate < 0 || rentalPolicy.lateRatePerHour < 0 || rentalPolicy.platformCommissionRate < 0 || rentalPolicy.platformCommissionRate > 1) {
     throw new BadRequestException('Rental policy configuration is invalid');
   }
 }

@@ -193,7 +193,7 @@ function brandMark(size = 34, light = false) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
 }
 function brandLockup(light = false) {
-  return `<span class="ds-brand">${brandMark(34, light)}<span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
+  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
 }
 
 const page = location.pathname.split('/').pop() || 'index.html';
@@ -532,7 +532,7 @@ async function home() {
           <ul>
             <li>${icon('check')} Register your vehicle with 8-angle inspection photos, RC, and insurance documentation.</li>
             <li>${icon('check')} Manage your availability calendar, daily pricing, and upcoming guest handovers in one console.</li>
-            <li>${icon('check')} Receive 80% net host revenue share settled directly to your verified bank account.</li>
+            <li>${icon('check')} Receive the configured host settlement directly to your verified bank account.</li>
           </ul>
           <div><a class="button btn-orange" href="host-onboarding.html">Become a Host</a></div>
         </div>
@@ -743,18 +743,18 @@ function auth(forceRegister) {
       const devOtpCode = res.devOtp || '123456';
       showDialog(`
         <div style="text-align:center;padding:8px 4px">
-          <div style="width:56px;height:56px;border-radius:16px;background:rgba(232,106,23,0.12);color:#E86A17;display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:12px">📱</div>
+          <div style="width:56px;height:56px;border-radius:16px;background:rgba(59,18,63,0.08);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px"><span class="ico">${icon('phone')}</span></div>
           <h3 style="margin:0 0 6px">Verify Your Mobile Number</h3>
           <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit verification OTP to <strong>${esc(data.phone || 'your mobile')}</strong>.</p>
           <div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left">
-            <span><strong>Instant Test OTP:</strong> <code style="font-size:16px;font-weight:800;color:#E86A17">${esc(devOtpCode)}</code></span>
+            <span><strong>Verification OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
             <button type="button" id="autofill-otp-btn" class="btn-outline btn-sm">Auto-Fill OTP</button>
           </div>
           <form id="otp-verify-modal-form" class="form-stack" style="text-align:left">
             <label>Enter 6-Digit Mobile OTP
               <input name="otp" id="otp-modal-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required value="${esc(devOtpCode)}" style="font-size:22px;font-weight:800;letter-spacing:0.35em;text-align:center">
             </label>
-            <button type="submit" class="button btn-orange" style="width:100%">Verify OTP &amp; Proceed to e-KYC Face Match →</button>
+            <button type="submit" class="button btn-orange" style="width:100%">Verify OTP &amp; Proceed to e-KYC →</button>
           </form>
         </div>
       `);
@@ -785,7 +785,7 @@ function auth(forceRegister) {
   });
 }
 
-/* ─── SAFAR HORIZON DISCOVERY STUDIO (BEATS ZOOMCAR SEARCH UI) ───────── */
+/* ─── VEHICLE BROWSE & DISCOVERY STUDIO ──────────────────────────────── */
 let allCars = [];
 
 async function cars() {
@@ -794,14 +794,14 @@ async function cars() {
 
   $('#app').innerHTML = `
     <div class="cars-page-wrap">
-      <!-- Safar Horizon Floating Command Bar -->
+      <!-- Top Search & Schedule Command Bar -->
       <div class="horizon-search-bar">
         <div class="horizon-search-top">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span class="horizon-location-pill">
-              📍 <strong>Ellisbridge / SG Highway Hub, Ahmedabad</strong> <small style="opacity:0.75">(2HCG+X4C · Gujarat 380006)</small>
+              <span class="ico">${icon('pin')}</span> <strong>Ellisbridge / SG Highway Hub, Ahmedabad</strong> <small style="opacity:0.75">(Gujarat 380006)</small>
             </span>
-            <span class="badge ok">⚡ 8-Angle S3 Verified Fleet</span>
+            <span class="badge ok">${icon('shield')} 8-Angle S3 Verified Fleet</span>
           </div>
           <div class="horizon-km-toggle" id="horizon-km-pkg">
             <button type="button" class="active" data-pkg="300">300 Kms Included</button>
@@ -810,13 +810,13 @@ async function cars() {
         </div>
 
         <form id="availability-search" class="availability-search" style="margin:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);color:#fff">
-          <div class="availability-heading"><strong style="color:#fff">Drive Anywhere · Anytime</strong><span style="color:rgba(255,255,255,0.75)">Instant Biometric e-KYC · Car Lease e-Agreement · Zero Hidden Fees</span></div>
+          <div class="availability-heading"><strong style="color:#fff">Search Available Vehicles</strong><span style="color:rgba(255,255,255,0.75)">Transparent Pricing · Digital Lease Agreement · Verified Handover</span></div>
           <label style="color:#fff">Hub / City<input name="city" placeholder="Ahmedabad, Surat, Vadodara…" maxlength="120"></label>
-          <fieldset class="trip-date-range"><legend style="color:#FF9447">Trip Schedule</legend>
+          <fieldset class="trip-date-range"><legend style="color:#F07818">Trip Schedule</legend>
             <label style="color:#fff">Pick-up<input name="startDate" type="datetime-local" required></label>
             <label style="color:#fff">Drop-off<input name="endDate" type="datetime-local" required></label>
           </fieldset>
-          <button type="submit" class="button btn-orange">Update Drive Search →</button>
+          <button type="submit" class="button btn-orange">Update Search</button>
         </form>
       </div>
 
@@ -826,39 +826,38 @@ async function cars() {
           <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
-          <input id="car-search" type="search" placeholder="Search for Creta, Thar, Virtus, Automatic, 7 Seater, FASTag…" autocomplete="off">
+          <input id="car-search" type="search" placeholder="Search by make, model, city, transmission, fuel type…" autocomplete="off">
         </div>
         <select id="car-sort" class="sort-dropdown">
-          <option value="">Sort: Relevance &amp; Top Rated</option>
+          <option value="">Sort: Recommended</option>
           <option value="price_asc">Price: Low to High</option>
           <option value="price_desc">Price: High to Low</option>
           <option value="dist_asc">Distance: Nearest Hub First</option>
-          <option value="rating_desc">Rating: Highest Rated (4.8+)</option>
+          <option value="rating_desc">Rating: Highest Rated</option>
         </select>
       </div>
 
-      <!-- Smart Quick Filter Pills -->
+      <!-- Quick Filter Pills (Clean SVG Icons, Zero Emojis) -->
       <div class="chip-row" id="chip-row">
-        <button class="chip-btn active" data-filter="all">🌐 All Verified Cars</button>
-        <button class="chip-btn" data-filter="delivery">🚚 Home Delivery</button>
-        <button class="chip-btn" data-filter="superhost">🏆 SuperHost 4.7+</button>
-        <button class="chip-btn" data-filter="SUV">🚙 SUV &amp; 4x4</button>
-        <button class="chip-btn" data-filter="near">📍 Within 5 km</button>
-        <button class="chip-btn" data-filter="newmodel">✨ Model 2023+</button>
-        <button class="chip-btn" data-filter="7seater">👨‍👩‍👧‍👦 6/7 Seater</button>
-        <button class="chip-btn" data-filter="Automatic">⚙️ Automatic</button>
-        <button class="chip-btn" data-filter="Sedan">🚘 Sedan</button>
-        <button class="chip-btn" data-filter="Hatchback">⚡ Hatchback</button>
-        <button class="chip-btn" data-filter="Diesel">⛽ Diesel</button>
+        <button type="button" class="chip-btn active" data-filter="all">${icon('car')} All Verified Cars</button>
+        <button type="button" class="chip-btn" data-filter="SUV">SUV &amp; 4x4</button>
+        <button type="button" class="chip-btn" data-filter="Sedan">Sedan</button>
+        <button type="button" class="chip-btn" data-filter="Hatchback">Hatchback</button>
+        <button type="button" class="chip-btn" data-filter="Automatic">${icon('sliders')} Automatic</button>
+        <button type="button" class="chip-btn" data-filter="Diesel">${icon('fuel')} Diesel</button>
+        <button type="button" class="chip-btn" data-filter="7seater">${icon('users')} 6/7 Seater</button>
+        <button type="button" class="chip-btn" data-filter="near">${icon('pin')} Within 5 km</button>
+        <button type="button" class="chip-btn" data-filter="newmodel">Model 2023+</button>
+        <button type="button" class="chip-btn" data-filter="superhost">${icon('star')} Top Rated</button>
       </div>
 
       <!-- Two-Column Layout: Left Filter Studio + Right Fleet Grid -->
       <div class="cars-layout">
-        <button type="button" class="mobile-filter-toggle btn-outline" aria-expanded="false" aria-controls="vehicle-search-filters">Show Smart Filters</button>
+        <button type="button" class="mobile-filter-toggle btn-outline" aria-expanded="false" aria-controls="vehicle-search-filters">Show Filters</button>
         <aside class="sidebar-filters" id="vehicle-search-filters">
           <div class="filter-header-top">
-            <h3>Smart Filters</h3>
-            <button class="filter-reset-btn" id="clear-filters-btn">Reset All</button>
+            <h3>Filters</h3>
+            <button type="button" class="filter-reset-btn" id="clear-filters-btn">Reset All</button>
           </div>
 
           <!-- Distance Slider -->
@@ -869,19 +868,19 @@ async function cars() {
             </div>
             <input type="range" min="2" max="25" step="1" value="20" class="range-slider" id="distance-slider" />
             <div class="range-labels">
-              <span>Near (1 km)</span>
+              <span>Near (2 km)</span>
               <span>25 km</span>
             </div>
           </div>
 
           <!-- Delivery Type -->
           <div class="filter-group">
-            <div class="filter-title">Delivery &amp; Handover</div>
+            <div class="filter-title">Handover Option</div>
             <label class="checkbox-item">
               <input type="checkbox" id="filter-home-delivery" />
-              <span>🚚 Doorstep Home Delivery</span>
+              <span>Hub Pickup &amp; Doorstep Delivery</span>
             </label>
-            <small class="text-muted" style="display:block;font-size:11px;margin-top:4px">8-Angle S3 inspection performed at your doorstep or hub.</small>
+            <small class="text-muted" style="display:block;font-size:11px;margin-top:4px">8-angle inspection performed at handover.</small>
           </div>
 
           <!-- Daily / Total Price Slider -->
@@ -899,24 +898,24 @@ async function cars() {
 
           <!-- Car Type (Category) -->
           <div class="filter-group">
-            <div class="filter-title">Filter By Car Type</div>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="hatchback" checked /><span>Hatchback (Swift, Baleno, i20)</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="suv,compact suv" checked /><span>SUV / Compact SUV (Creta, Thar, Fronx)</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="sedan" checked /><span>Sedan (Virtus, City, Dzire)</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="muv" checked /><span>MUV / 7-Seater (Ertiga, Innova, Triber)</span></label>
+            <div class="filter-title">Segment / Body Type</div>
+            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="hatchback" checked /><span>Hatchback</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="suv,compact suv" checked /><span>SUV / Compact SUV</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="sedan" checked /><span>Sedan</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="muv" checked /><span>MUV / 7-Seater</span></label>
             <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="luxury" checked /><span>Luxury &amp; Executive</span></label>
           </div>
 
           <!-- Transmission -->
           <div class="filter-group">
-            <div class="filter-title">Filter By Transmission</div>
+            <div class="filter-title">Transmission</div>
             <label class="checkbox-item"><input type="checkbox" class="trans-cb" value="Automatic" checked /><span>Automatic</span></label>
             <label class="checkbox-item"><input type="checkbox" class="trans-cb" value="Manual" checked /><span>Manual</span></label>
           </div>
 
           <!-- Fuel Type -->
           <div class="filter-group">
-            <div class="filter-title">Filter By Fuel Type</div>
+            <div class="filter-title">Fuel Type</div>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Petrol" checked /><span>Petrol</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Diesel" checked /><span>Diesel</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="CNG" checked /><span>CNG</span></label>
@@ -926,10 +925,9 @@ async function cars() {
 
           <!-- Minimum Guest Rating -->
           <div class="filter-group">
-            <div class="filter-title">Guest Ratings</div>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.5" /><span>★ 4.5+ Rated (Guest Favourite)</span></label>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.2" /><span>★ 4.2+ Rated (Excellent)</span></label>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.0" /><span>★ 4.0+ Rated (Very Good)</span></label>
+            <div class="filter-title">Customer Rating</div>
+            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.5" /><span>4.5+ Rated</span></label>
+            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.0" /><span>4.0+ Rated</span></label>
             <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="0" checked /><span>All Verified Cars</span></label>
           </div>
 
@@ -946,12 +944,12 @@ async function cars() {
             </div>
           </div>
 
-          <!-- Safar Smart Add-Ons -->
+          <!-- Verification Standards -->
           <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
-            <div class="filter-title">Safar Exclusive Add-ons</div>
-            <label class="checkbox-item"><input type="checkbox" id="addon-fastag" checked /><span>🏷️ Active FASTag Equipped</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="addon-s3" checked /><span>📷 8-Angle S3 Pre-Inspected</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="addon-superhost" /><span>🏆 SuperHost Fleet Only</span></label>
+            <div class="filter-title">Verification Standards</div>
+            <label class="checkbox-item"><input type="checkbox" id="addon-fastag" checked /><span>Active FASTag Equipped</span></label>
+            <label class="checkbox-item"><input type="checkbox" id="addon-s3" checked /><span>8-Angle S3 Pre-Inspected</span></label>
+            <label class="checkbox-item"><input type="checkbox" id="addon-superhost" /><span>Top Rated Hosts Only</span></label>
           </div>
         </aside>
 
@@ -959,7 +957,7 @@ async function cars() {
         <div class="cars-results-wrap">
           <div class="cars-count-bar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <span id="cars-count-text" role="status" aria-live="polite" style="font-weight:800;font-size:15px">Loading verified fleet…</span>
-            <span style="font-size:12px;color:var(--text-muted)">All prices include 300 km/day &amp; 24/7 roadside assistance</span>
+            <span style="font-size:12px;color:var(--text-muted)">Base fare includes 300 km/day · Refundable deposit shown at checkout</span>
           </div>
           <div class="car-grid" id="fleet-grid"></div>
         </div>
@@ -979,7 +977,6 @@ async function cars() {
     location.assign('cars.html?' + new URLSearchParams({ city: data.city, startDate: start.toISOString(), endDate: end.toISOString() }));
   });
 
-  // Km package toggle in top bar
   $$('#horizon-km-pkg button').forEach(btn => {
     btn.onclick = () => {
       $$('#horizon-km-pkg button').forEach(b => b.classList.remove('active'));
@@ -1002,11 +999,10 @@ async function cars() {
     $('#fleet-grid').innerHTML = `<p class="error">${esc(e.message)}</p>`;
   }
 
-  // Event handlers
   $('.mobile-filter-toggle').onclick = event => {
     const expanded = event.currentTarget.getAttribute('aria-expanded') !== 'true';
     event.currentTarget.setAttribute('aria-expanded', String(expanded));
-    event.currentTarget.textContent = expanded ? 'Hide Smart Filters' : 'Show Smart Filters';
+    event.currentTarget.textContent = expanded ? 'Hide Filters' : 'Show Filters';
     $('#vehicle-search-filters').classList.toggle('filters-expanded', expanded);
   };
   $$('#chip-row .chip-btn').forEach(btn => {
@@ -1039,7 +1035,6 @@ async function cars() {
     cb.onchange = () => applyCarFilters();
   });
 
-  // Reset all
   $('#clear-filters-btn').onclick = () => {
     $$('#chip-row .chip-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     $$('.cat-cb, .trans-cb, .fuel-cb').forEach(cb => { cb.checked = true; });
@@ -1071,29 +1066,25 @@ function applyCarFilters() {
   };
   const getRating = c => {
     const r = ratingSummary(c);
-    return r.value === 'New' ? 4.88 : Number(r.value);
+    return r.count > 0 ? Number(r.value) : 0;
   };
 
-  // Text search
   const q = $('#car-search')?.value?.trim().toLowerCase() || '';
   if (q) {
     list = list.filter(c => (c.make + ' ' + c.model + ' ' + c.category + ' ' + c.locationCity + ' ' + c.fuelType + ' ' + c.transmission).toLowerCase().includes(q));
   }
 
-  // Active Quick Chip
   const activeChip = $('#chip-row .chip-btn.active')?.dataset?.filter || 'all';
   if (activeChip !== 'all') {
     if (['Manual','Automatic'].includes(activeChip)) list = list.filter(c => (c.transmission || '').toLowerCase() === activeChip.toLowerCase());
     else if (['Petrol','Diesel','Electric','CNG','Hybrid'].includes(activeChip)) list = list.filter(c => (c.fuelType || '').toLowerCase() === activeChip.toLowerCase());
-    else if (activeChip === 'superhost') list = list.filter(c => getRating(c) >= 4.7);
+    else if (activeChip === 'superhost') list = list.filter(c => getRating(c) >= 4.5);
     else if (activeChip === 'near') list = list.filter(c => getDist(c) <= 5.5);
     else if (activeChip === 'newmodel') list = list.filter(c => Number(c.year || 2024) >= 2023);
     else if (activeChip === '7seater') list = list.filter(c => Number(c.seats || 5) >= 6 || (c.category || '').toLowerCase().includes('muv'));
-    else if (activeChip === 'delivery') list = list; // All active hub cars support doorstep delivery
     else list = list.filter(c => (c.category || '').toLowerCase().includes(activeChip.toLowerCase()));
   }
 
-  // Sidebar Checkbox & Slider filters
   const selCats  = $$('.cat-cb:checked').map(x => x.value.toLowerCase());
   const selTxs   = $$('.trans-cb:checked').map(x => x.value.toLowerCase());
   const selFuels = $$('.fuel-cb:checked').map(x => x.value.toLowerCase());
@@ -1108,9 +1099,8 @@ function applyCarFilters() {
   list = list.filter(c => Number(c.pricePerDay) <= maxPrice);
   list = list.filter(c => getDist(c) <= maxDist);
   list = list.filter(c => Number(c.year || 2024) >= minYear);
-  list = list.filter(c => getRating(c) >= minRating);
+  if (minRating > 0) list = list.filter(c => getRating(c) >= minRating);
 
-  // Sorting
   const sort = $('#car-sort')?.value || '';
   if (sort === 'price_asc')  list.sort((a, b) => Number(a.pricePerDay) - Number(b.pricePerDay));
   if (sort === 'price_desc') list.sort((a, b) => Number(b.pricePerDay) - Number(a.pricePerDay));
@@ -1120,17 +1110,17 @@ function applyCarFilters() {
   const datesSelected = new URLSearchParams(location.search).has('startDate') && new URLSearchParams(location.search).has('endDate');
   $('#cars-count-text').textContent = datesSelected
     ? `Showing ${list.length} Verified Car${list.length !== 1 ? 's' : ''} Available for Your Trip`
-    : `Showing ${list.length} Self-Drive Car${list.length !== 1 ? 's' : ''} Near Ellisbridge, Ahmedabad`;
+    : `Showing ${list.length} Self-Drive Car${list.length !== 1 ? 's' : ''} Available`;
   $('#fleet-grid').innerHTML = list.length
     ? list.map(carCard).join('')
     : empty('No cars match your exact filter combination', 'Click "Reset All" in the filter sidebar to see all available vehicles.');
 }
 
-/* ─── SAFAR HORIZON CAR COCKPIT & DETAIL PAGE (BEATS ZOOMCAR DETAIL UI) ─ */
+/* ─── VEHICLE DETAIL PAGE & BOOKING CONFIGURATOR ─────────────────────── */
 const PHOTO_ANGLES = ['FRONT','REAR','LEFT','RIGHT','INTERIOR','BOOT','BONNET','ODOMETER'];
 
 async function carDetails(id) {
-  $('#app').innerHTML = `<p class="loading">Loading vehicle cockpit &amp; 8-angle S3 telemetry…</p>`;
+  $('#app').innerHTML = `<p class="loading">Loading vehicle details &amp; inspection gallery…</p>`;
   let car, similarCars = [];
   try {
     [car, similarCars] = await Promise.all([
@@ -1145,39 +1135,39 @@ async function carDetails(id) {
   const hrRate = Math.max(89, Math.round(Number(car.pricePerDay) / 24));
   const mediaList = (car.media || []).filter(m => PHOTO_ANGLES.includes(m.kind));
   const mainMedia = mediaList.find(m => m.kind === 'FRONT') || mediaList[0];
-  const hostName = car.host?.firstName ? `${car.host.firstName} ${car.host.lastName || ''}`.trim() : 'Saiyed Zai Shah (Safar SuperHost)';
+  const hostName = car.host?.firstName ? `${car.host.firstName} ${car.host.lastName || ''}`.trim() : 'Verified Safar Partner';
   const rating = ratingSummary(car);
-  const numRating = rating.value === 'New' ? '4.95' : rating.value;
+  const hasReviews = rating.count > 0;
   const hashNum = (car.id || '1').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const distKm = ((hashNum % 65) / 10 + 1.3).toFixed(1);
-  const otherCars = (similarCars || []).filter(c => c.id !== car.id).slice(0, 4);
+  const otherCars = (similarCars || []).filter(c => c.id !== car.id).slice(0, 3);
 
   const aiAnswers = {
-    fuel: `<strong>Fuel Policy (Level-to-Level):</strong> Fuel is not included in the base rental fare. Your ${esc(car.make + ' ' + car.model)} (${esc(car.fuelType)}) is handed over with a verified fuel percentage recorded in the 8-Angle Hub Inspection. Simply return it at the same fuel level.`,
-    deposit: `<strong>Refundable Security Deposit (₹2,000):</strong> Held safely in Safar Escrow and automatically refunded within 48 hours of trip return once the 8-Angle Return Photos + Odometer reading are completed.`,
-    cancel: `<strong>Cancellation &amp; Refund Policy:</strong> Enjoy <strong>100% Free Cancellation</strong> up to 24 hours before pickup! Between 6–24 hours prior to pickup, 50% of the trip amount is refunded immediately.`,
-    km: `<strong>Kilometre Package:</strong> Every booking includes <strong>300 km per 24 hours</strong> by default, or you can select the <strong>Unlimited Kms Package</strong> in the booking configurator on the right. Excess distance on the standard plan is ₹12/km.`,
-    docs: `<strong>Pickup Requirements (100% Digital):</strong> Complete your 60-second <strong>Aadhaar + Driving Licence + Live Selfie Biometric Face Match</strong> on Safar. At the Hub, upload the <strong>8 Car Angle Photos + 1 Customer Selfie</strong> on your phone to unlock and start your trip.`,
-    location: `<strong>Hub Location (${distKm} km away):</strong> Located at <strong>${esc(car.currentHub?.name || ('Ellisbridge / Khanpur Hub, ' + car.locationCity))}</strong>. Exact GPS pin &amp; Host contact number are shared immediately upon payment &amp; e-Agreement generation.`,
+    fuel: `<strong>Fuel Policy (Level-to-Level):</strong> Fuel is not included in the base rental fare. Your ${esc(car.make + ' ' + car.model)} (${esc(car.fuelType)}) is handed over with a verified fuel percentage recorded in the 8-Angle Hub Inspection. Return it at the same fuel level to avoid refuelling charges.`,
+    deposit: `<strong>Refundable Security Deposit (₹2,000):</strong> Held during the trip and refunded after return inspection once the 8-Angle Return Photos and odometer reading are verified.`,
+    cancel: `<strong>Cancellation &amp; Refund Policy:</strong> Free cancellation up to 24 hours before pickup. Cancellations within 24 hours of pickup are subject to platform cancellation terms displayed in your agreement.`,
+    km: `<strong>Kilometre Package:</strong> Standard bookings include <strong>300 km per 24 hours</strong>, or you can select the <strong>Unlimited Kms Package</strong> in the booking configurator. Excess distance on the standard plan is billed at ₹12/km.`,
+    docs: `<strong>Pickup Requirements:</strong> Complete your Aadhaar + Driving Licence + Live Selfie verification on Safar. At handover, capture the 8 car angle photos + 1 selfie to begin your trip.`,
+    location: `<strong>Hub Location (${distKm} km away):</strong> Located at <strong>${esc(car.currentHub?.name || ('Ellisbridge / Khanpur Hub, ' + car.locationCity))}</strong>. Exact pickup instructions and host contact details are provided upon booking confirmation.`,
   };
 
   $('#app').innerHTML = `
     <div class="details-back-bar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <a href="cars.html">← Back to All Self-Drive Cars</a>
-      <span style="font-size:12.5px;color:var(--text-muted)">📍 <strong>${distKm} km away</strong> · ${esc(car.locationCity || 'Ahmedabad')}, Gujarat</span>
+      <span style="font-size:12.5px;color:var(--text-muted)">${icon('pin')} <strong>${distKm} km away</strong> · ${esc(car.locationCity || 'Ahmedabad')}, Gujarat</span>
     </div>
 
-    <!-- Quick Section Jump Navigation (Beats Zoomcar Tab Bar) -->
+    <!-- Quick Section Jump Navigation -->
     <nav class="horizon-jump-nav" aria-label="Vehicle sections">
-      <a href="#sec-gallery">📷 8-Angle Cockpit</a>
-      <a href="#sec-location">📍 Car Location (${distKm} km)</a>
-      <a href="#sec-ai-concierge">🤖 Ask Safar AI</a>
-      <a href="#sec-host">👤 Meet Host</a>
-      <a href="#sec-reviews">⭐ Reviews (${numRating})</a>
-      <a href="#sec-features">⚙️ Features</a>
-      <a href="#sec-cancellation">🛡️ Cancellation</a>
-      <a href="#sec-inclusions">📋 Inclusions</a>
-      <a href="#sec-similar">🚗 Similar Cars</a>
+      <a href="#sec-gallery">${icon('camera')} 8-Angle Gallery</a>
+      <a href="#sec-location">${icon('pin')} Location (${distKm} km)</a>
+      <a href="#sec-ai-concierge">${icon('help')} Policy Q&amp;A</a>
+      <a href="#sec-host">${icon('user')} Host</a>
+      <a href="#sec-reviews">${icon('star')} Reviews (${hasReviews ? rating.value : 'New'})</a>
+      <a href="#sec-features">${icon('check')} Specifications</a>
+      <a href="#sec-cancellation">${icon('shield')} Cancellation</a>
+      <a href="#sec-inclusions">${icon('file')} Rental Rules</a>
+      ${otherCars.length ? `<a href="#sec-similar">${icon('car')} Similar Cars</a>` : ''}
     </nav>
 
     <div class="details-layout">
@@ -1195,7 +1185,7 @@ async function carDetails(id) {
           ${mediaList.length > 1 ? `
           <div class="gallery-thumb-row" id="gallery-thumbs">
             ${mediaList.map((m, idx) => `
-              <button class="thumb-card ${idx === 0 ? 'active' : ''}" data-idx="${idx}" data-url="/api/media/${encodeURIComponent(m.id)}">
+              <button type="button" class="thumb-card ${idx === 0 ? 'active' : ''}" data-idx="${idx}" data-url="/api/media/${encodeURIComponent(m.id)}">
                 <img src="/api/media/${encodeURIComponent(m.id)}" alt="${esc(m.kind)}" loading="lazy">
                 <span>${esc(m.kind)}</span>
               </button>`).join('')}
@@ -1207,16 +1197,16 @@ async function carDetails(id) {
             <div>
               <h1 class="details-car-name">${esc(car.make + ' ' + car.model + ' ' + car.year)}</h1>
               <div class="details-car-sub">
-                <span>📍 ${esc(car.locationCity)} (${distKm} km away)</span>
+                <span>${icon('pin')} ${esc(car.locationCity)} (${distKm} km away)</span>
                 <span>·</span>
                 ${badge(car.category)}
                 <span>·</span>
-                <span style="color:var(--green);font-weight:700">✓ 8-Angle S3 Verified</span>
+                <span style="color:var(--ok);font-weight:700">✓ 8-Angle S3 Verified</span>
               </div>
             </div>
             <div class="details-rating-box">
-              <div class="details-rating-num">★ ${numRating}</div>
-              <div class="details-rating-lbl">100% Trips Fulfilled</div>
+              <div class="details-rating-num">${hasReviews ? `★ ${rating.value}` : 'New Listing'}</div>
+              <div class="details-rating-lbl">${hasReviews ? `${rating.count} verified review${rating.count === 1 ? '' : 's'}` : 'Verified Fleet'}</div>
             </div>
           </div>
 
@@ -1224,39 +1214,39 @@ async function carDetails(id) {
           <div class="details-specs-grid">
             <div class="spec-box"><span class="spec-box-lbl">Transmission</span><span class="spec-box-val">${esc(car.transmission)}</span></div>
             <div class="spec-box"><span class="spec-box-lbl">Fuel Type</span><span class="spec-box-val">${esc(car.fuelType)}</span></div>
-            <div class="spec-box"><span class="spec-box-lbl">Capacity</span><span class="spec-box-val">${car.seats} Seats</span></div>
+            <div class="spec-box"><span class="spec-box-lbl">Seating Capacity</span><span class="spec-box-val">${car.seats} Seats</span></div>
             <div class="spec-box"><span class="spec-box-lbl">Model Year</span><span class="spec-box-val">${car.year}</span></div>
             <div class="spec-box"><span class="spec-box-lbl">Odometer</span><span class="spec-box-val">${Number(car.odometer).toLocaleString('en-IN')} km</span></div>
-            <div class="spec-box"><span class="spec-box-lbl">FASTag</span><span class="spec-box-val" style="color:#059669">Active ✓</span></div>
+            <div class="spec-box"><span class="spec-box-lbl">FASTag</span><span class="spec-box-val" style="color:var(--ok)">Active</span></div>
           </div>
 
           <!-- Car Location Hub Card -->
           <div class="details-block" id="sec-location">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
               <div>
-                <span class="eyebrow" style="color:var(--orange);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">VERIFIED PICKUP &amp; RETURN HUB</span>
-                <h3 style="margin:4px 0 4px">Car Location · ${esc(car.locationCity)}, Gujarat</h3>
-                <p class="text-muted" style="margin:0;font-size:13.5px">📍 <strong>Ellisbridge / Khanpur Self-Drive Hub, ${esc(car.locationCity)} 380001</strong> · Exact Bay &amp; Host Contact unlocked upon booking confirmation.</p>
+                <span class="eyebrow" style="color:var(--cta);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">PICKUP &amp; RETURN HUB</span>
+                <h3 style="margin:4px 0 4px">Vehicle Location · ${esc(car.locationCity)}, Gujarat</h3>
+                <p class="text-muted" style="margin:0;font-size:13.5px"><strong>${esc(car.currentHub?.name || ('Ellisbridge / Khanpur Self-Drive Hub, ' + car.locationCity))}</strong> · Exact bay and host contact shared after booking confirmation.</p>
               </div>
-              <span class="badge ok" style="font-size:13px;padding:8px 14px">🧭 ${distKm} Kms Away</span>
+              <span class="badge ok" style="font-size:13px;padding:8px 14px">${distKm} km away</span>
             </div>
           </div>
 
-          <!-- Interactive Safar AI Ride Concierge (Beats Zoomcar AI Chatbot) -->
+          <!-- Interactive Ride Policy Assistant -->
           <div class="safar-ai-concierge" id="sec-ai-concierge">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
               <div>
-                <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;color:#FF9447;text-transform:uppercase">🤖 SAFAR AI RIDE CONCIERGE</span>
-                <h3 style="color:#fff;margin:4px 0 0">Ask Me Anything About Your ${esc(car.make + ' ' + car.model)} Ride</h3>
+                <span style="font-size:10.5px;font-weight:800;letter-spacing:0.12em;color:#F07818;text-transform:uppercase">INSTANT RENTAL POLICY GUIDE</span>
+                <h3 style="color:#fff;margin:4px 0 0">Common Questions About This ${esc(car.make + ' ' + car.model)}</h3>
               </div>
-              <span class="badge ok">Instant Policy Answers</span>
+              <span class="badge ok">Clear Policy Terms</span>
             </div>
             <div class="ai-question-pills" id="ai-concierge-pills">
               <button type="button" class="ai-q-pill active" data-q="fuel">What’s the fuel policy?</button>
               <button type="button" class="ai-q-pill" data-q="deposit">How much is the security deposit?</button>
-              <button type="button" class="ai-q-pill" data-q="cancel">What’s your cancellation &amp; refund policy?</button>
+              <button type="button" class="ai-q-pill" data-q="cancel">What’s the cancellation policy?</button>
               <button type="button" class="ai-q-pill" data-q="km">Is there a kilometre limit?</button>
-              <button type="button" class="ai-q-pill" data-q="docs">What documents &amp; photos do I need at pickup?</button>
+              <button type="button" class="ai-q-pill" data-q="docs">What documents do I need at pickup?</button>
               <button type="button" class="ai-q-pill" data-q="location">Where and when do I pick up the car?</button>
             </div>
             <div class="ai-answer-box" id="ai-concierge-answer">
@@ -1264,16 +1254,16 @@ async function carDetails(id) {
             </div>
           </div>
 
-          <!-- Interactive 8-Point Vehicle Digital Twin & Sensor Radar -->
+          <!-- Interactive 8-Point Vehicle Inspection Angles -->
           <div class="details-block">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
               <div>
-                <span class="eyebrow" style="color:var(--orange);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">AWS S3 DIGITAL TWIN TELEMETRY</span>
-                <h3 style="margin:2px 0 0;">Interactive 8-Angle Inspection Radar</h3>
+                <span class="eyebrow" style="color:var(--cta);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">PRE-DELIVERY CONDITION RECORD</span>
+                <h3 style="margin:2px 0 0;">8-Angle Vehicle Inspection Views</h3>
               </div>
-              <span class="badge good">✓ 8/8 Angles Stored on S3</span>
+              <span class="badge good">${mediaList.length}/8 Angles Archived</span>
             </div>
-            <p class="text-muted" style="font-size:12.5px;margin-bottom:14px;">Click any camera sensor node below to inspect that exact pre-verified angle before you book.</p>
+            <p class="text-muted" style="font-size:12.5px;margin-bottom:14px;">Select any inspection angle below to preview the archived condition photo.</p>
             <div class="digital-twin-grid" id="digital-twin-nodes">
               ${PHOTO_ANGLES.map((angle, idx) => {
                 const match = mediaList.find(m => m.kind === angle) || mediaList[idx % Math.max(1, mediaList.length)];
@@ -1283,87 +1273,71 @@ async function carDetails(id) {
                     <span class="sensor-dot"></span>
                     <div>
                       <strong>${esc(angle)}</strong>
-                      <small>${match ? 'S3 Verified ✓' : 'Standard View'}</small>
+                      <small>${match ? 'Verified Angle' : 'Standard View'}</small>
                     </div>
                   </button>`;
               }).join('')}
             </div>
           </div>
 
-          <!-- Meet Your Host & AI Guest Review Summary -->
+          <!-- Host & Verified Reviews -->
           <div class="details-block" id="sec-host">
-            <span class="eyebrow" style="color:var(--orange);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">VERIFIED PARTNER</span>
-            <h3 style="margin:4px 0 12px">Meet Your Host</h3>
+            <span class="eyebrow" style="color:var(--cta);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">VEHICLE HOST</span>
+            <h3 style="margin:4px 0 12px">Hosted by ${esc(hostName)}</h3>
             <div class="host-spotlight-card">
               <div style="display:flex;align-items:center;gap:14px">
-                <div style="width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#3B1259,#E86A17);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">
+                <div style="width:54px;height:54px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800">
                   ${esc((hostName[0] || 'S').toUpperCase())}
                 </div>
                 <div>
                   <strong style="font-size:16px">${esc(hostName)}</strong>
-                  <p class="text-muted" style="margin:2px 0 0;font-size:12.5px">🏆 Safar SuperHost · 80% Partner Revenue Verified · 100% On-Time Handovers</p>
+                  <p class="text-muted" style="margin:2px 0 0;font-size:12.5px">Verified Safar Fleet Partner · 8-Angle Handover Compliant</p>
                 </div>
               </div>
               <div style="display:flex;gap:18px;text-align:center">
-                <div><strong style="font-size:18px;color:var(--purple)">28+</strong><br><small class="text-muted">Trips</small></div>
-                <div><strong style="font-size:18px;color:#059669">★ ${numRating}</strong><br><small class="text-muted">Rating</small></div>
-                <div><strong style="font-size:18px;color:var(--orange)">100%</strong><br><small class="text-muted">Fulfilled</small></div>
+                <div><strong style="font-size:16px;color:var(--brand)">${hasReviews ? `★ ${rating.value}` : 'New'}</strong><br><small class="text-muted">Rating</small></div>
+                <div><strong style="font-size:16px;color:var(--ok)">${rating.count}</strong><br><small class="text-muted">Reviews</small></div>
               </div>
             </div>
 
             <div id="sec-reviews" style="margin-top:20px">
-              <h4 style="margin:0 0 8px">Ratings &amp; Guest Reviews</h4>
-              <div class="ai-review-summary-box">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                  <strong style="color:#065F46;font-size:13px">✨ AI Summary from Verified Guest Reviews</strong>
-                  <span class="badge ok">Verified Trips</span>
-                </div>
-                <p style="margin:0 0 10px;font-size:13px;color:var(--text-main)">Guests consistently praised this ${esc(car.make + ' ' + car.model)}'s spotless cabin condition, strong highway mileage, and smooth 8-photo hub handover experience.</p>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <span class="cc-badge cc-badge-green">✓ Spotless Car Condition</span>
-                  <span class="cc-badge cc-badge-green">✓ Great Mileage</span>
-                  <span class="cc-badge cc-badge-green">✓ Punctual Host Handover</span>
-                  <span class="cc-badge cc-badge-green">✓ Instant Deposit Refund</span>
-                </div>
-              </div>
-
-              <div style="display:grid;gap:10px;margin-top:12px">
-                ${(car.reviews && car.reviews.length ? car.reviews : [
-                  { author: 'Dhruvil A. Soni', tenure: 'Booked for 24 Hours · Ahmedabad Hub', comment: 'The host went above and beyond! Car was in showroom condition with great mileage and effortless 8-photo pickup.', rating: 5 },
-                  { author: 'Smitkumar D. Kansagara', tenure: 'Booked for Weekend Trip · Ellisbridge Hub', comment: 'Super smooth biometric e-KYC and instant Car Lease e-Agreement. Best self-drive platform in Gujarat.', rating: 5 },
-                ]).map(r => `
-                  <div style="padding:12px 14px;border-radius:12px;border:1px solid var(--border-main);background:var(--bg-subtle)">
-                    <div style="display:flex;justify-content:space-between;align-items:center">
-                      <strong>${esc(r.author || (r.reviewer ? r.reviewer.firstName + ' ' + r.reviewer.lastName : 'Verified Guest'))}</strong>
-                      <span style="color:#D97706;font-weight:800">★ ${Number(r.rating || 5).toFixed(1)}</span>
+              <h4 style="margin:0 0 8px">Customer Reviews (${rating.count})</h4>
+              ${car.reviews && car.reviews.length ? `
+                <div style="display:grid;gap:10px;margin-top:12px">
+                  ${car.reviews.map(r => `
+                    <div style="padding:12px 14px;border-radius:12px;border:1px solid var(--border-main);background:var(--bg-subtle)">
+                      <div style="display:flex;justify-content:space-between;align-items:center">
+                        <strong>${esc(r.author?.firstName || r.reviewer?.firstName || 'Verified Renter')}</strong>
+                        <span style="color:#B45309;font-weight:800">★ ${Number(r.rating || 5).toFixed(1)}</span>
+                      </div>
+                      <small class="text-muted">${r.createdAt ? d(r.createdAt) : 'Verified Safar Trip'}</small>
+                      <p style="margin:6px 0 0;font-size:13px">${esc(r.comment || 'Verified completed trip.')}</p>
                     </div>
-                    <small class="text-muted">${esc(r.tenure || 'Verified Safar Self-Drive Trip')}</small>
-                    <p style="margin:6px 0 0;font-size:13px">${esc(r.comment || 'Clean vehicle and smooth handover.')}</p>
-                  </div>
-                `).join('')}
-              </div>
+                  `).join('')}
+                </div>
+              ` : `<p class="text-muted" style="margin:8px 0 0;font-size:13.5px">No customer reviews yet for this vehicle. Reviews are published by verified renters after trip completion.</p>`}
             </div>
           </div>
 
-          <!-- Interactive Road-Trip Fuel & Budget Simulator -->
+          <!-- Interactive Road-Trip Fuel & Budget Estimator -->
           <div class="details-block trip-simulator-card">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
               <div>
-                <span class="eyebrow" style="color:var(--orange);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">SMART ROUTE ESTIMATOR</span>
-                <h3 style="margin:2px 0 0;">Interactive Road-Trip &amp; Fuel Simulator</h3>
+                <span class="eyebrow" style="color:var(--cta);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">TRIP COST ESTIMATOR</span>
+                <h3 style="margin:2px 0 0;">Distance &amp; Fuel Estimate</h3>
               </div>
-              <span class="badge warn" id="sim-mileage-badge">Est. ${(car.category || '').toLowerCase().includes('suv') ? '14' : '19'} km/L (${esc(car.fuelType)})</span>
+              <span class="badge warn" id="sim-mileage-badge">Approx. ${(car.category || '').toLowerCase().includes('suv') ? '14' : '19'} km/L (${esc(car.fuelType)})</span>
             </div>
             <div class="sim-route-presets">
-              <button type="button" class="sim-preset-btn active" data-km="150">⚡ City Run (150 km)</button>
-              <button type="button" class="sim-preset-btn" data-km="400">🗽 Statue of Unity RT (400 km)</button>
-              <button type="button" class="sim-preset-btn" data-km="520">🏰 Udaipur Weekend RT (520 km)</button>
-              <button type="button" class="sim-preset-btn" data-km="750">🏖️ Somnath / Diu Tour (750 km)</button>
+              <button type="button" class="sim-preset-btn active" data-km="150">City Run (150 km)</button>
+              <button type="button" class="sim-preset-btn" data-km="400">Statue of Unity RT (400 km)</button>
+              <button type="button" class="sim-preset-btn" data-km="520">Udaipur Weekend RT (520 km)</button>
+              <button type="button" class="sim-preset-btn" data-km="750">Highway Tour (750 km)</button>
             </div>
             <div style="margin:14px 0;">
               <div style="display:flex;justify-content:space-between;font-weight:800;font-size:13px;margin-bottom:6px;">
                 <span>Planned Trip Distance</span>
-                <span id="sim-km-label" style="color:var(--orange);font-size:15px;">150 km</span>
+                <span id="sim-km-label" style="color:var(--cta);font-size:15px;">150 km</span>
               </div>
               <input type="range" id="trip-sim-slider" class="range-slider" min="50" max="1200" step="25" value="150">
             </div>
@@ -1377,8 +1351,8 @@ async function carDetails(id) {
                 <strong id="sim-fuel-cost">₹860</strong>
               </div>
               <div class="sim-metric-box">
-                <span>1-Day Rental + Fuel</span>
-                <strong id="sim-total-est" style="color:var(--orange);">${money(Number(car.pricePerDay) + 860)}</strong>
+                <span>1-Day Base + Est. Fuel</span>
+                <strong id="sim-total-est" style="color:var(--cta);">${money(Number(car.pricePerDay) + 860)}</strong>
               </div>
             </div>
           </div>
@@ -1387,64 +1361,65 @@ async function carDetails(id) {
           <div class="details-block" id="sec-features">
             <h3>Features &amp; Safety Equipment</h3>
             <div class="details-features-grid">
-              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Anti-lock Braking System (ABS) &amp; Traction Control</div>
-              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Reverse Camera &amp; Parking Sensors</div>
-              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Wireless Apple CarPlay &amp; Android Auto</div>
-              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Spare Tyre &amp; Emergency Toolkit Included</div>
-              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Climate Control AC &amp; Rear Vents</div>
-              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Active FASTag &amp; Dual USB-C Chargers</div>
+              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Anti-lock Braking System (ABS) &amp; Airbags</div>
+              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Reverse Parking Sensors / Assistance</div>
+              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Bluetooth Audio &amp; Smartphone Connectivity</div>
+              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Spare Wheel &amp; Standard Emergency Kit</div>
+              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Air Conditioning &amp; Cabin Ventilation</div>
+              <div class="feature-check-item"><span class="feature-check-icon">✓</span> Active FASTag &amp; USB Charging Ports</div>
             </div>
           </div>
 
-          <!-- Visual Cancellation & Inclusions Matrix -->
+          <!-- Cancellation & Rental Rules -->
           <div class="details-block" id="sec-cancellation">
-            <h3>Cancellation &amp; Refund Timeline</h3>
+            <h3>Cancellation &amp; Refund Policy</h3>
             <div class="cancellation-timeline-bar">
               <div class="cancel-stage-free">
-                <strong style="color:#065F46;display:block">✓ 100% Free Cancellation</strong>
-                <small class="text-muted">Up to 6 hours before pickup time</small>
+                <strong style="color:var(--ok);display:block">✓ Free Cancellation Window</strong>
+                <small class="text-muted">More than 24 hours before scheduled pickup</small>
               </div>
               <div class="cancel-stage-late">
-                <strong style="color:#B45309;display:block">50% Refund Window</strong>
-                <small class="text-muted">Within 6 hours of pickup (0% after trip start)</small>
+                <strong style="color:#B45309;display:block">Late Cancellation Window</strong>
+                <small class="text-muted">Within 24 hours of pickup (subject to fee policy)</small>
               </div>
             </div>
 
             <div id="sec-inclusions" style="margin-top:18px">
-              <h3>Inclusions &amp; Exclusions</h3>
+              <h3>Rental Rules, Inclusions &amp; Exclusions</h3>
               <ul class="rules-list">
-                <li><strong>Security Deposit (₹2,000):</strong> Automatically refunded within 48 hours after trip completion and 8-photo return check.</li>
-                <li><strong>Fuel Policy:</strong> Fuel is not included. Return the car with the same fuel percentage as recorded at trip start.</li>
-                <li><strong>Toll &amp; FASTag:</strong> Vehicle is equipped with an active FASTag; actual highway toll deductions are settled at return.</li>
-                <li><strong>Mandatory 8-Angle + Selfie Handover:</strong> Both Pickup and Return require uploading 8 car angle photos + 1 customer selfie to S3.</li>
+                <li><strong>Security Deposit (₹2,000):</strong> Refundable deposit held for trip settlement and released after return inspection.</li>
+                <li><strong>Fuel Policy:</strong> Level-to-level. Return the vehicle with the same fuel percentage recorded at pickup.</li>
+                <li><strong>Toll, Parking &amp; Fines:</strong> Road tolls, parking charges, and traffic challans incurred during the booking window are borne by the renter.</li>
+                <li><strong>Minimum Age &amp; Licence:</strong> Valid original Indian Driving Licence (LMV) and verified Aadhaar e-KYC required before pickup.</li>
+                <li><strong>Mandatory Handover Inspection:</strong> 8 car angle photos + 1 customer selfie must be uploaded at both Pickup and Return.</li>
               </ul>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: Sticky Smart Configurator & Booking Panel (Beats Zoomcar Checkout) -->
+      <!-- RIGHT: Sticky Booking Summary & Price Configurator -->
       <aside class="booking-panel-sticky">
         <div class="bp-price-header">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
             <div class="bp-rate-main">${money(car.pricePerDay)}<small>/day</small></div>
-            <span style="font-size:13px;font-weight:800;color:var(--orange)">₹${hrRate}/hr</span>
+            <span style="font-size:13px;font-weight:800;color:var(--cta)">₹${hrRate}/hr</span>
           </div>
-          <div class="bp-rate-sub">Includes 300 km/day · Biometric e-Agreement</div>
+          <div class="bp-rate-sub">Includes 300 km/day · Digital Lease Agreement</div>
         </div>
 
         ${!user ? `
           <div class="notice info" style="margin-bottom:14px">
-            Sign in or create an account with Mobile OTP &amp; Biometric Face Match to book this ${esc(car.make + ' ' + car.model)}.
+            Sign in or create an account to check availability and reserve this ${esc(car.make + ' ' + car.model)}.
           </div>
-          <a class="button btn-orange" style="width:100%" href="auth.html?redirect=${encodeURIComponent(carLink(id))}">Login / Register to Continue →</a>
+          <a class="button btn-orange" style="width:100%" href="auth.html?redirect=${encodeURIComponent(carLink(id))}">Sign In / Register to Book</a>
         ` : `
           <form id="car-booking-form" class="form-stack">
             ${inp('startDate', 'Pick-up Date &amp; Time', 'datetime-local')}
             ${inp('endDate', 'Drop-off Date &amp; Time', 'datetime-local')}
 
             <div>
-              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:var(--text-muted)">Choose Your Km Package</span>
+              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:var(--text-muted)">Kilometre Package</span>
               <div class="pkg-selector-grid" id="detail-km-pkg">
                 <button type="button" class="pkg-option-card active" data-addon="0">
                   <strong>300 Kms / day</strong>
@@ -1452,15 +1427,15 @@ async function carDetails(id) {
                 </button>
                 <button type="button" class="pkg-option-card" data-addon="899">
                   <strong>Unlimited Kms</strong>
-                  <small>+₹899 · Drive worry-free</small>
+                  <small>+₹899 · Highway package</small>
                 </button>
               </div>
             </div>
 
             <div style="background:var(--bg-subtle);padding:10px 12px;border-radius:12px;border:1px solid var(--border-main);display:flex;justify-content:space-between;align-items:center">
               <div>
-                <strong style="font-size:12.5px;display:block">🛡️ Travel with Confidence</strong>
-                <small class="text-muted" style="font-size:11px">Zero-dispute 8-Photo S3 Trip Protection</small>
+                <strong style="font-size:12.5px;display:block">8-Photo Condition Protection</strong>
+                <small class="text-muted" style="font-size:11px">Pre/post-trip S3 inspection evidence</small>
               </div>
               <span class="badge ok">INCLUDED</span>
             </div>
@@ -1471,29 +1446,29 @@ async function carDetails(id) {
 
             <label class="check">
               <input type="checkbox" required checked>
-              <span>I agree to the <a href="#sec-inclusions">Safar Self-Drive Car Lease Agreement</a> terms with Host and mandatory 8-Photo + Selfie Hub Handover.</span>
+              <span>I agree to the <a href="#sec-inclusions">Safar Self-Drive Car Lease Agreement</a> terms and mandatory 8-Photo + Selfie handover inspection.</span>
             </label>
 
             <button type="submit" class="button btn-orange" style="width:100%;padding:14px;font-size:15px">
-              ⚡ Proceed to Pay &amp; Sign e-Agreement →
+              Proceed to Booking &amp; Payment
             </button>
           </form>
 
-          <p id="booking-kyc-status" style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">Checking Biometric e-KYC eligibility…</p>
+          <p id="booking-kyc-status" style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">Checking e-KYC eligibility…</p>
         `}
 
         <div class="bp-perks-box">
           <div class="bp-perk-line">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            <span><strong>Refundable Deposit:</strong> ₹2,000 (Auto-refunded)</span>
+            <span><strong>Refundable Deposit:</strong> ₹2,000</span>
           </div>
           <div class="bp-perk-line">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            <span><strong>Free Cancellation:</strong> Up to 6 hrs before pickup</span>
+            <span><strong>Free Cancellation:</strong> Up to 24 hrs before pickup</span>
           </div>
           <div class="bp-perk-line">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            <span><strong>Hub / Doorstep:</strong> ${esc(car.locationCity)} (${distKm} km)</span>
+            <span><strong>Pickup Hub:</strong> ${esc(car.locationCity)} (${distKm} km)</span>
           </div>
         </div>
       </aside>
@@ -1501,7 +1476,7 @@ async function carDetails(id) {
 
     ${otherCars.length ? `
       <section id="sec-similar" style="margin-top:36px">
-        ${sectionHead('Similar Verified Listings Nearby', 'Compare other 8-Angle S3 verified self-drive vehicles available in ' + esc(car.locationCity) + '.', 'SIMILAR CARS')}
+        ${sectionHead('Similar Verified Vehicles', 'Compare other verified self-drive vehicles available in ' + esc(car.locationCity) + '.', 'SIMILAR CARS')}
         <div class="car-grid">${otherCars.map(carCard).join('')}</div>
       </section>
     ` : ''}`;
@@ -2069,8 +2044,9 @@ async function host(activeTab = 'overview') {
   const pendingFleet = vehicles.filter(v => v.status === 'PENDING_APPROVAL').length;
   const activeTrips = hostBookings.filter(b => b.status === 'ACTIVE').length;
   const grossEarnings = hostBookings.filter(b => b.payment?.status === 'PAID').reduce((sum, b) => sum + Number(b.baseFare || b.totalAmount || 0), 0);
-  const netHostRevenue = hostBookings.filter(b => b.payment?.status === 'PAID').reduce((sum, b) => sum + Number(b.hostRevenue || Math.round(Number(b.baseFare || 0) * 0.80)), 0);
-  const platformFeeTotal = Math.max(0, grossEarnings - netHostRevenue);
+  const settledBookings = hostBookings.filter(b => ['SUCCESS', 'PAID'].includes(b.payment?.status));
+  const netHostRevenue = settledBookings.reduce((sum, b) => sum + Number(b.hostRevenue || 0), 0);
+  const platformFeeTotal = settledBookings.reduce((sum, b) => sum + Number(b.platformFee || 0), 0);
 
   $('#app').innerHTML = `
     <div class="pro-console-shell">
@@ -2098,7 +2074,7 @@ async function host(activeTab = 'overview') {
         </nav>
         <div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:rgba(255,255,255,0.7);">
           <strong style="color:#fff;display:block;">${esc(user.firstName + ' ' + user.lastName)}</strong>
-          <span>80% Net Host Share · AWS S3 8-Angle Verified</span>
+          <span>Configured host settlement · private inspection evidence</span>
         </div>
       </aside>
 
@@ -2106,7 +2082,7 @@ async function host(activeTab = 'overview') {
         <div class="pro-topbar">
           <div>
             <h2>${dealer ? 'Dealership Fleet &amp; Handover Console' : 'Host Partner Command Center'}</h2>
-            <p>Manage vehicle listings, 8-angle + selfie hub handovers, lease agreements, and 80% net host revenue settlements.</p>
+            <p>Manage vehicle listings, 8-angle + selfie hub handovers, lease agreements, and configured host settlements.</p>
           </div>
           <div class="actions">
             <button type="button" class="button btn-orange btn-sm" id="host-quick-add-btn">+ Register New Car</button>
@@ -2131,9 +2107,9 @@ async function host(activeTab = 'overview') {
             <span class="kpi-sub">Total paid trip base fares</span>
           </div>
           <div class="pro-kpi-card">
-            <span class="kpi-label">Host Net Share (80%)</span>
+            <span class="kpi-label">Host settlement</span>
             <strong class="kpi-value" style="color:#059669;">${money(netHostRevenue)}</strong>
-            <span class="kpi-sub">Platform fee (20%): ${money(platformFeeTotal)}</span>
+            <span class="kpi-sub">Recorded platform fee: ${money(platformFeeTotal)}</span>
           </div>
           <div class="pro-kpi-card">
             <span class="kpi-label">Payout Bank Status</span>
@@ -2194,7 +2170,7 @@ async function host(activeTab = 'overview') {
             <div class="panel">
               <label class="check">
                 <input type="checkbox" required>
-                <span>I certify that I am the authorised owner/host of this vehicle and agree to the Safar 80/20 Host Revenue Share Agreement.</span>
+                <span>I certify that I am the authorised owner/host of this vehicle and agree to the commercial terms shown in the Safar Host Partner Agreement.</span>
               </label>
               <div class="actions" style="margin-top:14px;">
                 <button type="submit" class="button btn-orange">Submit Vehicle &amp; Upload RC / Insurance →</button>
@@ -2238,7 +2214,7 @@ async function host(activeTab = 'overview') {
             <div class="heading">
               <div>
                 <h3>Host Settlement Bank Account</h3>
-                <p class="text-muted">Completed trips automatically credit 80% net host revenue to your settlement ledger.</p>
+                <p class="text-muted">Completed trips are added to your settlement ledger after return inspection and reconciliation.</p>
               </div>
               ${payoutAccount ? badge(payoutAccount.status) : badge('PENDING')}
             </div>
@@ -2255,14 +2231,14 @@ async function host(activeTab = 'overview') {
           <div class="panel table-wrap">
             <h3>Host Payout &amp; Trip Settlement Ledger</h3>
             <table>
-              <thead><tr><th>Payout Period / Ref</th><th>Net Host Amount (80%)</th><th>Status</th><th>Notes</th></tr></thead>
+              <thead><tr><th>Payout Period / Ref</th><th>Host settlement</th><th>Status</th><th>Notes</th></tr></thead>
               <tbody>
                 ${payouts.length ? payouts.map(p => `
                   <tr>
                     <td>${p.periodStart ? d(p.periodStart) : 'Trip Settlement'} → ${p.periodEnd ? d(p.periodEnd) : 'Completed'}<br><small class="text-muted">${esc(p.reference || p.id.slice(0,8))}</small></td>
                     <td><strong style="color:#059669;">${money(p.amount)}</strong></td>
                     <td>${badge(p.status)}</td>
-                    <td>${esc(p.note || '80% Host Revenue Share')}</td>
+                    <td>${esc(p.note || 'Host settlement')}</td>
                   </tr>
                 `).join('') : '<tr><td colspan="4" class="text-muted">Completed trip settlements will appear here automatically upon Return inspection.</td></tr>'}
               </tbody>
@@ -2353,17 +2329,18 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
   const payBookingId = params.get('pay');
 
   if (forceRefresh || !dashboardCache) {
-    const [trips, hosted, kycInfo, accountInfo, notifications] = await Promise.all([
+    const [trips, hosted, kycInfo, accountInfo, notifications, authoredReviews] = await Promise.all([
       api('/bookings/my-trips').catch(() => []),
       ['HOST','DEALER','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
       api('/kyc').catch(() => ({ documents: [], sessions: [], environment: 'live', configured: false })),
       api('/account/dashboard').catch(() => null),
       api('/notifications').catch(() => []),
+      api('/reviews/mine').catch(() => ({ vehicleReviews: [], partyRatings: [] })),
     ]);
-    dashboardCache = { trips, hosted, kycInfo, accountInfo, notifications };
+    dashboardCache = { trips, hosted, kycInfo, accountInfo, notifications, authoredReviews };
   }
 
-  const { trips, hosted, kycInfo, accountInfo, notifications } = dashboardCache;
+  const { trips, hosted, kycInfo, accountInfo, notifications, authoredReviews } = dashboardCache;
   const activeCount = trips.filter(b => b.status === 'ACTIVE').length;
 
   $('#app').innerHTML = `
@@ -2391,18 +2368,27 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
 
     <div class="admin-tabs" style="margin-bottom: 24px;">
       <button type="button" class="${activeTab === 'trips' ? 'active' : ''}" onclick="switchAccountTab('trips')">
-        🚗 My Trips &amp; Handovers <span>${trips.length}</span>
+        ${icon('car', 'ic-sm')} My Trips &amp; Handovers <span>${trips.length}</span>
       </button>
       <button type="button" class="${activeTab === 'kyc' ? 'active' : ''}" onclick="switchAccountTab('kyc')">
-        🪪 Biometric e-KYC &amp; Face Match <span>${user.isVerified ? '✓' : '!'}</span>
+        ${icon('idcard', 'ic-sm')} Biometric e-KYC &amp; Face Match <span>${user.isVerified ? '✓' : '!'}</span>
       </button>
       <button type="button" class="${activeTab === 'profile' ? 'active' : ''}" onclick="switchAccountTab('profile')">
-        👤 Profile &amp; Security
+        ${icon('user', 'ic-sm')} Profile &amp; Security
+      </button>
+      <button type="button" class="${activeTab === 'disputes' ? 'active' : ''}" onclick="switchAccountTab('disputes')">
+        ${icon('scale', 'ic-sm')} Disputes <span>${accountInfo?.disputes?.length || 0}</span>
+      </button>
+      <button type="button" class="${activeTab === 'history' ? 'active' : ''}" onclick="switchAccountTab('history')">
+        ${icon('history', 'ic-sm')} Trip History
+      </button>
+      <button type="button" class="${activeTab === 'reviews' ? 'active' : ''}" onclick="switchAccountTab('reviews')">
+        ${icon('star', 'ic-sm')} Reviews <span>${(authoredReviews?.vehicleReviews?.length || 0) + (authoredReviews?.partyRatings?.length || 0)}</span>
       </button>
     </div>
 
     <div id="account-tab-content" class="view-fade-in">
-      ${activeTab === 'kyc' ? renderKycTabHtml(kycInfo) : activeTab === 'profile' ? renderProfileTabHtml(kycInfo) : renderTripsTabHtml(trips, hosted, accountInfo)}
+      ${activeTab === 'kyc' ? renderKycTabHtml(kycInfo) : activeTab === 'profile' ? renderProfileTabHtml(kycInfo) : activeTab === 'disputes' ? renderDisputesTabHtml(trips, accountInfo) : activeTab === 'history' ? renderHistoryTabHtml(trips) : activeTab === 'reviews' ? renderReviewsTabHtml(authoredReviews) : renderTripsTabHtml(trips, hosted, accountInfo)}
     </div>`;
 
   if (activeTab === 'trips') {
@@ -2415,7 +2401,10 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
     }
   }
   if (activeTab === 'kyc') bindKycEvents(kycInfo);
+  if (activeTab === 'disputes') bindDisputeEvents();
+  if (activeTab === 'reviews') bindReviewEvents();
   if (activeTab === 'profile') {
+    bindProfileEvents();
     $('#profile-logout-btn')?.addEventListener('click', async () => {
       await post('/auth/logout').catch(() => {});
       location.href = 'index.html';
@@ -2488,10 +2477,11 @@ function renderTripsTabHtml(trips, hosted, accountInfo) {
 }
 
 function renderProfileTabHtml(kycInfo) {
+  const profile = user.profile || {};
   return `
     <section class="panel">
-      <h3>Verified Member Profile</h3>
-      <p class="text-muted">Your registered Safar identity, Mobile OTP status, and Biometric Face Match credentials.</p>
+      <h3>Account information</h3>
+      <p class="text-muted">Update your contact details and manage account security. Identity and KYC fields remain protected after verification.</p>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px;">
         <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
@@ -2512,12 +2502,100 @@ function renderProfileTabHtml(kycInfo) {
         </div>
       </div>
 
+      <div class="form-grid" style="margin-top:24px;">
+        <form id="account-profile-form" class="form-stack panel-subtle">
+          <h4 style="margin:0">Edit profile</h4>
+          ${inp('firstName', 'First name', 'text', `required maxlength="80" value="${esc(user.firstName || '')}"`)}
+          ${inp('lastName', 'Last name', 'text', `required maxlength="80" value="${esc(user.lastName || '')}"`)}
+          ${inp('phone', 'Mobile number', 'tel', `maxlength="20" value="${esc(user.phone || '')}"`)}
+          ${inp('city', 'City', 'text', `maxlength="80" value="${esc(profile.city || '')}"`)}
+          ${inp('state', 'State', 'text', `maxlength="80" value="${esc(profile.state || '')}"`)}
+          ${inp('postalCode', 'Postal code', 'text', `maxlength="12" value="${esc(profile.postalCode || '')}"`)}
+          <button type="submit" class="button btn-orange">Save profile</button>
+        </form>
+        <form id="account-password-form" class="form-stack panel-subtle">
+          <h4 style="margin:0">Change password</h4>
+          ${inp('currentPassword', 'Current password', 'password', 'required autocomplete="current-password"')}
+          ${inp('newPassword', 'New password', 'password', 'required minlength="8" autocomplete="new-password"')}
+          <button type="submit" class="button btn-outline">Update password</button>
+        </form>
+      </div>
+
       <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border-main);display:flex;gap:12px;flex-wrap:wrap;">
         <button type="button" onclick="switchAccountTab('kyc')" class="button btn-orange">Open Biometric e-KYC Studio</button>
         <button type="button" id="profile-logout-btn" class="button btn-outline">Sign Out of Account</button>
+        <button type="button" id="account-delete-btn" class="button btn-ghost" style="color:var(--red)">Request account deletion</button>
       </div>
     </section>`;
 }
+
+function renderDisputesTabHtml(trips, accountInfo) {
+  const disputes = accountInfo?.disputes || [];
+  const eligible = trips.filter(item => !['CANCELLED', 'EXPIRED'].includes(formatBookingStatus(item)));
+  return `<section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div><h3 style="margin:0">Booking disputes</h3><p class="text-muted" style="margin:4px 0 0">Raise a documented issue against an eligible booking and follow every response.</p></div>
+      <span class="badge ${disputes.length ? 'warn' : 'good'}">${disputes.length} submitted</span>
+    </div>
+    <form id="account-dispute-form" class="form-stack panel-subtle" style="margin-top:18px;">
+      <h4 style="margin:0">Submit a dispute</h4>
+      ${eligible.length ? `<label>Booking<select name="bookingId" required>${eligible.map(item => `<option value="${esc(item.id)}">${esc(item.bookingRef)} · ${esc(item.vehicle?.make + ' ' + item.vehicle?.model)}</option>`).join('')}</select></label>` : '<p class="text-muted">A booking must be linked to your account before a dispute can be submitted.</p>'}
+      <label>Category<select name="category" required><option value="BILLING">Billing</option><option value="DEPOSIT_REFUND">Deposit refund</option><option value="VEHICLE_CONDITION">Vehicle condition</option><option value="HANDOVER_ISSUE">Pickup / return handover</option><option value="DAMAGE_APPEAL">Damage appeal</option><option value="CANCELLATION_REFUND">Cancellation / refund</option></select></label>
+      ${inp('amountClaimed', 'Amount in dispute (₹, optional)', 'number', 'min="0" step="1"')}
+      <label>Description<textarea name="description" rows="4" required maxlength="2000" placeholder="Describe what happened and the resolution you are requesting."></textarea></label>
+      ${eligible.length ? '<button type="submit" class="button btn-orange">Submit dispute</button>' : ''}
+    </form>
+    <div style="display:grid;gap:12px;margin-top:20px;">${disputes.length ? disputes.map(dispute => `<article class="panel-subtle">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><strong>${esc(dispute.reference)}</strong>${badge(dispute.status)}</div>
+      <p style="margin:8px 0 2px"><strong>${esc(dispute.category.replaceAll('_', ' '))}</strong> · ${esc(dispute.bookingRef || dispute.bookingId || 'Booking')}</p>
+      <p style="margin:0">${esc(dispute.description)}</p>
+      ${dispute.amountClaimed ? `<p class="text-muted" style="margin:6px 0 0">Amount claimed: ${money(dispute.amountClaimed)}</p>` : ''}
+      ${dispute.adminResponse ? `<div class="notice" style="margin-top:10px"><strong>Latest response:</strong> ${esc(dispute.adminResponse)}</div>` : ''}
+      ${dispute.history?.length ? `<details style="margin-top:10px"><summary>Resolution history (${dispute.history.length})</summary>${dispute.history.map(item => `<p class="text-muted" style="margin:6px 0 0">${dt(item.createdAt)} · ${esc(item.status)} · ${esc(item.note || '')}</p>`).join('')}</details>` : ''}
+    </article>`).join('') : '<p class="text-muted">No disputes have been submitted.</p>'}</div>
+  </section>`;
+}
+
+function renderHistoryTabHtml(trips) {
+  const completed = trips.filter(item => ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(formatBookingStatus(item)));
+  return `<section class="panel"><h3>Trip &amp; damage history</h3><p class="text-muted">Pickup and return evidence, odometer readings, fuel levels, and recorded condition notes.</p>${completed.length ? `<div class="table-wrap"><table><thead><tr><th>Booking</th><th>Vehicle</th><th>Trip status</th><th>Inspection evidence</th></tr></thead><tbody>${completed.map(item => `<tr><td><strong>${esc(item.bookingRef)}</strong><br><small class="text-muted">${dt(item.startDate)} → ${dt(item.endDate)}</small></td><td>${esc(item.vehicle?.make + ' ' + item.vehicle?.model)}<br><small class="text-muted">${esc(item.vehicle?.registrationNumber || '')}</small></td><td>${badge(formatBookingStatus(item))}</td><td>${item.inspections?.length ? item.inspections.map(inspection => `<div style="margin-bottom:5px"><strong>${esc(inspection.stage)}</strong> · ${Number(inspection.odometer || 0).toLocaleString('en-IN')} km · ${inspection.fuelPercent == null ? '—' : Number(inspection.fuelPercent) + '% fuel'}<br><small class="text-muted">${esc(inspection.damageNote || 'No condition note')}</small></div>`).join('') : '<span class="text-muted">No inspection recorded</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="text-muted">Completed or cancelled trips will appear here.</p>'}</section>`;
+}
+
+function renderReviewsTabHtml(reviews) {
+  const vehicleReviews = reviews?.vehicleReviews || [];
+  const partyRatings = reviews?.partyRatings || [];
+  return `<section class="panel"><h3>Reviews &amp; ratings</h3><p class="text-muted">Your verified feedback associated with completed bookings.</p><div style="display:grid;gap:12px;margin-top:16px;">${vehicleReviews.concat(partyRatings).length ? [...vehicleReviews.map(review => `<article class="panel-subtle"><strong>${esc(review.vehicle?.make + ' ' + review.vehicle?.model)}</strong>${badge(review.rating + ' / 5')}<p style="margin:8px 0 0">${esc(review.comment || 'No written comment')}</p><small class="text-muted">${dt(review.createdAt)}</small></article>`), ...partyRatings.map(review => `<article class="panel-subtle"><strong>${esc(review.target?.firstName + ' ' + review.target?.lastName)}</strong> · ${esc(review.targetRole)} ${badge(review.rating + ' / 5')}<p style="margin:8px 0 0">${esc(review.comment || 'No written comment')}</p><small class="text-muted">Booking ${esc(review.booking?.bookingRef || '—')} · ${dt(review.createdAt)}</small></article>`)] .join('') : '<p class="text-muted">You have not submitted a review yet. Completed trips become eligible for rating.</p>'}</div></section>`;
+}
+
+function bindProfileEvents() {
+  bindForm('#account-profile-form', async data => {
+    const result = await post('/account/profile', data);
+    user = { ...user, ...result };
+    toast('Profile updated.');
+    await dashboard('profile', true);
+  });
+  bindForm('#account-password-form', async data => {
+    await post('/account/password', data);
+    $('#account-password-form')?.reset();
+    toast('Password updated.');
+  });
+  $('#account-delete-btn')?.addEventListener('click', async () => {
+    if (!confirm('Submit an account deletion request? This will be reviewed after all trips and settlements are closed.')) return;
+    try { await post('/account/delete-request', { reason: 'Customer requested account deletion from account settings' }); toast('Deletion request submitted.'); }
+    catch (error) { toast(error.message, true); }
+  });
+}
+
+function bindDisputeEvents() {
+  if (!$('#account-dispute-form')) return;
+  bindForm('#account-dispute-form', async data => {
+    await post('/account/disputes', data);
+    toast('Dispute submitted for review.');
+    await dashboard('disputes', true);
+  });
+}
+
+function bindReviewEvents() {}
 
 function tripDistanceSummary(booking) {
   const pickup = booking.inspections?.find(item => item.stage === 'PICKUP');
@@ -2546,8 +2624,8 @@ function renderBookingTable(list, isHost) {
           ${list.map(b => {
             const st = formatBookingStatus(b);
             const hrs = b.tenureHours || Math.max(1, Math.ceil((new Date(b.endDate) - new Date(b.startDate)) / 3600000));
-            const hostRev = b.hostRevenue || Math.round(Number(b.baseFare || 0) * 0.80);
-            const platFee = b.platformFee || Math.round(Number(b.baseFare || 0) * 0.20);
+            const hostRev = b.hostRevenue == null ? null : Number(b.hostRevenue);
+            const platFee = b.platformFee == null ? null : Number(b.platformFee);
             return `
             <tr>
               <td>
@@ -2564,7 +2642,7 @@ function renderBookingTable(list, isHost) {
               <td>
                 <strong style="font-size:15px;">${money(b.totalAmount)}</strong>
                 <p class="text-muted" style="font-size:11.5px;margin:2px 0;">Fare: ${money(b.baseFare)} + Deposit: ${money(b.securityDeposit)}</p>
-                ${isHost ? `<p style="font-size:11.5px;color:#059669;font-weight:700;margin:2px 0;">Your 80% Share: ${money(hostRev)} <span class="text-muted">(Fee: ${money(platFee)})</span></p>` : ''}
+                ${isHost ? `<p style="font-size:11.5px;color:#059669;font-weight:700;margin:2px 0;">Settlement: ${hostRev == null ? 'Pending reconciliation' : money(hostRev)} ${platFee == null ? '' : `<span class="text-muted">(Platform fee: ${money(platFee)})</span>`}</p>` : ''}
                 ${b.inspections?.length ? `<details class="trip-inspection-details" style="margin-top:6px;"><summary style="font-size:12px;cursor:pointer;color:var(--purple);font-weight:700;">📷 ${b.inspections.length} Handover Record(s)</summary>${b.inspections.map(ins => `<div style="padding:6px 0;border-bottom:1px dashed var(--border-main);font-size:12px;"><strong>${esc(ins.stage)}</strong> · ${Number(ins.odometer).toLocaleString('en-IN')} km · Fuel ${Number(ins.fuelPercent || 0)}%<br><span class="text-muted">${esc(ins.damageNote || 'All 8 angles & selfie verified')}</span></div>`).join('')}${tripDistanceSummary(b)}</details>` : ''}
               </td>
               <td>
@@ -2778,7 +2856,7 @@ function openHandoverWizardModal(bookingId, stage) {
     });
 
     $('dialog')?.close();
-    toast(isPickup ? 'Trip Started! All 8 angles + selfie archived to AWS S3.' : 'Trip Completed! Return photos archived & Host 80% payout settled.');
+    toast(isPickup ? 'Trip Started! All 8 angles + selfie archived.' : 'Trip Completed! Return photos archived and settlement queued.');
     if (page === 'host-onboarding.html') await host('overview');
     else await dashboard('trips', true);
   });
@@ -3055,12 +3133,13 @@ async function agreement() {
 async function adminPage(tab = 'vehicles') {
   if (!requireUser(['ADMIN'])) return;
   adminData = await api('/admin');
+  adminData.disputes = await api('/admin/disputes').catch(() => []);
   adminData.payouts = await api('/payouts').catch(() => []);
   adminData.payoutAccounts = await api('/payouts/accounts').catch(() => []);
 
   const totalGross = Number(adminData.metrics?.paidRevenue ?? 0);
-  const totalPlatformFee = Number(adminData.metrics?.platformCommission ?? Math.round(totalGross * 0.20));
-  const totalHostPayouts = Number(adminData.metrics?.hostNetRevenue ?? Math.round(totalGross * 0.80));
+  const totalPlatformFee = Number(adminData.metrics?.platformRevenue || 0);
+  const totalHostPayouts = Number(adminData.metrics?.hostRevenue || 0);
 
   $('#app').innerHTML = `
     <div class="pro-console-shell">
@@ -3086,10 +3165,13 @@ async function adminPage(tab = 'vehicles') {
             <span>👥 Customers &amp; Hosts</span><span class="pro-nav-badge">${adminData.users.length}</span>
           </button>
           <button type="button" class="pro-nav-item ${tab === 'payouts' ? 'active' : ''}" data-tab="payouts">
-            <span>🏦 Host 80% Settlements</span><span class="pro-nav-badge">${adminData.payouts.length}</span>
+            <span>${icon('wallet', 'ic-sm')} Partner settlements</span><span class="pro-nav-badge">${adminData.payouts.length}</span>
           </button>
           <button type="button" class="pro-nav-item ${tab === 'audit' ? 'active' : ''}" data-tab="audit">
             <span>🛡️ Compliance Audit</span><span class="pro-nav-badge">${adminData.audit.length}</span>
+          </button>
+          <button type="button" class="pro-nav-item ${tab === 'disputes' ? 'active' : ''}" data-tab="disputes">
+            <span>${icon('scale', 'ic-sm')} Booking Disputes</span><span class="pro-nav-badge">${adminData.disputes.length}</span>
           </button>
         </nav>
         <div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:rgba(255,255,255,0.75);">
@@ -3102,7 +3184,7 @@ async function adminPage(tab = 'vehicles') {
         <div class="pro-topbar">
           <div>
             <h2>Safar Operations &amp; Revenue Command Center</h2>
-            <p>Approve 8-angle vehicles, inspect Aadhaar + Live Selfie Face Match e-KYC, monitor Pickup/Return handovers, and audit the 80/20 revenue split.</p>
+            <p>Approve vehicles, inspect identity evidence, monitor pickup and return handovers, and reconcile partner settlements.</p>
           </div>
           <div class="actions">
             <button id="admin-export" type="button" class="button btn-outline btn-sm">📥 Export MIS Ledger (CSV)</button>
@@ -3117,12 +3199,12 @@ async function adminPage(tab = 'vehicles') {
             <span class="kpi-sub">Today: ${money(adminData.metrics?.todayRevenue ?? 0)}</span>
           </div>
           <div class="pro-kpi-card">
-            <span class="kpi-label">Safar Platform Fee (20%)</span>
+            <span class="kpi-label">Recorded platform fees</span>
             <strong class="kpi-value" style="color:var(--purple);">${money(totalPlatformFee)}</strong>
             <span class="kpi-sub">Net marketplace commission</span>
           </div>
           <div class="pro-kpi-card">
-            <span class="kpi-label">Host Net Share (80%)</span>
+            <span class="kpi-label">Recorded partner settlements</span>
             <strong class="kpi-value" style="color:#059669;">${money(totalHostPayouts)}</strong>
             <span class="kpi-sub">${adminData.payouts.length} settlements recorded</span>
           </div>
@@ -3272,16 +3354,16 @@ function renderAdminView(tab) {
       <section class="panel table-wrap">
         <div style="margin-bottom:14px;">
           <h3 style="margin:0;">Master Self-Drive Booking &amp; Revenue Split Ledger</h3>
-          <p class="text-muted" style="margin:4px 0 0;">Complete record of which customer booked which car, tenure hours, total fare, 20% Safar fee, 80% Host revenue, e-Agreement, and Pickup/Return 9-photo handovers.</p>
+          <p class="text-muted" style="margin:4px 0 0;">Complete record of customer, vehicle, tenure, payment, agreement, and pickup/return handover evidence.</p>
         </div>
         <table>
-          <thead><tr><th>Customer &amp; Car</th><th>Booking Window &amp; Tenure</th><th>Fare, Fee (20%) &amp; Host (80%)</th><th>Status &amp; Handover</th><th>Operations</th></tr></thead>
+          <thead><tr><th>Customer &amp; Car</th><th>Booking Window &amp; Tenure</th><th>Fare &amp; Settlement Split</th><th>Status &amp; Handover</th><th>Operations</th></tr></thead>
           <tbody>
             ${data.map(b => {
               const st = formatBookingStatus(b);
               const hrs = b.tenureHours || Math.max(1, Math.ceil((new Date(b.endDate) - new Date(b.startDate)) / 3600000));
-              const platFee = b.platformFee || Math.round(Number(b.baseFare || 0) * 0.20);
-              const hostRev = b.hostRevenue || Math.round(Number(b.baseFare || 0) * 0.80);
+              const platFee = b.platformFee == null ? null : Number(b.platformFee);
+              const hostRev = b.hostRevenue == null ? null : Number(b.hostRevenue);
               return `
               <tr>
                 <td>
@@ -3297,7 +3379,7 @@ function renderAdminView(tab) {
                 <td>
                   <strong style="font-size:15px;">Total: ${money(b.totalAmount)}</strong>
                   <p class="text-muted" style="margin:2px 0;font-size:11.5px;">Base Fare: ${money(b.baseFare)} · Deposit: ${money(b.securityDeposit)}</p>
-                  <p style="margin:2px 0;font-size:11.5px;font-weight:700;"><span style="color:var(--purple);">Safar 20%: ${money(platFee)}</span> · <span style="color:#059669;">Host 80%: ${money(hostRev)}</span></p>
+                  <p style="margin:2px 0;font-size:11.5px;font-weight:700;">${platFee == null ? '<span class="text-muted">Settlement pending reconciliation</span>' : `<span style="color:var(--purple);">Platform fee: ${money(platFee)}</span> · <span style="color:#059669;">Partner settlement: ${money(hostRev)}</span>`}</p>
                 </td>
                 <td>
                   ${badge(st)}
@@ -3339,9 +3421,9 @@ function renderAdminView(tab) {
         </table>
       </section>
       <section class="panel table-wrap">
-        <h3>80% Host Revenue Settlement Ledger</h3>
+        <h3>Partner settlement ledger</h3>
         <table>
-          <thead><tr><th>Host / Partner</th><th>Net Settlement (80%)</th><th>Period / Trip</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th>Host / Partner</th><th>Net settlement</th><th>Period / Trip</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
             ${adminData.payouts.map(payout => `
               <tr>
@@ -3409,6 +3491,23 @@ function renderAdminView(tab) {
                 <td>${esc(a.detail)}</td>
               </tr>`).join('')}
           </tbody>
+        </table>
+      </section>`;
+  }
+
+  if (tab === 'disputes') {
+    $('#admin-panel-content').innerHTML = `
+      <section class="panel table-wrap">
+        <div style="margin-bottom:14px;"><h3 style="margin:0">Booking disputes &amp; resolution queue</h3><p class="text-muted" style="margin:4px 0 0">Review booking-linked billing, deposit, handover and damage claims. Every response is appended to the audit trail.</p></div>
+        <table>
+          <thead><tr><th>Reference / Customer</th><th>Booking &amp; Vehicle</th><th>Issue</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>${data.map(dispute => `<tr>
+            <td><strong>${esc(dispute.reference)}</strong><br>${esc((dispute.customer?.firstName || '') + ' ' + (dispute.customer?.lastName || ''))}<br><small class="text-muted">${esc(dispute.customer?.email || '')}</small></td>
+            <td><strong>${esc(dispute.bookingRef || dispute.bookingId || '—')}</strong><br><small>${esc(dispute.vehicleTitle)}</small></td>
+            <td><strong>${esc(dispute.category.replaceAll('_', ' '))}</strong><p style="margin:4px 0 0">${esc(dispute.description)}</p>${dispute.amountClaimed ? `<small class="text-muted">Claimed: ${money(dispute.amountClaimed)}</small>` : ''}</td>
+            <td>${badge(dispute.status)}${dispute.adminResponse ? `<p class="text-muted" style="margin:5px 0 0;font-size:12px">${esc(dispute.adminResponse)}</p>` : ''}</td>
+            <td><button type="button" class="button btn-orange btn-sm resolve-dispute-action" data-id="${esc(dispute.id)}" data-reference="${esc(dispute.reference)}">Review</button></td>
+          </tr>`).join('') || '<tr><td colspan="5">No booking disputes have been submitted.</td></tr>'}</tbody>
         </table>
       </section>`;
   }
@@ -3666,6 +3765,23 @@ function renderAdminView(tab) {
       $('dialog').close();
       await adminPage('bookings');
       toast('Transaction reconciled successfully.');
+    });
+  });
+
+  $$('.resolve-dispute-action').forEach(btn => btn.onclick = () => {
+    const dispute = adminData.disputes.find(item => item.id === btn.dataset.id);
+    showDialog(`<h3>Review dispute ${esc(btn.dataset.reference)}</h3>
+      <p class="text-muted">${esc(dispute?.description || '')}</p>
+      <form id="admin-dispute-form" class="form-stack">
+        <label>Decision<select name="status" required><option value="UNDER_REVIEW">Under review</option><option value="INFO_REQUIRED">Information required</option><option value="RESOLVED">Resolved</option><option value="REJECTED">Rejected</option></select></label>
+        <label>Response / internal note<textarea name="note" required maxlength="1000" placeholder="Explain the decision or request evidence."></textarea></label>
+        <button type="submit" class="button btn-orange">Save dispute decision</button>
+      </form>`);
+    bindForm('#admin-dispute-form', async formData => {
+      await post('/admin/disputes/' + encodeURIComponent(btn.dataset.id) + '/resolve', formData);
+      $('dialog').close();
+      await adminPage('disputes');
+      toast('Dispute decision saved.');
     });
   });
 }

@@ -60,7 +60,7 @@ export class BookingsService {
 
       const tenureHours = Math.max(1, Math.ceil((+end - +start) / 3600000));
       const baseFare = Math.max(0, Number(totalAmount) - Number(securityDeposit));
-      const platformFee = Math.round(baseFare * 0.20);
+      const platformFee = Math.round(baseFare * rentalPolicy.platformCommissionRate);
       const hostRevenue = Math.max(0, baseFare - platformFee);
 
       const policySnapshot = agreementPolicySnapshot({
@@ -658,7 +658,7 @@ export class BookingsService {
         // Credit Host Revenue to Host Wallet upon completed trip
         const hostShare = Number(booking.hostRevenue) > 0
           ? Number(booking.hostRevenue)
-          : Math.round(Math.max(0, Number(booking.totalAmount) - Number(booking.securityDeposit)) * 0.8);
+          : Math.round(Math.max(0, Number(booking.totalAmount) - Number(booking.securityDeposit)) * (1 - rentalPolicy.platformCommissionRate));
         await tx.wallet.upsert({
           where: { userId: booking.vehicle.hostId },
           update: { balance: { increment: hostShare } },

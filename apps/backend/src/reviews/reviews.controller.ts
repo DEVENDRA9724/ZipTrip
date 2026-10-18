@@ -11,6 +11,12 @@ export class ReviewsController {
     return this.reviews.listForVehicle(vehicleId);
   }
 
+  @Get('mine')
+  @UseGuards(JwtAuthGuard)
+  listMine(@Request() req: any) {
+    return this.reviews.listAuthored(req.user.id);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Request() req: any, @Body() body: any) {
