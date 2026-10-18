@@ -349,7 +349,7 @@ function shell() {
       ${links.map(([href, label]) => `<a href="${href}" class="${isActive(href) ? 'active' : ''}">${label}</a>`).join('')}
     </nav>
     <div class="ds-head-right">
-      <label class="ds-city" title="Select pickup city">${icon('pin', 'ic-sm')}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">City</span><select id="ds-city-select" aria-label="Select city">${cityOptions}</select></label>
+      <div class="ds-city" title="Select pickup city">${icon('pin', 'ic-sm')}<select id="ds-city-select" aria-label="Select pickup city">${cityOptions}</select></div>
       ${user ? `
         <details class="ds-user-menu">
           <summary aria-label="Account menu"><span class="ds-avatar">${esc(initials(user))}</span><span class="ds-hide-m">${esc(user.firstName)}</span></summary>
