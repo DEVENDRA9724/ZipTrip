@@ -1,5 +1,16 @@
 'use strict';
 
+function safeUuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // Both customer and admin views open the provider file directly, without conversion.
 async function renderOriginalEvidence(box, endpoint, title, onEvidence = () => {}, onOpen = () => {}) {
   onEvidence(null);
@@ -1648,7 +1659,7 @@ async function carDetails(id) {
       form.elements[key].value = localDateTime(selectedDates.get(key));
       form.elements[key].min = localDateTime(Date.now() + 60000);
     }
-    let currentQuote = null, quoteSequence = 0, quoteTimer, bookingRequestKey = crypto.randomUUID();
+    let currentQuote = null, quoteSequence = 0, quoteTimer, bookingRequestKey = safeUuid();
     const syncBookingSteps = () => {
       const startReady = Boolean(form.elements.startDate.value);
       const endReady = Boolean(form.elements.endDate.value);
@@ -1697,7 +1708,7 @@ async function carDetails(id) {
       }
     };
     form.addEventListener('input', () => {
-      bookingRequestKey = crypto.randomUUID();
+      bookingRequestKey = safeUuid();
       ++quoteSequence; currentQuote = null;
       $('button[type=submit]', form).disabled = true;
       syncBookingSteps();
@@ -2410,8 +2421,19 @@ async function host(activeTab = 'overview') {
     for (const kind of PHOTO_ANGLES) {
       const file = form.elements[kind].files[0];
       if (!file || !['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) throw new Error('Choose a JPEG, PNG or WebP up to 8 MB for ' + kind);
-      const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
-      const hash = Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, '0')).join('');
+      let hash = `${file.name}-${file.size}-${file.lastModified}`;
+      // SubtleCrypto is unavailable on some HTTP/IP deployments and older
+      // mobile WebViews. Treat it as an optional enhancement so a browser
+      // capability never prevents a host from submitting a valid listing.
+      const subtle = globalThis.crypto?.subtle;
+      if (typeof subtle?.digest === 'function') {
+        try {
+          const digest = await subtle.digest('SHA-256', await file.arrayBuffer());
+          hash = Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, '0')).join('');
+        } catch {
+          // Keep the deterministic file metadata fallback above.
+        }
+      }
       if (hashes.has(hash)) throw new Error('Each angle needs a distinct photo. Duplicate detected at ' + kind + '.');
       hashes.add(hash);
     }

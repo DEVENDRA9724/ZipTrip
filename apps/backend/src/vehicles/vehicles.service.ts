@@ -133,7 +133,7 @@ export class VehiclesService {
       const vehicle = await tx.vehicle.create({ data: {
         hostId, registrationNumber, make: text(data.make, 'Make'), model: text(data.model, 'Model'),
         year: number(data.year, 'Year', 1990, new Date().getFullYear() + 1, true),
-        category: choice(data.category, 'Category', ['Hatchback', 'Sedan', 'Compact SUV', 'SUV', 'MUV', 'Luxury']),
+        category: choice(data.category, 'Category', ['Hatchback', 'Sedan', 'Compact SUV', 'SUV', 'MUV', 'Luxury', 'EV']),
         transmission: choice(data.transmission, 'Transmission', ['Manual', 'Automatic']),
         fuelType: choice(data.fuelType, 'Fuel', ['Petrol', 'Diesel', 'Electric', 'CNG', 'Hybrid']),
         seats: number(data.seats, 'Seats', 2, 12, true), pricePerDay: price,
