@@ -872,12 +872,15 @@ async function cars() {
           </div>
         </div>
 
-        <form id="availability-search" class="availability-search" style="margin:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);color:#fff">
-          <div class="availability-heading"><strong style="color:#fff">Search Available Vehicles</strong><span style="color:rgba(255,255,255,0.75)">Transparent Pricing · Digital Lease Agreement · Verified Handover</span></div>
-          <label style="color:#fff">Hub / City<input name="city" placeholder="Ahmedabad, Surat, Vadodara…" maxlength="120"></label>
-          <fieldset class="trip-date-range"><legend style="color:#F07818">Trip Schedule</legend>
-            <label style="color:#fff">Pick-up<input name="startDate" type="datetime-local" required></label>
-            <label style="color:#fff">Drop-off<input name="endDate" type="datetime-local" required></label>
+        <form id="availability-search" class="availability-search">
+          <div class="availability-heading">
+            <strong>Search Available Vehicles</strong>
+            <span>Transparent Pricing · Digital Lease Agreement · Verified Handover</span>
+          </div>
+          <label>Hub / City<input name="city" placeholder="Ahmedabad, Surat, Vadodara…" maxlength="120"></label>
+          <fieldset class="trip-date-range"><legend>Trip Schedule</legend>
+            <label>Pick-up<input name="startDate" type="datetime-local" required></label>
+            <label>Drop-off<input name="endDate" type="datetime-local" required></label>
           </fieldset>
           <button type="submit" class="button btn-orange">Update Search</button>
         </form>
