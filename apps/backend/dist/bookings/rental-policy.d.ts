@@ -16,5 +16,5 @@ export declare function lateReturnCharge(returnedAt: Date, scheduledAt: Date): {
     lateHours: number;
     amount: number;
 };
-export declare function cancellationRefundPercent(startDate: Date, now?: Date): 100 | 50 | 0;
+export declare function cancellationRefundPercent(startDate: Date, now?: Date): 0 | 100 | 50;
 export declare function assertPolicyConfiguration(): void;

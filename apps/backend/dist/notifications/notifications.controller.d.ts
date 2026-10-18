@@ -3,10 +3,10 @@ export declare class NotificationsController {
     private readonly notifications;
     constructor(notifications: NotificationsService);
     list(req: any): import("@prisma/client").Prisma.PrismaPromise<{
-        type: string;
         id: string;
         createdAt: Date;
         userId: string;
+        type: string;
         title: string;
         message: string;
         bookingId: string | null;
