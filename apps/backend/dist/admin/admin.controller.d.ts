@@ -24,7 +24,6 @@ export declare class AdminController {
                 lastName: string;
                 createdAt: Date;
                 updatedAt: Date;
-                userId: string;
                 city: string;
                 state: string;
                 postalCode: string | null;
@@ -40,9 +39,14 @@ export declare class AdminController {
                 faceMatchScore: number | null;
                 faceMatchStatus: string | null;
                 isKycVerified: boolean;
+                userId: string;
             } | null;
         }[];
         vehicles: ({
+            media: {
+                id: string;
+                kind: string;
+            }[];
             documents: {
                 id: string;
                 createdAt: Date;
@@ -62,10 +66,6 @@ export declare class AdminController {
                 verifiedById: string | null;
                 verifiedAt: Date | null;
             }[];
-            media: {
-                id: string;
-                kind: string;
-            }[];
             host: {
                 email: string;
                 phone: string | null;
@@ -75,9 +75,9 @@ export declare class AdminController {
             currentHub: {
                 id: string;
                 createdAt: Date;
+                city: string;
                 latitude: number;
                 longitude: number;
-                city: string;
                 hubName: string;
                 address: string;
                 isActive: boolean;
@@ -86,12 +86,12 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            year: number;
+            make: string;
+            model: string;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
-            make: string;
-            model: string;
-            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -127,9 +127,9 @@ export declare class AdminController {
                 currentHub: {
                     id: string;
                     createdAt: Date;
+                    city: string;
                     latitude: number;
                     longitude: number;
-                    city: string;
                     hubName: string;
                     address: string;
                     isActive: boolean;
@@ -138,12 +138,12 @@ export declare class AdminController {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                year: number;
+                make: string;
+                model: string;
                 hostId: string;
                 modelSpecId: string | null;
                 currentHubId: string | null;
-                make: string;
-                model: string;
-                year: number;
                 category: string;
                 transmission: string;
                 fuelType: string;
@@ -168,46 +168,6 @@ export declare class AdminController {
                 odometer: number;
                 reviewNote: string | null;
             };
-            customer: {
-                email: string;
-                phone: string | null;
-                firstName: string;
-                lastName: string;
-                profile: {
-                    id: string;
-                    firstName: string;
-                    lastName: string;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    userId: string;
-                    city: string;
-                    state: string;
-                    postalCode: string | null;
-                    aadhaarNumberHash: string | null;
-                    aadhaarNumberMasked: string | null;
-                    panNumberHash: string | null;
-                    panNumberMasked: string | null;
-                    drivingLicenseHash: string | null;
-                    drivingLicenseMasked: string | null;
-                    dlExpiryDate: Date | null;
-                    profileImageUrl: string | null;
-                    selfieMediaId: string | null;
-                    faceMatchScore: number | null;
-                    faceMatchStatus: string | null;
-                    isKycVerified: boolean;
-                } | null;
-            };
-            payment: {
-                id: string;
-                createdAt: Date;
-                status: string;
-                bookingId: string;
-                transactionId: string;
-                gatewayProvider: string;
-                paymentType: string;
-                amount: import("@prisma/client-runtime-utils").Decimal;
-                currency: string;
-            } | null;
             trip: {
                 id: string;
                 createdAt: Date;
@@ -238,12 +198,52 @@ export declare class AdminController {
                 currency: string;
                 snapshot: string;
             } | null;
+            payment: {
+                id: string;
+                createdAt: Date;
+                status: string;
+                bookingId: string;
+                amount: import("@prisma/client-runtime-utils").Decimal;
+                currency: string;
+                transactionId: string;
+                gatewayProvider: string;
+                paymentType: string;
+            } | null;
+            customer: {
+                email: string;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+                profile: {
+                    id: string;
+                    firstName: string;
+                    lastName: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    city: string;
+                    state: string;
+                    postalCode: string | null;
+                    aadhaarNumberHash: string | null;
+                    aadhaarNumberMasked: string | null;
+                    panNumberHash: string | null;
+                    panNumberMasked: string | null;
+                    drivingLicenseHash: string | null;
+                    drivingLicenseMasked: string | null;
+                    dlExpiryDate: Date | null;
+                    profileImageUrl: string | null;
+                    selfieMediaId: string | null;
+                    faceMatchScore: number | null;
+                    faceMatchStatus: string | null;
+                    isKycVerified: boolean;
+                    userId: string;
+                } | null;
+            };
             inspections: {
                 id: string;
                 createdAt: Date;
+                selfieMediaId: string | null;
                 odometer: number;
                 mediaId: string;
-                selfieMediaId: string | null;
                 bookingId: string;
                 stage: string;
                 mediaIds: string | null;
@@ -275,6 +275,7 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            expiresAt: Date | null;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
             status: import("@prisma/client").$Enums.BookingStatus;
             serviceType: string;
@@ -294,7 +295,6 @@ export declare class AdminController {
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
-            expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
             rentalDays: number;
@@ -315,7 +315,6 @@ export declare class AdminController {
                     lastName: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    userId: string;
                     city: string;
                     state: string;
                     postalCode: string | null;
@@ -331,6 +330,7 @@ export declare class AdminController {
                     faceMatchScore: number | null;
                     faceMatchStatus: string | null;
                     isKycVerified: boolean;
+                    userId: string;
                 } | null;
             };
         } & {
@@ -434,12 +434,12 @@ export declare class AdminController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        year: number;
+        make: string;
+        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
-        make: string;
-        model: string;
-        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -468,12 +468,12 @@ export declare class AdminController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        year: number;
+        make: string;
+        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
-        make: string;
-        model: string;
-        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -639,12 +639,12 @@ export declare class AdminController {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                year: number;
+                make: string;
+                model: string;
                 hostId: string;
                 modelSpecId: string | null;
                 currentHubId: string | null;
-                make: string;
-                model: string;
-                year: number;
                 category: string;
                 transmission: string;
                 fuelType: string;
@@ -673,6 +673,7 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            expiresAt: Date | null;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
             status: import("@prisma/client").$Enums.BookingStatus;
             serviceType: string;
@@ -692,7 +693,6 @@ export declare class AdminController {
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
-            expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
             rentalDays: number;

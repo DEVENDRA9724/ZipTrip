@@ -16,6 +16,23 @@ try {
   } catch {}
 }
 
+const envFile = resolve(__dirname, '../.env');
+try {
+  let envContent = readFileSync(envFile, 'utf8');
+  if (envContent.includes('replace-with-at-least-32-random-characters') || !process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    const crypto = require('crypto');
+    const secret = crypto.randomBytes(32).toString('hex');
+    if (envContent.includes('JWT_SECRET=')) {
+      envContent = envContent.replace(/JWT_SECRET=.*/, `JWT_SECRET=${secret}`);
+    } else {
+      envContent += `\nJWT_SECRET=${secret}\n`;
+    }
+    writeFileSync(envFile, envContent);
+    process.env.JWT_SECRET = secret;
+    console.log('Synchronized secure JWT_SECRET in .env');
+  }
+} catch {}
+
 const root = resolve(__dirname, '..');
 const schemaPath = resolve(root, 'prisma/schema.prisma');
 let schema = readFileSync(schemaPath, 'utf8');

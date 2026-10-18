@@ -13,9 +13,9 @@ export declare class KycController {
         environment: string;
         documents: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             reviewNote: string | null;
             vehicleId: string | null;
             kind: string;
@@ -32,19 +32,17 @@ export declare class KycController {
         }[];
         sessions: {
             id: string;
-            status: string;
             expiresAt: Date;
+            status: string;
             environment: string;
             consentAt: Date;
         }[];
         profile: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             firstName: string;
             lastName: string;
-            userId: string;
-            selfieMediaId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             city: string;
             state: string;
             postalCode: string | null;
@@ -56,9 +54,11 @@ export declare class KycController {
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
+            selfieMediaId: string | null;
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
+            userId: string;
         } | null;
         user: {
             id: string;
@@ -70,9 +70,9 @@ export declare class KycController {
     }>;
     document(req: any, body: any): Promise<{
         id: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         reviewNote: string | null;
         vehicleId: string | null;
         kind: string;
@@ -96,12 +96,10 @@ export declare class KycController {
         status: string;
         profile: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             firstName: string;
             lastName: string;
-            userId: string;
-            selfieMediaId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             city: string;
             state: string;
             postalCode: string | null;
@@ -113,9 +111,11 @@ export declare class KycController {
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
+            selfieMediaId: string | null;
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
+            userId: string;
         };
     }>;
     start(req: any, body: any): Promise<{
@@ -133,9 +133,9 @@ export declare class KycController {
         environment: string;
         documents: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             reviewNote: string | null;
             vehicleId: string | null;
             kind: string;
@@ -152,19 +152,17 @@ export declare class KycController {
         }[];
         sessions: {
             id: string;
-            status: string;
             expiresAt: Date;
+            status: string;
             environment: string;
             consentAt: Date;
         }[];
         profile: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             firstName: string;
             lastName: string;
-            userId: string;
-            selfieMediaId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             city: string;
             state: string;
             postalCode: string | null;
@@ -176,9 +174,11 @@ export declare class KycController {
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
+            selfieMediaId: string | null;
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
+            userId: string;
         } | null;
         user: {
             id: string;
@@ -197,9 +197,9 @@ export declare class KycController {
         environment: string;
         documents: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             reviewNote: string | null;
             vehicleId: string | null;
             kind: string;
@@ -216,19 +216,17 @@ export declare class KycController {
         }[];
         sessions: {
             id: string;
-            status: string;
             expiresAt: Date;
+            status: string;
             environment: string;
             consentAt: Date;
         }[];
         profile: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
             firstName: string;
             lastName: string;
-            userId: string;
-            selfieMediaId: string | null;
+            createdAt: Date;
+            updatedAt: Date;
             city: string;
             state: string;
             postalCode: string | null;
@@ -240,9 +238,11 @@ export declare class KycController {
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
+            selfieMediaId: string | null;
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
+            userId: string;
         } | null;
         user: {
             id: string;

@@ -3,21 +3,23 @@ export declare class VehiclesService {
     private prisma;
     constructor(prisma: PrismaService);
     findAll(query: any): import("@prisma/client").Prisma.PrismaPromise<({
-        reviews: {
-            rating: number;
-        }[];
         media: {
             id: string;
             kind: string;
         }[];
+        reviews: {
+            rating: number;
+        }[];
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        year: number;
+        make: string;
+        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
-        make: string;
-        model: string;
-        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -38,13 +40,15 @@ export declare class VehiclesService {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
-        createdAt: Date;
-        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
     })[]>;
     findOne(id: string): Promise<{
+        media: {
+            id: string;
+            kind: string;
+        }[];
         reviews: ({
             author: {
                 firstName: string;
@@ -58,18 +62,16 @@ export declare class VehiclesService {
             rating: number;
             comment: string | null;
         })[];
-        media: {
-            id: string;
-            kind: string;
-        }[];
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        year: number;
+        make: string;
+        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
-        make: string;
-        model: string;
-        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -90,8 +92,6 @@ export declare class VehiclesService {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
-        createdAt: Date;
-        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
@@ -123,9 +123,9 @@ export declare class VehiclesService {
         bookings: {
             id: string;
             status: import("@prisma/client").$Enums.BookingStatus;
+            bookingRef: string;
             startDate: Date;
             endDate: Date;
-            bookingRef: string;
         }[];
     }>;
     hostAgreement(user: any, id: string): Promise<{
@@ -191,9 +191,9 @@ export declare class VehiclesService {
         }[];
         documents: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             reviewNote: string | null;
             vehicleId: string | null;
             kind: string;
@@ -210,12 +210,14 @@ export declare class VehiclesService {
         }[];
     } & {
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        year: number;
+        make: string;
+        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
-        make: string;
-        model: string;
-        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -236,20 +238,20 @@ export declare class VehiclesService {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
-        createdAt: Date;
-        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
     })[]>;
     create(hostId: string, data: any): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        year: number;
+        make: string;
+        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
-        make: string;
-        model: string;
-        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -270,8 +272,6 @@ export declare class VehiclesService {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
-        createdAt: Date;
-        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;

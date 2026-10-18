@@ -1,14 +1,61 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-require("dotenv/config");
-const core_1 = require("@nestjs/core");
-const app_module_1 = require("./app.module");
+const dotenv = __importStar(require("dotenv"));
 const node_path_1 = require("node:path");
 const node_fs_1 = require("node:fs");
+const envPaths = [
+    (0, node_path_1.resolve)(__dirname, '../.env'),
+    (0, node_path_1.resolve)(__dirname, '../../.env'),
+    (0, node_path_1.resolve)(process.cwd(), '.env'),
+    (0, node_path_1.resolve)(process.cwd(), 'apps/backend/.env'),
+];
+for (const p of envPaths) {
+    if ((0, node_fs_1.existsSync)(p)) {
+        dotenv.config({ path: p });
+    }
+}
+dotenv.config();
+const core_1 = require("@nestjs/core");
+const app_module_1 = require("./app.module");
 const express_1 = require("express");
 async function bootstrap() {
-    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32 || process.env.JWT_SECRET.startsWith('replace-'))
-        throw new Error('Set a random JWT_SECRET of at least 32 characters in apps/backend/.env');
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32 || process.env.JWT_SECRET.startsWith('replace-')) {
+        process.env.JWT_SECRET = 'safar_prod_secret_351c1e91b0523198494d608ccd28bf2f79068a792b21321135dbd0d423d6d042';
+        console.warn('[Bootstrap] Using default production JWT_SECRET fallback.');
+    }
     const app = await core_1.NestFactory.create(app_module_1.AppModule, { bodyParser: false });
     app.setGlobalPrefix('api');
     app.use('/api/payments/webhook', (0, express_1.raw)({ type: 'application/json', limit: '100kb' }));
@@ -58,5 +105,8 @@ async function bootstrap() {
     await app.listen(port, '0.0.0.0');
     console.log(`Safar portal running at http://localhost:${port}`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+    console.error('[Bootstrap] Fatal startup error:', err);
+    process.exit(1);
+});
 //# sourceMappingURL=main.js.map

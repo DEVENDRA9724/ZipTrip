@@ -23,9 +23,9 @@ export declare class ReviewsController {
         vehicleReviews: ({
             vehicle: {
                 id: string;
+                year: number;
                 make: string;
                 model: string;
-                year: number;
                 registrationNumber: string | null;
             };
         } & {

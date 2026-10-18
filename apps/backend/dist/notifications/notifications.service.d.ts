@@ -3,13 +3,13 @@ export declare class NotificationsService {
     private readonly prisma;
     constructor(prisma: PrismaService);
     list(userId: string): import("@prisma/client").Prisma.PrismaPromise<{
+        type: string;
         id: string;
         createdAt: Date;
         userId: string;
-        bookingId: string | null;
-        message: string;
-        type: string;
         title: string;
+        message: string;
+        bookingId: string | null;
         metadata: string | null;
         readAt: Date | null;
     }[]>;
@@ -27,13 +27,13 @@ export declare class NotificationsService {
         bookingId?: string;
         metadata?: any;
     }): Promise<{
+        type: string;
         id: string;
         createdAt: Date;
         userId: string;
-        bookingId: string | null;
-        message: string;
-        type: string;
         title: string;
+        message: string;
+        bookingId: string | null;
         metadata: string | null;
         readAt: Date | null;
     }>;
