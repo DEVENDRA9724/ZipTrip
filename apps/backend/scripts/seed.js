@@ -509,8 +509,8 @@ async function seed() {
       odometer: 26000,
       locationCity: 'Ahmedabad',
       registrationNumber: 'GJ01I24444',
-      vinNumber: 'MALPC8123P1004444',
-      gpsDeviceImei: '864201099004444',
+      vinNumber: 'MALPC8123P1004200',
+      gpsDeviceImei: '864201099004200',
       imageFile: 'i20.jpg',
     },
     {
@@ -525,8 +525,8 @@ async function seed() {
       odometer: 15300,
       locationCity: 'Gandhinagar',
       registrationNumber: 'GJ18CR5555',
-      vinNumber: 'MZBD81234R1005555',
-      gpsDeviceImei: '864201099005555',
+      vinNumber: 'MZBD81234R1005200',
+      gpsDeviceImei: '864201099005200',
       imageFile: 'carens.jpg',
     },
     {
@@ -541,14 +541,15 @@ async function seed() {
       odometer: 8200,
       locationCity: 'Ahmedabad',
       registrationNumber: 'GJ01MB1111',
-      vinNumber: 'WDD2050401R1001111',
-      gpsDeviceImei: '864201099001111',
+      vinNumber: 'WDD2050401R1001200',
+      gpsDeviceImei: '864201099001200',
       imageFile: 'mercedes.jpg',
     },
   ];
 
   for (const carData of sampleCars) {
-    const modelSpec = await prisma.vehicleModel.upsert({
+    try {
+      const modelSpec = await prisma.vehicleModel.upsert({
       where: {
         brand_modelName_transmission_fuelType: {
           brand: carData.make,
@@ -572,8 +573,13 @@ async function seed() {
 
     const hub = hubsByCity[carData.locationCity] || hubsByCity['Ahmedabad'];
 
-    const existing = await prisma.vehicle.findUnique({
-      where: { registrationNumber: carData.registrationNumber },
+    const existing = await prisma.vehicle.findFirst({
+      where: {
+        OR: [
+          { registrationNumber: carData.registrationNumber },
+          { gpsDeviceImei: carData.gpsDeviceImei },
+        ],
+      },
       include: { media: true },
     });
     if (existing) {
@@ -584,6 +590,7 @@ async function seed() {
           currentHubId: hub?.id,
           vinNumber: carData.vinNumber,
           gpsDeviceImei: carData.gpsDeviceImei,
+          registrationNumber: carData.registrationNumber,
           pickupAddress: hub ? hub.address : `${carData.locationCity} Central Hub`,
           dropAddress: hub ? hub.address : `${carData.locationCity} Central Hub`,
         },
@@ -690,6 +697,9 @@ async function seed() {
     }
 
     console.log(`✔ Car seeded & linked to Hub: ${carData.make} ${carData.model} (${carData.registrationNumber})`);
+    } catch (carErr) {
+      console.warn(`  ! Note: vehicle ${carData.make} ${carData.model} (${carData.registrationNumber}):`, carErr.message);
+    }
   }
 
   // 5. Seed a Sample Confirmed Booking + Trip + Telematics + Payment + Invoice
