@@ -22,9 +22,11 @@ git reset --hard origin/main
 
 # Build backend and sync database
 cd /home/ubuntu/ZipTrip/apps/backend
+npm install --include=dev
 npm run db:pg:prepare
 npx prisma db push --accept-data-loss
 npm run db:generate
+npm run seed
 npm run build
 
 # Sync web frontend to nginx directory
