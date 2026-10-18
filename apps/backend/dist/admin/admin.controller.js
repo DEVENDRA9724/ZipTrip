@@ -381,7 +381,7 @@ let AdminController = class AdminController {
                 create: { bookingId: id, ...settlementTotals, status: 'SETTLED', note, reviewedById: req.user.id },
             });
             if (booking.trip)
-                await tx.trip.update({ where: { bookingId: id }, data: { penaltyCharges: totalDeduction } });
+                await tx.trip.update({ where: { bookingId: id }, data: { penaltyCharges: settlementTotals.totalDeduction } });
             await tx.auditLog.create({ data: { actorId: req.user.id, action: 'BOOKING_SETTLED', targetId: id, detail: JSON.stringify({ ...settlementTotals, note }) } });
             return settlement;
         });

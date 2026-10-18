@@ -63,8 +63,9 @@ let PaymentWebhookController = class PaymentWebhookController {
             }
             if (booking.payment?.transactionId === transactionId)
                 return { ok: true, idempotent: true, bookingId, status: booking.payment.status };
-            if (booking.payment && booking.payment.transactionId !== transactionId)
+            if (booking.payment && booking.payment.status !== 'INITIATED' && booking.payment.transactionId !== transactionId) {
                 throw new common_1.HttpException('Booking already has a different payment reference', common_1.HttpStatus.CONFLICT);
+            }
             const provider = String(paymentEntity?.gatewayProvider || event?.gatewayProvider || 'Razorpay').slice(0, 40);
             if (booking.payment)
                 await tx.payment.update({ where: { bookingId }, data: { transactionId, gatewayProvider: provider, amount: Number(booking.totalAmount), status } });

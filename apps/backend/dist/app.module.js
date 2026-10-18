@@ -27,6 +27,7 @@ const payouts_module_1 = require("./payouts/payouts.module");
 const notifications_module_1 = require("./notifications/notifications.module");
 const payment_webhook_controller_1 = require("./payments/payment-webhook.controller");
 const operations_module_1 = require("./operations/operations.module");
+const payments_module_1 = require("./payments/payments.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -43,6 +44,7 @@ exports.AppModule = AppModule = __decorate([
             payouts_module_1.PayoutsModule,
             notifications_module_1.NotificationsModule,
             operations_module_1.OperationsModule,
+            payments_module_1.PaymentsModule,
         ],
         controllers: [app_controller_1.AppController, media_controller_1.MediaController, kyc_controller_1.KycController, admin_controller_1.AdminController, payment_webhook_controller_1.PaymentWebhookController],
         providers: [app_service_1.AppService, media_service_1.MediaService, sandbox_service_1.SandboxService, document_evidence_service_1.DocumentEvidenceService],

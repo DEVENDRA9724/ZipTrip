@@ -22,17 +22,16 @@ git reset --hard origin/main
 
 # Build backend and sync database
 cd /home/ubuntu/ZipTrip/apps/backend
-npm install --include=dev
-npm run db:pg:prepare
+node scripts/prepare-postgres.js
 npx prisma db push --accept-data-loss
-npm run db:generate
-npm run seed
-npm run build || true
+npx prisma generate
+node scripts/seed.js
 
 # Sync web frontend to nginx directory
 sudo cp -r /home/ubuntu/ZipTrip/apps/web/* /var/www/safar/
 
 # Restart PM2 process
-pm2 restart 0
+pm2 restart 0 || pm2 start dist/main.js --name safar-api
+pm2 status
 
 echo "=== [$(date)] Safar Auto-Deployment Complete! ==="

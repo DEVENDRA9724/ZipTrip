@@ -48,7 +48,11 @@ export class PaymentWebhookController {
         throw new HttpException('Payment amount does not match booking total', HttpStatus.BAD_REQUEST);
       }
       if (booking.payment?.transactionId === transactionId) return { ok: true, idempotent: true, bookingId, status: booking.payment.status };
-      if (booking.payment && booking.payment.transactionId !== transactionId) throw new HttpException('Booking already has a different payment reference', HttpStatus.CONFLICT);
+      // A checkout creates an INITIATED row using the Razorpay order ID. The
+      // webhook legitimately replaces that order ID with the final payment ID.
+      if (booking.payment && booking.payment.status !== 'INITIATED' && booking.payment.transactionId !== transactionId) {
+        throw new HttpException('Booking already has a different payment reference', HttpStatus.CONFLICT);
+      }
 
       const provider = String(paymentEntity?.gatewayProvider || event?.gatewayProvider || 'Razorpay').slice(0, 40);
       if (booking.payment) await tx.payment.update({ where: { bookingId }, data: { transactionId, gatewayProvider: provider, amount: Number(booking.totalAmount), status } });

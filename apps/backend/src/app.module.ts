@@ -18,6 +18,7 @@ import { PayoutsModule } from './payouts/payouts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PaymentWebhookController } from './payments/payment-webhook.controller';
 import { OperationsModule } from './operations/operations.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { OperationsModule } from './operations/operations.module';
     PayoutsModule,
     NotificationsModule,
     OperationsModule,
+    PaymentsModule,
   ],
   controllers: [AppController, MediaController, KycController, AdminController, PaymentWebhookController],
   providers: [AppService, MediaService, SandboxService, DocumentEvidenceService],
