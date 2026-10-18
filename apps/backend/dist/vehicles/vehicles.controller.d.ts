@@ -3,23 +3,21 @@ export declare class VehiclesController {
     private readonly vehiclesService;
     constructor(vehiclesService: VehiclesService);
     findAll(query: any): Promise<({
+        reviews: {
+            rating: number;
+        }[];
         media: {
             id: string;
             kind: string;
         }[];
-        reviews: {
-            rating: number;
-        }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        year: number;
-        make: string;
-        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -40,6 +38,8 @@ export declare class VehiclesController {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
+        createdAt: Date;
+        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
@@ -51,9 +51,9 @@ export declare class VehiclesController {
         }[];
         documents: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
             reviewNote: string | null;
             vehicleId: string | null;
             kind: string;
@@ -70,14 +70,12 @@ export declare class VehiclesController {
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        year: number;
-        make: string;
-        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -98,15 +96,13 @@ export declare class VehiclesController {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
+        createdAt: Date;
+        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
     })[]>;
     findOne(id: string): Promise<{
-        media: {
-            id: string;
-            kind: string;
-        }[];
         reviews: ({
             author: {
                 firstName: string;
@@ -120,16 +116,18 @@ export declare class VehiclesController {
             rating: number;
             comment: string | null;
         })[];
+        media: {
+            id: string;
+            kind: string;
+        }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        year: number;
-        make: string;
-        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -150,6 +148,8 @@ export declare class VehiclesController {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
+        createdAt: Date;
+        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
@@ -181,9 +181,9 @@ export declare class VehiclesController {
         bookings: {
             id: string;
             status: import("@prisma/client").$Enums.BookingStatus;
-            bookingRef: string;
             startDate: Date;
             endDate: Date;
+            bookingRef: string;
         }[];
     }>;
     hostAgreement(req: any, id: string): Promise<{
@@ -243,14 +243,12 @@ export declare class VehiclesController {
     }>;
     create(req: any, body: any): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        year: number;
-        make: string;
-        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -271,6 +269,8 @@ export declare class VehiclesController {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
+        createdAt: Date;
+        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;

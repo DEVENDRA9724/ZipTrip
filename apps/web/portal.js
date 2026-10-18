@@ -518,7 +518,7 @@ async function home() {
 
   $('#app').innerHTML = `
     <section class="lp-hero" aria-labelledby="lp-title">
-      <img class="lp-hero-img" src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=2000&q=80" alt="Self-drive car on open highway" fetchpriority="high">
+      <img class="lp-hero-img" src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=2000&q=85" alt="Self-drive car on open highway" fetchpriority="high">
       <div class="lp-hero-inner">
         <div style="display:grid;gap:14px">
           <span class="eyebrow" style="color:#F5D9A8">SELF-DRIVE CAR RENTALS</span>
@@ -3677,9 +3677,12 @@ async function adminPage(tab = 'dashboard') {
             <span>${icon('shield', 'ic-sm')} Audit &amp; Settings</span><span class="pro-nav-badge">${adminData.audit.length}</span>
           </button>
         </nav>
-        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line,#E9E3EA);font-size:12px;color:var(--ink-2,#68616B);">
-          <strong style="color:var(--ink,#211B24);display:block;">AWS S3 + PostgreSQL Live</strong>
-          <span>Bucket: safar-selfdrive-media-2026</span>
+        <div class="pro-sidebar-status">
+          <div class="pro-status-badge">
+            <span class="pro-status-dot"></span>
+            <span>Live Operations Active</span>
+          </div>
+          <div class="pro-status-meta">Gujarat Operational Hubs · 5 Cities</div>
         </div>
       </aside>
 
@@ -3696,34 +3699,52 @@ async function adminPage(tab = 'dashboard') {
         </div>
 
         <div class="pro-kpi-ribbon">
-          <div class="pro-kpi-card">
-            <span class="kpi-label">Gross Booking Volume</span>
+          <div class="pro-kpi-card kpi-card-purple">
+            <div class="kpi-card-head">
+              <span class="kpi-label">Gross Booking Volume</span>
+              <span class="kpi-badge-icon">${icon('wallet', 'ic-sm')}</span>
+            </div>
             <strong class="kpi-value">${money(totalGross)}</strong>
             <span class="kpi-sub">Today: ${money(adminData.metrics?.todayRevenue ?? 0)}</span>
           </div>
-          <div class="pro-kpi-card">
-            <span class="kpi-label">Platform Fee (20%)</span>
+          <div class="pro-kpi-card kpi-card-indigo">
+            <div class="kpi-card-head">
+              <span class="kpi-label">Platform Fee (20%)</span>
+              <span class="kpi-badge-icon">${icon('layers', 'ic-sm')}</span>
+            </div>
             <strong class="kpi-value" style="color:#3B123F;">${money(totalPlatformFee)}</strong>
             <span class="kpi-sub">Net marketplace commission</span>
           </div>
-          <div class="pro-kpi-card">
-            <span class="kpi-label">Host Settlements (80%)</span>
+          <div class="pro-kpi-card kpi-card-emerald">
+            <div class="kpi-card-head">
+              <span class="kpi-label">Host Settlements (80%)</span>
+              <span class="kpi-badge-icon">${icon('checkCircle', 'ic-sm')}</span>
+            </div>
             <strong class="kpi-value" style="color:#16804A;">${money(totalHostPayouts)}</strong>
             <span class="kpi-sub">${adminData.payouts.length} settlements recorded</span>
           </div>
-          <div class="pro-kpi-card">
-            <span class="kpi-label">Active &amp; Confirmed Trips</span>
-            <strong class="kpi-value">${adminData.metrics?.activeBookings ?? 0}</strong>
+          <div class="pro-kpi-card kpi-card-orange">
+            <div class="kpi-card-head">
+              <span class="kpi-label">Active &amp; Confirmed Trips</span>
+              <span class="kpi-badge-icon">${icon('car', 'ic-sm')}</span>
+            </div>
+            <strong class="kpi-value" style="color:#EA580C;">${adminData.metrics?.activeBookings ?? 0}</strong>
             <span class="kpi-sub">${adminData.bookings.length} total bookings in DB</span>
           </div>
-          <div class="pro-kpi-card">
-            <span class="kpi-label">e-KYC &amp; Docs Pending</span>
-            <strong class="kpi-value">${adminData.metrics?.documentPending ?? pendingDocs.length}</strong>
-            <span class="kpi-sub">Biometric &amp; RC queue</span>
+          <div class="pro-kpi-card kpi-card-amber">
+            <div class="kpi-card-head">
+              <span class="kpi-label">e-KYC &amp; Docs Pending</span>
+              <span class="kpi-badge-icon">${icon('idcard', 'ic-sm')}</span>
+            </div>
+            <strong class="kpi-value" style="color:#D97706;">${adminData.metrics?.documentPending ?? pendingDocs.length}</strong>
+            <span class="kpi-sub">Biometric &amp; RC verification queue</span>
           </div>
-          <div class="pro-kpi-card">
-            <span class="kpi-label">Fleet Approvals</span>
-            <strong class="kpi-value">${adminData.metrics?.vehiclePending ?? pendingVehicles.length}</strong>
+          <div class="pro-kpi-card kpi-card-blue">
+            <div class="kpi-card-head">
+              <span class="kpi-label">Fleet Approvals</span>
+              <span class="kpi-badge-icon">${icon('shield', 'ic-sm')}</span>
+            </div>
+            <strong class="kpi-value" style="color:#2563EB;">${adminData.metrics?.vehiclePending ?? pendingVehicles.length}</strong>
             <span class="kpi-sub">${adminData.vehicles.length} total fleet cars</span>
           </div>
         </div>
