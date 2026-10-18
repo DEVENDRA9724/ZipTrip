@@ -115,14 +115,38 @@ function carLink(id) {
   return 'cars.html?' + next.toString();
 }
 
+const CAR_IMAGE_MAP = {
+  thar: 'cars/thar.jpg',
+  creta: 'cars/creta.jpg',
+  fortuner: 'cars/fortuner.jpg',
+  innova: 'cars/innova.jpg',
+  swift: 'cars/swift.jpg',
+  bmw: 'cars/bmw.jpg',
+  city: 'cars/city.jpg',
+  scorpio: 'cars/scorpio.jpg',
+  dzire: 'cars/dzire.jpg',
+  i20: 'cars/i20.jpg',
+  venue: 'cars/venue.jpg',
+  mercedes: 'cars/mercedes.jpg',
+  carens: 'cars/carens.jpg',
+};
+
+function getCarStockPhoto(car) {
+  const text = `${car?.make || ''} ${car?.model || ''} ${car?.category || ''}`.toLowerCase();
+  for (const [key, path] of Object.entries(CAR_IMAGE_MAP)) {
+    if (text.includes(key)) return path;
+  }
+  return 'cars/creta.jpg';
+}
+
 function getVehicleCover(v) {
   const front = v.media?.find(m => m.kind === 'FRONT');
-  if (front) return `/api/media/${front.id}`;
+  if (front?.id) return `/api/media/${front.id}`;
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
-    if (u) return u;
+    if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
-  return 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
+  return getCarStockPhoto(v);
 }
 
 const badge = s => {
@@ -264,9 +288,12 @@ async function uploadFile(file, kind) {
 }
 function photoUrl(car) {
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
-  if (m) return '/api/media/' + encodeURIComponent(m.id);
-  try { const p = JSON.parse(car.images || '[]'); if (p[0]) return p[0]; } catch {}
-  return 'cars/creta.jpg';
+  if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
+  try {
+    const p = JSON.parse(car.images || '[]');
+    if (p[0] && (p[0].startsWith('http') || p[0].startsWith('/'))) return p[0];
+  } catch {}
+  return getCarStockPhoto(car);
 }
 function requireUser(roles) {
   if (!user) { location.replace('auth.html?redirect=' + encodeURIComponent(page + location.search)); return false; }
