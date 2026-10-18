@@ -3519,7 +3519,7 @@ async function agreement() {
 }
 
 /* ─── ADMIN COMMAND CENTER (PRO ENTERPRISE REDESIGN) ─────────────────── */
-async function adminPage(tab = 'vehicles') {
+async function adminPage(tab = 'dashboard') {
   if (!requireUser(['ADMIN'])) return;
   adminData = await api('/admin');
   adminData.disputes = await api('/admin/disputes').catch(() => []);
@@ -3529,42 +3529,59 @@ async function adminPage(tab = 'vehicles') {
   const totalGross = Number(adminData.metrics?.paidRevenue ?? 0);
   const totalPlatformFee = Number(adminData.metrics?.platformRevenue || 0);
   const totalHostPayouts = Number(adminData.metrics?.hostRevenue || 0);
+  const pendingVehicles = adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL');
+  const pendingDocs = adminData.documents.filter(d => d.status === 'PENDING');
+  const pendingBanks = adminData.payoutAccounts.filter(a => a.status === 'PENDING');
+  const openDisputes = adminData.disputes.filter(d => d.status !== 'RESOLVED' && d.status !== 'REJECTED');
+  const totalApprovalsCount = pendingVehicles.length + pendingDocs.length + pendingBanks.length + openDisputes.length;
 
   $('#app').innerHTML = `
     <div class="pro-console-shell">
       <aside class="pro-sidebar">
         <div class="pro-sidebar-brand">
-          <div class="pro-sidebar-logo">S</div>
+          ${brandMark()}
           <div>
             <strong>Safar Enterprise</strong>
-            <span>ADMIN COMMAND CENTER</span>
+            <span>ADMINISTRATION CONSOLE</span>
           </div>
         </div>
         <nav class="pro-nav" aria-label="Administration sections">
+          <button type="button" class="pro-nav-item ${tab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
+            <span>${icon('chart', 'ic-sm')} Dashboard Overview</span>
+          </button>
           <button type="button" class="pro-nav-item ${tab === 'vehicles' ? 'active' : ''}" data-tab="vehicles">
-            <span>🚗 Fleet &amp; 8-Angle Hub</span><span class="pro-nav-badge">${adminData.vehicles.length}</span>
+            <span>${icon('car', 'ic-sm')} Manage Vehicles</span><span class="pro-nav-badge">${adminData.vehicles.length}</span>
           </button>
           <button type="button" class="pro-nav-item ${tab === 'bookings' ? 'active' : ''}" data-tab="bookings">
-            <span>📅 Master Bookings</span><span class="pro-nav-badge">${adminData.bookings.length}</span>
-          </button>
-          <button type="button" class="pro-nav-item ${tab === 'documents' ? 'active' : ''}" data-tab="documents">
-            <span>🪪 e-KYC &amp; Face Match</span><span class="pro-nav-badge">${adminData.documents.length}</span>
+            <span>${icon('calendar', 'ic-sm')} Manage Bookings</span><span class="pro-nav-badge">${adminData.bookings.length}</span>
           </button>
           <button type="button" class="pro-nav-item ${tab === 'users' ? 'active' : ''}" data-tab="users">
-            <span>👥 Customers &amp; Hosts</span><span class="pro-nav-badge">${adminData.users.length}</span>
+            <span>${icon('users', 'ic-sm')} Manage Users</span><span class="pro-nav-badge">${adminData.users.length}</span>
           </button>
-          <button type="button" class="pro-nav-item ${tab === 'payouts' ? 'active' : ''}" data-tab="payouts">
-            <span>${icon('wallet', 'ic-sm')} Partner settlements</span><span class="pro-nav-badge">${adminData.payouts.length}</span>
+          <button type="button" class="pro-nav-item ${tab === 'documents' ? 'active' : ''}" data-tab="documents">
+            <span>${icon('id', 'ic-sm')} Customer Documents</span><span class="pro-nav-badge">${adminData.documents.length}</span>
           </button>
-          <button type="button" class="pro-nav-item ${tab === 'audit' ? 'active' : ''}" data-tab="audit">
-            <span>🛡️ Compliance Audit</span><span class="pro-nav-badge">${adminData.audit.length}</span>
+          <button type="button" class="pro-nav-item ${tab === 'approvals' ? 'active' : ''}" data-tab="approvals">
+            <span>${icon('checkCircle', 'ic-sm')} Approvals Queue</span><span class="pro-nav-badge">${totalApprovalsCount}</span>
           </button>
           <button type="button" class="pro-nav-item ${tab === 'disputes' ? 'active' : ''}" data-tab="disputes">
-            <span>${icon('scale', 'ic-sm')} Booking Disputes</span><span class="pro-nav-badge">${adminData.disputes.length}</span>
+            <span>${icon('scale', 'ic-sm')} Support &amp; Disputes</span><span class="pro-nav-badge">${adminData.disputes.length}</span>
+          </button>
+          <button type="button" class="pro-nav-item ${tab === 'payouts' ? 'active' : ''}" data-tab="payouts">
+            <span>${icon('wallet', 'ic-sm')} Payments &amp; Payouts</span><span class="pro-nav-badge">${adminData.payouts.length}</span>
+          </button>
+          <button type="button" class="pro-nav-item ${tab === 'pricing' ? 'active' : ''}" data-tab="pricing">
+            <span>${icon('tag', 'ic-sm')} Pricing &amp; Commercials</span>
+          </button>
+          <button type="button" class="pro-nav-item ${tab === 'reports' ? 'active' : ''}" data-tab="reports">
+            <span>${icon('file', 'ic-sm')} Reports &amp; Analytics</span>
+          </button>
+          <button type="button" class="pro-nav-item ${tab === 'audit' ? 'active' : ''}" data-tab="audit">
+            <span>${icon('shield', 'ic-sm')} Audit &amp; Settings</span><span class="pro-nav-badge">${adminData.audit.length}</span>
           </button>
         </nav>
-        <div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:rgba(255,255,255,0.75);">
-          <strong style="color:#fff;display:block;">AWS S3 + PostgreSQL Live</strong>
+        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line,#E9E3EA);font-size:12px;color:var(--ink-2,#68616B);">
+          <strong style="color:var(--ink,#211B24);display:block;">AWS S3 + PostgreSQL Live</strong>
           <span>Bucket: safar-selfdrive-media-2026</span>
         </div>
       </aside>
@@ -3576,8 +3593,8 @@ async function adminPage(tab = 'vehicles') {
             <p>Approve vehicles, inspect identity evidence, monitor pickup and return handovers, and reconcile partner settlements.</p>
           </div>
           <div class="actions">
-            <button id="admin-export" type="button" class="button btn-outline btn-sm">📥 Export MIS Ledger (CSV)</button>
-            <button id="admin-refresh" type="button" class="button btn-orange btn-sm">↻ Refresh Live Data</button>
+            <button id="admin-export" type="button" class="btn-outline btn-sm">${icon('download', 'ic-sm')} Export MIS (CSV)</button>
+            <button id="admin-refresh" type="button" class="button btn-orange btn-sm">${icon('refresh', 'ic-sm')} Refresh Data</button>
           </div>
         </div>
 
@@ -3588,13 +3605,13 @@ async function adminPage(tab = 'vehicles') {
             <span class="kpi-sub">Today: ${money(adminData.metrics?.todayRevenue ?? 0)}</span>
           </div>
           <div class="pro-kpi-card">
-            <span class="kpi-label">Recorded platform fees</span>
-            <strong class="kpi-value" style="color:var(--purple);">${money(totalPlatformFee)}</strong>
+            <span class="kpi-label">Platform Fee (20%)</span>
+            <strong class="kpi-value" style="color:#3B123F;">${money(totalPlatformFee)}</strong>
             <span class="kpi-sub">Net marketplace commission</span>
           </div>
           <div class="pro-kpi-card">
-            <span class="kpi-label">Recorded partner settlements</span>
-            <strong class="kpi-value" style="color:#059669;">${money(totalHostPayouts)}</strong>
+            <span class="kpi-label">Host Settlements (80%)</span>
+            <strong class="kpi-value" style="color:#16804A;">${money(totalHostPayouts)}</strong>
             <span class="kpi-sub">${adminData.payouts.length} settlements recorded</span>
           </div>
           <div class="pro-kpi-card">
@@ -3604,22 +3621,22 @@ async function adminPage(tab = 'vehicles') {
           </div>
           <div class="pro-kpi-card">
             <span class="kpi-label">e-KYC &amp; Docs Pending</span>
-            <strong class="kpi-value">${adminData.metrics?.documentPending ?? adminData.documents.filter(d => d.status === 'PENDING').length}</strong>
+            <strong class="kpi-value">${adminData.metrics?.documentPending ?? pendingDocs.length}</strong>
             <span class="kpi-sub">Biometric &amp; RC queue</span>
           </div>
           <div class="pro-kpi-card">
             <span class="kpi-label">Fleet Approvals</span>
-            <strong class="kpi-value">${adminData.metrics?.vehiclePending ?? adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL').length}</strong>
+            <strong class="kpi-value">${adminData.metrics?.vehiclePending ?? pendingVehicles.length}</strong>
             <span class="kpi-sub">${adminData.vehicles.length} total fleet cars</span>
           </div>
         </div>
 
-        <div class="admin-toolbar" style="margin-bottom:16px;">
+        <div class="admin-toolbar" id="admin-filter-toolbar" style="margin-bottom:16px;">
           <label class="admin-search">Search Master Database<input id="admin-search" type="search" placeholder="Search customer, booking ref, GJ01 plate, city or status…"></label>
           <label>Status Filter<select id="admin-status"><option value="">All statuses</option></select></label>
           <label>From<input id="admin-export-from" type="date"></label>
           <label>To<input id="admin-export-to" type="date"></label>
-          <span id="admin-record-count" role="status" style="font-weight:700;color:var(--purple);"></span>
+          <span id="admin-record-count" role="status" style="font-weight:700;color:#3B123F;"></span>
         </div>
 
         <div id="admin-panel-content"></div>
@@ -3655,15 +3672,242 @@ async function adminPage(tab = 'vehicles') {
 
 function renderAdminView(tab) {
   $$('[data-tab]').forEach(b => { b.classList.toggle('active', b.dataset.tab === tab); b.setAttribute('aria-pressed', String(b.dataset.tab === tab)); });
+  const toolbar = $('#admin-filter-toolbar');
+  const listTabs = ['vehicles', 'bookings', 'users', 'documents', 'disputes', 'audit'];
+  if (toolbar) toolbar.style.display = listTabs.includes(tab) ? '' : 'none';
+
   const statusSelect = $('#admin-status');
   const selectedStatus = statusSelect.value;
-  const statuses = [...new Set(adminData[tab].map(item => tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action).filter(Boolean))].sort();
+  const sourceList = Array.isArray(adminData[tab]) ? adminData[tab] : [];
+  const statuses = [...new Set(sourceList.map(item => tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action).filter(Boolean))].sort();
   statusSelect.innerHTML = '<option value="">All statuses</option>' + statuses.map(status => `<option value="${esc(status)}">${esc((status || '').replaceAll('_', ' '))}</option>`).join('');
   statusSelect.value = statuses.includes(selectedStatus) ? selectedStatus : '';
   const query = $('#admin-search').value.trim().toLowerCase();
-  const data = adminData[tab].filter(item => (!statusSelect.value || (tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action) === statusSelect.value) && (!query || JSON.stringify(item).toLowerCase().includes(query)));
-  $('#admin-record-count').textContent = `${data.length} of ${adminData[tab].length} records`;
-  if (!data.length && !(tab === 'payouts' && adminData.payoutAccounts.length)) {
+  const data = sourceList.filter(item => (!statusSelect.value || (tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action) === statusSelect.value) && (!query || JSON.stringify(item).toLowerCase().includes(query)));
+  if ($('#admin-record-count')) {
+    $('#admin-record-count').textContent = listTabs.includes(tab) ? `${data.length} of ${sourceList.length} records` : '';
+  }
+
+  if (tab === 'dashboard') {
+    const activeVehicles = adminData.vehicles.filter(v => v.status === 'ACTIVE').length;
+    const pendingVehicles = adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL');
+    const pendingDocs = adminData.documents.filter(d => d.status === 'PENDING');
+    const openDisputes = adminData.disputes.filter(d => d.status !== 'RESOLVED' && d.status !== 'REJECTED');
+    const recentBookings = adminData.bookings.slice(0, 5);
+    $('#admin-panel-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:18px;">
+        <section class="panel" style="padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h3 style="margin:0;font-size:16px;">Fleet Health &amp; Inventory</h3>
+            <button type="button" class="btn-outline btn-sm admin-jump-tab" data-target="vehicles">Manage Fleet</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+            <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
+              <strong style="font-size:20px;color:#16804A;display:block;">${activeVehicles}</strong>
+              <span style="font-size:12px;color:#68616B;">Active Cars</span>
+            </div>
+            <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
+              <strong style="font-size:20px;color:#B45309;display:block;">${pendingVehicles.length}</strong>
+              <span style="font-size:12px;color:#68616B;">Pending Approval</span>
+            </div>
+            <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
+              <strong style="font-size:20px;color:#3B123F;display:block;">${adminData.vehicles.length - activeVehicles - pendingVehicles.length}</strong>
+              <span style="font-size:12px;color:#68616B;">Maintenance / Hold</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" style="padding:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <h3 style="margin:0;font-size:16px;">Action Required Queue</h3>
+            <button type="button" class="btn-outline btn-sm admin-jump-tab" data-target="approvals">Open Queue</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+            <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
+              <strong style="font-size:20px;color:#3B123F;display:block;">${pendingDocs.length}</strong>
+              <span style="font-size:12px;color:#68616B;">Pending KYC Docs</span>
+            </div>
+            <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
+              <strong style="font-size:20px;color:#B42318;display:block;">${openDisputes.length}</strong>
+              <span style="font-size:12px;color:#68616B;">Open Disputes</span>
+            </div>
+            <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
+              <strong style="font-size:20px;color:#16804A;display:block;">${adminData.users.filter(u => u.isVerified).length}</strong>
+              <span style="font-size:12px;color:#68616B;">Verified Drivers</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel table-wrap" style="margin-bottom:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;font-size:16px;">Recent Self-Drive Bookings</h3>
+            <p class="text-muted" style="margin:2px 0 0;font-size:13px;">Latest reservations, handover states, and revenue splits.</p>
+          </div>
+          <button type="button" class="btn-outline btn-sm admin-jump-tab" data-target="bookings">View All ${adminData.bookings.length} Bookings</button>
+        </div>
+        <table>
+          <thead><tr><th>Booking Ref</th><th>Customer</th><th>Vehicle</th><th>Pickup → Return</th><th>Total Fare</th><th>Status</th></tr></thead>
+          <tbody>
+            ${recentBookings.map(b => `
+              <tr>
+                <td><strong>${esc(b.bookingRef)}</strong></td>
+                <td>${esc(b.customer.firstName + ' ' + b.customer.lastName)}</td>
+                <td><strong>${esc(b.vehicle.make + ' ' + b.vehicle.model)}</strong> · <small class="text-muted">${esc(b.vehicle.locationCity)}</small></td>
+                <td><small>${dt(b.startDate)} → ${dt(b.endDate)}</small></td>
+                <td><strong>${money(b.totalAmount)}</strong></td>
+                <td>${badge(formatBookingStatus(b))}</td>
+              </tr>`).join('') || '<tr><td colspan="6">No bookings recorded yet.</td></tr>'}
+          </tbody>
+        </table>
+      </section>`;
+    $$('.admin-jump-tab').forEach(btn => btn.onclick = () => renderAdminView(btn.dataset.target));
+    return;
+  }
+
+  if (tab === 'approvals') {
+    const pendingVehicles = adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL');
+    const pendingDocs = adminData.documents.filter(d => d.status === 'PENDING');
+    const pendingBanks = adminData.payoutAccounts.filter(a => a.status === 'PENDING');
+    const openDisputes = adminData.disputes.filter(d => d.status !== 'RESOLVED' && d.status !== 'REJECTED');
+    $('#admin-panel-content').innerHTML = `
+      <section class="panel table-wrap" style="margin-bottom:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;">Pending Vehicle Listings (${pendingVehicles.length})</h3>
+            <p class="text-muted" style="margin:2px 0 0;font-size:13px;">Inspect 8-angle photos and compliance documents before activating host vehicles.</p>
+          </div>
+        </div>
+        ${pendingVehicles.length ? `
+          <table>
+            <thead><tr><th>Vehicle</th><th>Reg &amp; City</th><th>Daily Rate</th><th>S3 Photos</th><th>Action</th></tr></thead>
+            <tbody>
+              ${pendingVehicles.map(v => `
+                <tr>
+                  <td><strong>${esc(v.make + ' ' + v.model + ' ' + v.year)}</strong></td>
+                  <td>${esc(v.registrationNumber || 'Pending')} · ${esc(v.locationCity)}</td>
+                  <td><strong>${money(v.pricePerDay)}/day</strong></td>
+                  <td>${v.media?.length || 0} photos</td>
+                  <td><button type="button" class="button btn-orange btn-sm vehicle-folder-btn" data-id="${v.id}">Review &amp; Approve</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>` : '<p class="text-muted" style="margin:0;">All fleet vehicles have been reviewed.</p>'}
+      </section>
+
+      <section class="panel table-wrap" style="margin-bottom:18px;">
+        <h3 style="margin:0 0 10px;">Pending Customer &amp; Host Documents (${pendingDocs.length})</h3>
+        ${pendingDocs.length ? `
+          <table>
+            <thead><tr><th>Member</th><th>Document Kind</th><th>Face Match</th><th>Action</th></tr></thead>
+            <tbody>
+              ${pendingDocs.map(doc => `
+                <tr>
+                  <td><strong>${esc((doc.user?.firstName || '') + ' ' + (doc.user?.lastName || ''))}</strong><br><small class="text-muted">${esc(doc.user?.email || '')}</small></td>
+                  <td><strong>${esc(doc.kind)}</strong> ${doc.numberLast4 ? `•••• ${esc(doc.numberLast4)}` : ''}</td>
+                  <td>${doc.user?.faceMatchScore ? `${Number(doc.user.faceMatchScore).toFixed(1)}%` : '—'}</td>
+                  <td>
+                    <div class="actions">
+                      <button type="button" class="button btn-orange btn-sm doc-quick-approve-action" data-id="${doc.id}">Approve</button>
+                      <button type="button" class="btn-outline btn-sm doc-review-action" data-id="${doc.id}">Inspect S3 File</button>
+                    </div>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>` : '<p class="text-muted" style="margin:0;">Zero pending KYC documents in the queue.</p>'}
+      </section>
+
+      <section class="panel table-wrap">
+        <h3 style="margin:0 0 10px;">Pending Partner Bank Verifications (${pendingBanks.length}) &amp; Open Disputes (${openDisputes.length})</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button type="button" class="btn-outline btn-sm admin-jump-tab" data-target="payouts">Review Partner Bank Accounts (${pendingBanks.length})</button>
+          <button type="button" class="btn-outline btn-sm admin-jump-tab" data-target="disputes">Review Open Disputes (${openDisputes.length})</button>
+        </div>
+      </section>`;
+    $$('.admin-jump-tab').forEach(btn => btn.onclick = () => renderAdminView(btn.dataset.target));
+    return;
+  }
+
+  if (tab === 'pricing') {
+    $('#admin-panel-content').innerHTML = `
+      <section class="panel" style="margin-bottom:18px;">
+        <h3 style="margin:0 0 6px;">Commercial &amp; Marketplace Fare Policy</h3>
+        <p class="text-muted" style="margin:0 0 14px;font-size:13px;">Active platform parameters governing all self-drive bookings, deposits, and host settlements.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+          <div style="padding:14px;border:1px solid #E9E3EA;border-radius:10px;background:#FAF8FA;">
+            <span class="text-muted" style="font-size:12px;">Host Revenue Share</span>
+            <strong style="display:block;font-size:20px;color:#16804A;margin-top:4px;">80% Net Base Fare</strong>
+          </div>
+          <div style="padding:14px;border:1px solid #E9E3EA;border-radius:10px;background:#FAF8FA;">
+            <span class="text-muted" style="font-size:12px;">Platform Commission</span>
+            <strong style="display:block;font-size:20px;color:#3B123F;margin-top:4px;">20% Marketplace Fee</strong>
+          </div>
+          <div style="padding:14px;border:1px solid #E9E3EA;border-radius:10px;background:#FAF8FA;">
+            <span class="text-muted" style="font-size:12px;">Minimum Booking Duration</span>
+            <strong style="display:block;font-size:20px;color:#211B24;margin-top:4px;">4 Hours</strong>
+          </div>
+          <div style="padding:14px;border:1px solid #E9E3EA;border-radius:10px;background:#FAF8FA;">
+            <span class="text-muted" style="font-size:12px;">Included Free Distance</span>
+            <strong style="display:block;font-size:20px;color:#211B24;margin-top:4px;">10 km / hour</strong>
+          </div>
+        </div>
+      </section>
+      <section class="panel table-wrap">
+        <h3 style="margin:0 0 10px;">Quick Fleet Tariff Editor</h3>
+        <table>
+          <thead><tr><th>Vehicle</th><th>Category &amp; City</th><th>Daily Rate</th><th>Hourly Equivalent</th><th>Action</th></tr></thead>
+          <tbody>
+            ${adminData.vehicles.map(v => `
+              <tr>
+                <td><strong>${esc(v.make + ' ' + v.model + ' ' + v.year)}</strong><br><small class="text-muted">${esc(v.registrationNumber || 'Pending')}</small></td>
+                <td>${esc(v.category || 'SUV')} · ${esc(v.locationCity)}</td>
+                <td><strong>${money(v.pricePerDay)} / day</strong></td>
+                <td>${money(Math.max(99, Math.round(Number(v.pricePerDay) / 24)))} / hr</td>
+                <td><button type="button" class="btn-outline btn-sm vehicle-pricing-action" data-id="${v.id}">Edit Rate</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </section>`;
+    return;
+  }
+
+  if (tab === 'reports') {
+    const cityCounts = {};
+    adminData.vehicles.forEach(v => { const c = v.locationCity || 'Other'; cityCounts[c] = (cityCounts[c] || 0) + 1; });
+    const statusCounts = {};
+    adminData.bookings.forEach(b => { const s = formatBookingStatus(b); statusCounts[s] = (statusCounts[s] || 0) + 1; });
+    $('#admin-panel-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:18px;">
+        <section class="panel">
+          <h3 style="margin:0 0 12px;">Bookings by Status</h3>
+          <table>
+            <thead><tr><th>Status</th><th>Count</th></tr></thead>
+            <tbody>
+              ${Object.entries(statusCounts).map(([st, cnt]) => `<tr><td>${badge(st)}</td><td><strong>${cnt}</strong></td></tr>`).join('') || '<tr><td colspan="2">No bookings yet.</td></tr>'}
+            </tbody>
+          </table>
+        </section>
+        <section class="panel">
+          <h3 style="margin:0 0 12px;">Fleet Distribution by City Hub</h3>
+          <table>
+            <thead><tr><th>City Hub</th><th>Vehicles</th></tr></thead>
+            <tbody>
+              ${Object.entries(cityCounts).map(([city, cnt]) => `<tr><td><strong>${esc(city)}</strong></td><td>${cnt} cars</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </section>
+      </div>
+      <section class="panel" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h3 style="margin:0;">Download Full Financial &amp; Operational MIS Report</h3>
+          <p class="text-muted" style="margin:4px 0 0;font-size:13px;">Exports all bookings, GST invoices, platform fees, and partner settlement splits as CSV.</p>
+        </div>
+        <button type="button" class="button btn-orange btn-sm" onclick="document.getElementById('admin-export').click()">${icon('download', 'ic-sm')} Download MIS CSV</button>
+      </section>`;
+    return;
+  }
+
+  if (listTabs.includes(tab) && !data.length && !(tab === 'payouts' && adminData.payoutAccounts.length)) {
     $('#admin-panel-content').innerHTML = empty('No matching records', query || statusSelect.value ? 'Try another search or choose all statuses.' : 'New submissions will appear here when they are received.');
     return;
   }
@@ -4336,7 +4580,7 @@ function openCarFolder(v) {
             if (m) {
               return `<figure><a href="/api/media/${m.id}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="/api/media/${m.id}" alt="${esc(m.kind)}"></a><figcaption>${esc((m.kind || '').replaceAll('_', ' '))}</figcaption></figure>`;
             } else {
-              return `<figure style="opacity:0.6;background:var(--bg-subtle,#f5f5f7);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;text-align:center;padding:12px"><span style="font-size:24px">📷</span><figcaption style="padding:4px 0">${esc(angle.replaceAll('_', ' '))}<br><small class="text-muted">Not uploaded</small></figcaption></figure>`;
+              return `<figure style="opacity:0.6;background:var(--bg-subtle,#f5f5f7);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;text-align:center;padding:12px"><span style="color:#68616B">${icon('camera', 'ic-md')}</span><figcaption style="padding:4px 0">${esc(angle.replaceAll('_', ' '))}<br><small class="text-muted">Not uploaded</small></figcaption></figure>`;
             }
           }).join('')}
         </div>
