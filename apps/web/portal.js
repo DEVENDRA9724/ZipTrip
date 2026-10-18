@@ -254,6 +254,9 @@ function sectionHead(title, sub, eyebrow = 'SAFAR') {
 function empty(title, desc) {
   return `<div class="empty"><h3>${title}</h3><p>${desc}</p></div>`;
 }
+function loadError(title, message, retryLabel = 'Try again') {
+  return `<div class="load-error-panel" role="alert"><h3>${esc(title || 'Something went wrong')}</h3><p>${esc(message || 'Please try again in a moment.')}</p><button type="button" class="button btn-orange retry-load-btn">${esc(retryLabel)}</button></div>`;
+}
 async function uploadFile(file, kind) {
   if (!file?.size) throw new Error(`Please choose a ${kind.toLowerCase()} image`);
   const fd = new FormData(); fd.append('file', file);
@@ -332,6 +335,27 @@ function shell() {
       ${links.map(([href, label]) => `<a href="${href}">${label}</a>`).join('')}
       ${user ? `<a href="dashboard.html">My Account</a>${user.role === 'ADMIN' ? '<a href="admin.html">Admin Panel</a>' : ''}` : '<a href="auth.html">Log In / Sign Up</a>'}
     </nav>`;
+
+  if (!document.querySelector('.skip-link')) {
+    const skip = document.createElement('a');
+    skip.className = 'skip-link';
+    skip.href = '#app';
+    skip.textContent = 'Skip to main content';
+    document.body.prepend(skip);
+  }
+  if (!document.querySelector('.page-progress')) {
+    const progress = document.createElement('div');
+    progress.className = 'page-progress';
+    progress.setAttribute('aria-hidden', 'true');
+    document.body.prepend(progress);
+    const updateProgress = () => {
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      progress.style.transform = `scaleX(${Math.min(1, Math.max(0, window.scrollY / max))})`;
+    };
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    window.addEventListener('resize', updateProgress, { passive: true });
+    updateProgress();
+  }
 
   document.documentElement.dataset.theme = '';
   $('#ds-city-select')?.addEventListener('change', e => {
@@ -632,7 +656,8 @@ async function home() {
       $('#lp-reviews-wrap').hidden = false;
     }
   } catch (e) {
-    $('#fleet').innerHTML = `<p class="error">Unable to load vehicles: ${esc(e.message)}</p>`;
+    $('#fleet').innerHTML = loadError('Fleet unavailable', e.message, 'Reload fleet');
+    $('.retry-load-btn')?.addEventListener('click', () => home());
   }
 }
 
@@ -996,7 +1021,8 @@ async function cars() {
     $('#budget-maximum').textContent = money(maximum);
     applyCarFilters();
   } catch (e) {
-    $('#fleet-grid').innerHTML = `<p class="error">${esc(e.message)}</p>`;
+    $('#fleet-grid').innerHTML = loadError('Unable to load available cars', e.message, 'Retry search');
+    $('.retry-load-btn')?.addEventListener('click', () => cars());
   }
 
   $('.mobile-filter-toggle').onclick = event => {
@@ -1415,6 +1441,12 @@ async function carDetails(id) {
           <a class="button btn-orange" style="width:100%" href="auth.html?redirect=${encodeURIComponent(carLink(id))}">Sign In / Register to Book</a>
         ` : `
           <form id="car-booking-form" class="form-stack">
+            <div class="booking-steps" aria-label="Booking progress">
+              <div class="booking-step active" data-step="1">Dates</div>
+              <div class="booking-step" data-step="2">Vehicle</div>
+              <div class="booking-step" data-step="3">Review</div>
+              <div class="booking-step" data-step="4">Confirm</div>
+            </div>
             ${inp('startDate', 'Pick-up Date &amp; Time', 'datetime-local')}
             ${inp('endDate', 'Drop-off Date &amp; Time', 'datetime-local')}
 
@@ -1590,9 +1622,22 @@ async function carDetails(id) {
       form.elements[key].min = localDateTime(Date.now() + 60000);
     }
     let currentQuote = null, quoteSequence = 0, quoteTimer, bookingRequestKey = crypto.randomUUID();
+    const syncBookingSteps = () => {
+      const startReady = Boolean(form.elements.startDate.value);
+      const endReady = Boolean(form.elements.endDate.value);
+      const quoteReady = Boolean(currentQuote);
+      const steps = $$('.booking-step', form);
+      steps.forEach((step, index) => {
+        const done = index === 0 ? quoteReady : index === 1 ? quoteReady : index === 2 ? quoteReady : false;
+        const active = index === 0 ? !startReady || !endReady : index === 1 ? startReady && endReady && !quoteReady : index === 2 ? quoteReady : false;
+        step.classList.toggle('done', done);
+        step.classList.toggle('active', active || (!done && index === 0 && !active));
+      });
+    };
     const updateQuote = async () => {
       const sequence = ++quoteSequence;
       currentQuote = null;
+      syncBookingSteps();
       const button = $('button[type=submit]', form);
       button.disabled = true;
       const start = new Date(form.elements.startDate.value), end = new Date(form.elements.endDate.value);
@@ -1611,6 +1656,7 @@ async function carDetails(id) {
         const quote = await api('/vehicles/' + encodeURIComponent(id) + '/quote?' + new URLSearchParams({startDate:start.toISOString(),endDate:end.toISOString()}));
         if (sequence !== quoteSequence || !form.isConnected) return;
         currentQuote = quote;
+        syncBookingSteps();
         const isUnlim = $('#detail-km-pkg .pkg-option-card.active')?.dataset?.addon === '899';
         $('#booking-quote-box').innerHTML =
           '<div class="bp-fare-row"><span>Rental (' + quote.rentalDays + ' billed day' + (quote.rentalDays === 1 ? '' : 's') + ')</span><span>' + money(quote.rentalAmount) + '</span></div>' +
@@ -1627,6 +1673,7 @@ async function carDetails(id) {
       bookingRequestKey = crypto.randomUUID();
       ++quoteSequence; currentQuote = null;
       $('button[type=submit]', form).disabled = true;
+      syncBookingSteps();
       clearTimeout(quoteTimer); quoteTimer = setTimeout(updateQuote, 350);
     });
     updateQuote();
@@ -1643,6 +1690,7 @@ async function carDetails(id) {
         startDate: start.toISOString(), endDate: end.toISOString(),
         requestKey: bookingRequestKey,
       });
+      $$('.booking-step', form).forEach(step => step.classList.toggle('done', true));
       location.href = 'dashboard.html?booking=' + encodeURIComponent(booking.id);
     });
   }
