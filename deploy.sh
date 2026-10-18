@@ -28,10 +28,11 @@ npx prisma generate
 node scripts/seed.js
 
 # Sync web frontend to nginx directory
+sudo mkdir -p /var/www/safar
 sudo cp -r /home/ubuntu/ZipTrip/apps/web/* /var/www/safar/
 
 # Restart PM2 process
-pm2 restart 0 || pm2 start dist/main.js --name safar-api
+pm2 restart all || pm2 start dist/main.js --name safar-portal
 pm2 status
 
 echo "=== [$(date)] Safar Auto-Deployment Complete! ==="
