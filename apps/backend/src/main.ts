@@ -4,12 +4,15 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { json } from 'express';
+import { json, raw } from 'express';
 
 async function bootstrap() {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32 || process.env.JWT_SECRET.startsWith('replace-')) throw new Error('Set a random JWT_SECRET of at least 32 characters in apps/backend/.env');
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
   app.setGlobalPrefix('api');
+  // Payment gateways sign the exact raw JSON body. Parse this callback before
+  // the normal JSON middleware so the webhook can verify the signature.
+  app.use('/api/payments/webhook', raw({ type: 'application/json', limit: '100kb' }));
   app.use(json({ limit: '100kb' }));
   const origins = (process.env.WEB_ORIGIN || 'http://localhost:3000').split(',').map(v => v.trim());
   app.enableCors({ origin: origins, credentials: true });

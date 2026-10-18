@@ -93,10 +93,17 @@ Rental operations update — 2 October 2026
 - Booking creation, cancellation, trip start, trip end, and damage reports now
   create in-app notifications for the customer and vehicle host/dealer. The
   account dashboard shows unread notifications and supports marking them read.
+- Completed and cancelled bookings now have an auditable deposit settlement
+  record. Admin can apply automatic excess-kilometre/late-return charges plus
+  reviewed damage, fuel, toll, fine, cleaning and other deductions, with an
+  explicit refund or additional-amount-due result.
+- Added a signed payment webhook endpoint at `/api/payments/webhook`. It
+  verifies the raw HMAC body, rejects mismatched booking totals, is idempotent
+  by gateway transaction reference, confirms the booking and creates its invoice.
 
-Still required: excess-km rate, late-return policy, cancellation policy, confirmed
-hourly-vs-daily pricing policy, automatic deposit settlement/refund workflow,
-rating reminders, full host/dealer onboarding and bank verification,
-payment gateway, secure cloud documents and deployment.
-Current rental billing remains per started 24-hour day; only kilometre allowance
-is prorated. No automatic damage, late-return or excess-km charges are implemented.
+Still required: connect a live payment provider and configure its webhook secret,
+automated bank refund execution, rating reminders, full host/dealer onboarding,
+secure cloud documents and deployment. Current rental billing remains per started
+24-hour day; only kilometre allowance is prorated. Admin settlement now calculates
+automatic excess-km and late-return charges, but damage, fuel, toll, fine and
+cleaning deductions still require documented manual review.

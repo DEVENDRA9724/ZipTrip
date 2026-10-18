@@ -72,6 +72,8 @@ WEB_ORIGIN=https://your-domain.example
 JWT_SECRET=<random 32+ character secret>
 DOCUMENT_ENCRYPTION_KEY=<64 hexadecimal characters>
 PAYOUT_ENCRYPTION_KEY=<64 hexadecimal characters>
+PAYMENT_WEBHOOK_SECRET=<provider webhook signing secret>
+PAYMENT_MODE=gateway
 AWS_REGION=ap-south-1
 S3_BUCKET=safar-production-media-<account-id>
 S3_PREFIX=safar-media
@@ -147,6 +149,7 @@ GET /api/health        → { "status": "ok" }
 POST /api/auth/login   → secure session cookie
 GET /api/vehicles      → vehicle search
 POST /api/media        → authenticated S3-backed upload
+POST /api/payments/webhook → signed gateway callback (configure secret first)
 ```
 
 Then test a complete staging booking: KYC, vehicle documents, quote, booking

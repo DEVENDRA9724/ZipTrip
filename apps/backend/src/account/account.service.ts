@@ -28,7 +28,7 @@ export class AccountService {
       }),
       this.prisma.booking.findMany({
         where: { customerId: userId },
-        include: { vehicle: { select: { make: true, model: true, locationCity: true } }, payment: { select: { status: true } }, invoice: { select: { number: true, status: true } } },
+        include: { vehicle: { select: { make: true, model: true, locationCity: true } }, payment: { select: { status: true } }, invoice: { select: { number: true, status: true } }, settlement: true },
         orderBy: { createdAt: 'desc' }, take: 10,
       }),
       this.listDisputes(userId),
@@ -54,7 +54,7 @@ export class AccountService {
       }),
       this.prisma.booking.findMany({
         where: { vehicle: { hostId: userId } },
-        include: { vehicle: { select: { make: true, model: true, registrationNumber: true } }, customer: { select: { firstName: true, lastName: true, phone: true } }, payment: { select: { amount: true, status: true } }, inspections: { select: { stage: true, createdAt: true } } },
+        include: { vehicle: { select: { make: true, model: true, registrationNumber: true } }, customer: { select: { firstName: true, lastName: true, phone: true } }, payment: { select: { amount: true, status: true } }, inspections: { select: { stage: true, createdAt: true } }, settlement: true },
         orderBy: { startDate: 'desc' }, take: 100,
       }),
       this.prisma.payment.aggregate({ where: { status: 'SUCCESS', booking: { vehicle: { hostId: userId } } }, _sum: { amount: true }, _count: { _all: true } }),

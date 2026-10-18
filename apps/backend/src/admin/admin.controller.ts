@@ -23,7 +23,7 @@ export class AdminController {
     const [users, vehicles, bookings, documents, audit] = await Promise.all([
       this.prisma.user.findMany({ where: { ...(role ? { role: role as any } : {}), ...(search ? { OR: [{ email: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }] } : {}) }, select: { id: true, firstName: true, lastName: true, email: true, phone: true, phoneVerifiedAt: true, role: true, isVerified: true, isBlocked: true, dlValidUntil: true, profileImage: true, profile: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.vehicle.findMany({ where: { ...(vehicleStatus ? { status: vehicleStatus as any } : {}), ...(search ? { OR: [{ make: { contains: search } }, { model: { contains: search } }, { registrationNumber: { contains: search } }, { locationCity: { contains: search } }] } : {}) }, include: { media: { select: { id: true, kind: true } }, documents: true, currentHub: true, host: { select: { firstName: true, lastName: true, email: true, phone: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: { include: { host: { select: { firstName: true, lastName: true, email: true, phone: true } }, currentHub: true } }, payment: true, invoice: true, trip: true, inspections: true, customer: { select: { firstName: true, lastName: true, email: true, phone: true, profile: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: { include: { host: { select: { firstName: true, lastName: true, email: true, phone: true } }, currentHub: true } }, payment: true, invoice: true, trip: true, inspections: true, settlement: true, customer: { select: { firstName: true, lastName: true, email: true, phone: true, profile: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.document.findMany({ where: { ...(documentStatus ? { status: documentStatus } : {}), ...(search ? { OR: [{ kind: { contains: search } }, { user: { email: { contains: search } } }, { user: { firstName: { contains: search } } }, { user: { lastName: { contains: search } } }] } : {}) }, include: { user: { select: { firstName: true, lastName: true, email: true, phone: true, profile: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.auditLog.findMany({ where: search ? { OR: [{ action: { contains: search } }, { targetId: { contains: search } }, { detail: { contains: search } }] } : {}, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
     ]);
@@ -249,16 +249,55 @@ export class AdminController {
   @Get('bookings/:id/settlement')
   async settlement(@Request() req: any, @Param('id') id: string) {
     admin(req.user);
-    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { vehicle: true, inspections: { orderBy: { createdAt: 'asc' } } } });
+    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { vehicle: true, trip: true, inspections: { orderBy: { createdAt: 'asc' } }, settlement: true } });
     if (!booking) throw new NotFoundException('Booking not found');
     const pickup = booking.inspections.find(item => item.stage === 'PICKUP');
     const returned = booking.inspections.find(item => item.stage === 'RETURN');
     const travelled = pickup && returned ? Math.max(0, returned.odometer - pickup.odometer) : null;
     const excessKm = travelled == null || booking.includedKilometres == null ? null : Math.max(0, travelled - booking.includedKilometres);
     const excessCharge = excessKm == null ? 0 : excessKm * rentalPolicy.excessKmRate;
-    const late = returned ? lateReturnCharge(returned.createdAt, booking.endDate) : { lateMinutes: 0, lateHours: 0, amount: 0 };
+    const late = returned ? lateReturnCharge(booking.trip?.actualEndTime || returned.createdAt, booking.endDate) : { lateMinutes: 0, lateHours: 0, amount: 0 };
     const automaticCharges = excessCharge + late.amount;
-    return { bookingId: id, depositHeld: Number(booking.securityDeposit), includedKilometres: booking.includedKilometres, travelledKilometres: travelled, excessKilometres: excessKm, excessKmRate: rentalPolicy.excessKmRate, excessCharge, lateGraceMinutes: rentalPolicy.lateGraceMinutes, lateMinutes: late.lateMinutes, lateCharge: late.amount, automaticCharges, suggestedDepositDeduction: Math.min(Number(booking.securityDeposit), automaticCharges), estimatedDepositRelease: Math.max(0, Number(booking.securityDeposit) - automaticCharges), damageReviewRequired: Boolean(returned?.damageNote && !/^no visible damage$/i.test(returned.damageNote.trim())), note: 'Damage, fuel, tolls, fines and cleaning require documented admin review before any additional deduction.' };
+    return { bookingId: id, depositHeld: Number(booking.securityDeposit), includedKilometres: booking.includedKilometres, travelledKilometres: travelled, excessKilometres: excessKm, excessKmRate: rentalPolicy.excessKmRate, excessCharge, lateGraceMinutes: rentalPolicy.lateGraceMinutes, lateMinutes: late.lateMinutes, lateCharge: late.amount, automaticCharges, suggestedDepositDeduction: Math.min(Number(booking.securityDeposit), automaticCharges), estimatedDepositRelease: Math.max(0, Number(booking.securityDeposit) - automaticCharges), damageReviewRequired: Boolean(returned?.damageNote && !/^no visible damage$/i.test(returned.damageNote.trim())), settlement: booking.settlement, note: 'Damage, fuel, tolls, fines and cleaning require documented admin review before any additional deduction.' };
+  }
+
+  @Post('bookings/:id/settle')
+  async settleBooking(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    admin(req.user);
+    const money = (value: unknown, label: string) => number(value ?? 0, label, 0, 100000000, false);
+    const damageCharges = money(body.damageCharges, 'Damage charges');
+    const fuelCharges = money(body.fuelCharges, 'Fuel charges');
+    const tollCharges = money(body.tollCharges, 'Toll charges');
+    const fineCharges = money(body.fineCharges, 'Traffic fine charges');
+    const cleaningCharges = money(body.cleaningCharges, 'Cleaning charges');
+    const otherCharges = money(body.otherCharges, 'Other charges');
+    const note = text(body.note || 'Settlement reviewed by Safar operations', 'Settlement note', 2000);
+    const result = await this.prisma.$transaction(async tx => {
+      const booking = await tx.booking.findUnique({ where: { id }, include: { vehicle: true, inspections: { orderBy: { createdAt: 'asc' } }, trip: true, settlement: true } });
+      if (!booking) throw new NotFoundException('Booking not found');
+      if (!['COMPLETED', 'CANCELLED'].includes(booking.status)) throw new BadRequestException('Settlement is available after return or cancellation');
+      if (booking.settlement?.status === 'SETTLED') throw new ConflictException('This booking has already been settled');
+      const pickup = booking.inspections.find(item => item.stage === 'PICKUP');
+      const returned = booking.inspections.find(item => item.stage === 'RETURN');
+      const travelled = pickup && returned ? Math.max(0, returned.odometer - pickup.odometer) : null;
+      const excessKm = travelled == null || booking.includedKilometres == null ? 0 : Math.max(0, travelled - booking.includedKilometres);
+      const excessCharge = excessKm * rentalPolicy.excessKmRate;
+      const late = returned ? lateReturnCharge(booking.trip?.actualEndTime || returned.createdAt, booking.endDate) : { amount: 0 };
+      const automaticCharges = excessCharge + late.amount;
+      const totalDeduction = automaticCharges + damageCharges + fuelCharges + tollCharges + fineCharges + cleaningCharges + otherCharges;
+      const depositHeld = Number(booking.securityDeposit);
+      const refundAmount = Math.max(0, depositHeld - totalDeduction);
+      const additionalAmountDue = Math.max(0, totalDeduction - depositHeld);
+      const settlement = await tx.bookingSettlement.upsert({
+        where: { bookingId: id },
+        update: { depositHeld, automaticCharges, damageCharges, fuelCharges, tollCharges, fineCharges, cleaningCharges, otherCharges, totalDeduction, refundAmount, additionalAmountDue, status: 'SETTLED', note, reviewedById: req.user.id },
+        create: { bookingId: id, depositHeld, automaticCharges, damageCharges, fuelCharges, tollCharges, fineCharges, cleaningCharges, otherCharges, totalDeduction, refundAmount, additionalAmountDue, status: 'SETTLED', note, reviewedById: req.user.id },
+      });
+      if (booking.trip) await tx.trip.update({ where: { bookingId: id }, data: { penaltyCharges: totalDeduction } });
+      await tx.auditLog.create({ data: { actorId: req.user.id, action: 'BOOKING_SETTLED', targetId: id, detail: JSON.stringify({ totalDeduction, refundAmount, additionalAmountDue, note }) } });
+      return settlement;
+    });
+    return result;
   }
   @Post('vehicles/:id/pricing')
   async pricing(@Request() req: any, @Param('id') id: string, @Body() body: any) {
@@ -512,10 +551,11 @@ export class AdminController {
     admin(req.user);
     const status = choice(body.status, 'Decision', ['APPROVED', 'REJECTED']);
     const note = text(body.note || (status === 'APPROVED' ? 'Approved by Admin Operations' : 'Rejected by Admin Operations'), 'Note', 1000);
-    const validUntil = body.validUntil ? new Date(body.validUntil) : new Date('2029-12-31T23:59:59Z');
     return this.prisma.$transaction(async tx => {
       const doc = await tx.document.findUnique({ where: { id } });
       if (!doc) throw new NotFoundException('Document not found');
+      const validUntil = body.validUntil ? new Date(body.validUntil + (String(body.validUntil).length === 10 ? 'T23:59:59.999Z' : '')) : doc.validUntil;
+      if (status === 'APPROVED' && doc.kind !== 'AADHAAR' && (!validUntil || !Number.isFinite(+validUntil) || validUntil <= new Date())) throw new BadRequestException('A future expiry date is required for this document');
       const updated = await tx.document.update({
         where: { id },
         data: {

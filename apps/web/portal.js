@@ -1659,121 +1659,191 @@ function renderKycTabHtml(info) {
   const prof = info.profile || user?.profile || {};
 
   const personalDocs = (info.documents || []).filter(doc => !doc.vehicleId && doc.source !== 'DIGILOCKER_TEST');
-  const kycApproved = personalDocs.some(doc => doc.kind === 'AADHAAR' && doc.status === 'APPROVED') || Boolean(prof.isKycVerified);
-  const dlApproved = personalDocs.some(doc => doc.kind === 'DL' && doc.status === 'APPROVED' && doc.validUntil && new Date(doc.validUntil) > new Date()) || Boolean(user?.isVerified);
+  const rejectedDoc = personalDocs.find(doc => doc.status === 'REJECTED');
+  const pendingDoc = personalDocs.find(doc => doc.status === 'PENDING');
+  const kycApproved = personalDocs.some(doc => doc.kind === 'AADHAAR' && doc.status === 'APPROVED') || Boolean(prof.isKycVerified) || Boolean(user?.isVerified);
+  const dlApproved = personalDocs.some(doc => doc.kind === 'DL' && doc.status === 'APPROVED' && (!doc.validUntil || new Date(doc.validUntil) > new Date())) || Boolean(user?.isVerified);
   const eligible = (kycApproved && dlApproved) || Boolean(user?.isVerified);
-  const faceScore = prof.faceMatchScore ? Number(prof.faceMatchScore).toFixed(1) : null;
+  const faceScore = prof.faceMatchScore || user?.faceMatchScore ? Number(prof.faceMatchScore || user?.faceMatchScore).toFixed(1) : null;
+
+  let kycStateLabel = 'Not Started';
+  let kycStateBadge = 'neutral';
+  if (eligible) { kycStateLabel = 'Verified'; kycStateBadge = 'ok'; }
+  else if (rejectedDoc) { kycStateLabel = 'Rejected — Action Required'; kycStateBadge = 'bad'; }
+  else if (pendingDoc) { kycStateLabel = 'Pending Verification'; kycStateBadge = 'warn'; }
+  else if (personalDocs.length) { kycStateLabel = 'Verification in Progress'; kycStateBadge = 'warn'; }
 
   return `
-    ${isNew ? `
+    ${isNew && !eligible ? `
       <div class="kyc-welcome-banner" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-        <div>🎉 <strong>Welcome to Safar!</strong> Complete your 60-second Aadhaar + Driving Licence e-KYC &amp; Live Selfie Face Match below to unlock instant car bookings.</div>
-        ${eligible ? `<a href="cars.html" class="button btn-orange btn-sm">Explore Cars Now →</a>` : ''}
+        <div><strong>Complete Driver Verification:</strong> Verify your Aadhaar, Driving Licence, and live selfie once to unlock self-drive bookings across all Safar hubs.</div>
       </div>` : ''}
 
-    <!-- 4-Step Progress Track -->
-    <ol class="verification-steps" aria-label="Verification progress">
-      <li class="is-complete"><span>1</span>Account &amp; Mobile OTP</li>
-      <li class="${personalDocs.length || prof.aadhaarNumberMasked ? 'is-complete' : 'is-current'}"><span>2</span>Aadhaar &amp; DL e-KYC</li>
-      <li class="${faceScore ? 'is-complete' : 'is-current'}"><span>3</span>Biometric Face Match ${faceScore ? `(${faceScore}%)` : ''}</li>
-      <li class="${eligible ? 'is-complete' : ''}"><span>4</span>${eligible ? 'Approved to Book ✓' : 'Instant Verification'}</li>
-    </ol>
-
-    <!-- 3-Column Status Cards -->
-    <div class="kyc-status-row">
-      <div class="kyc-status-card ${kycApproved ? 'ksc-ok' : 'ksc-pending'}">
-        <div class="ksc-badge-icon">${kycApproved ? '✓' : '1'}</div>
-        <div class="ksc-info">
-          <strong>Aadhaar e-KYC</strong>
-          <p>${prof.aadhaarNumberMasked ? `Verified (${esc(prof.aadhaarNumberMasked)})` : kycApproved ? 'Verified' : 'Enter 12-digit Aadhaar below'}</p>
+    <div class="panel" style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <div>
+          <span class="eyebrow" style="color:var(--cta);font-size:11px;font-weight:800;letter-spacing:0.1em">DRIVER IDENTITY &amp; LICENCE COMPLIANCE</span>
+          <h3 style="margin:4px 0 0">KYC &amp; Document Verification</h3>
         </div>
+        <span class="badge ${kycStateBadge}">${esc(kycStateLabel)}</span>
       </div>
 
-      <div class="kyc-status-card ${dlApproved ? 'ksc-ok' : 'ksc-pending'}">
-        <div class="ksc-badge-icon">${dlApproved ? '✓' : '2'}</div>
-        <div class="ksc-info">
-          <strong>Driving Licence</strong>
-          <p>${prof.drivingLicenseMasked ? `Verified (${esc(prof.drivingLicenseMasked)})` : dlApproved ? 'Verified' : 'Enter DL number &amp; expiry'}</p>
+      <!-- 3-Column Status Cards -->
+      <div class="kyc-status-row" style="margin-bottom:0">
+        <div class="kyc-status-card ${kycApproved ? 'ksc-ok' : 'ksc-pending'}">
+          <div class="ksc-badge-icon">${kycApproved ? '✓' : '1'}</div>
+          <div class="ksc-info">
+            <strong>Government Identity (Aadhaar)</strong>
+            <p>${prof.aadhaarNumberMasked || user?.aadhaarMasked ? `Verified (${esc(prof.aadhaarNumberMasked || user?.aadhaarMasked)})` : kycApproved ? 'Verified' : 'Not yet verified'}</p>
+          </div>
         </div>
-      </div>
 
-      <div class="kyc-status-card ${eligible ? 'ksc-ok' : 'ksc-pending'}">
-        <div class="ksc-badge-icon">${eligible ? '✓' : '3'}</div>
-        <div class="ksc-info">
-          <strong>Biometric Face Match</strong>
-          <p>${faceScore ? `${faceScore}% Match · Auto-Approved` : eligible ? 'Verified Driver ✓' : 'Capture live selfie'}</p>
+        <div class="kyc-status-card ${dlApproved ? 'ksc-ok' : 'ksc-pending'}">
+          <div class="ksc-badge-icon">${dlApproved ? '✓' : '2'}</div>
+          <div class="ksc-info">
+            <strong>Driving Licence (LMV)</strong>
+            <p>${prof.drivingLicenseMasked ? `Verified (${esc(prof.drivingLicenseMasked)})` : dlApproved ? `Verified · Valid through ${user?.dlValidUntil ? d(user.dlValidUntil) : 'active tenure'}` : 'Enter DL number &amp; expiry'}</p>
+          </div>
+        </div>
+
+        <div class="kyc-status-card ${eligible ? 'ksc-ok' : 'ksc-pending'}">
+          <div class="ksc-badge-icon">${eligible ? '✓' : '3'}</div>
+          <div class="ksc-info">
+            <strong>Biometric Face Match</strong>
+            <p>${faceScore ? `${faceScore}% Confidence · Approved` : eligible ? 'Verified Driver' : 'Live selfie required'}</p>
+          </div>
         </div>
       </div>
     </div>
 
-    ${eligible ? `
-      <div class="panel" style="background:linear-gradient(135deg,#065F46,#047857);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;border:none">
-        <div>
-          <span style="font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;background:rgba(255,255,255,0.18);padding:4px 10px;border-radius:999px">✓ e-KYC &amp; Biometric Face Match Approved</span>
-          <h3 style="color:#fff;margin:8px 0 4px">You are verified for Self-Drive Rentals across all Safar Hubs!</h3>
-          <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13.5px">Aadhaar: <strong>${esc(prof.aadhaarNumberMasked || 'Verified')}</strong> · DL: <strong>${esc(prof.drivingLicenseMasked || 'Verified')}</strong> ${faceScore ? `· Biometric Score: <strong>${faceScore}%</strong>` : ''}</p>
-        </div>
-        <a href="cars.html" class="button btn-orange" style="background:#fff;color:#065F46;font-weight:800">Browse &amp; Book a Car Now →</a>
+    ${rejectedDoc ? `
+      <div class="notice" style="border-color:var(--err);background:var(--err-bg);color:var(--err);margin-bottom:20px">
+        <strong>Action Required — Document Rejected:</strong> ${esc(rejectedDoc.reviewNote || 'Please re-upload a clear, valid document to complete verification.')}
       </div>
     ` : ''}
 
-    <!-- Biometric e-KYC + Live Camera Selfie Wizard -->
+    ${eligible && !vehicleId ? `
+      <!-- CONDITIONAL UPLOAD RULE: User is verified -> Hide upload forms by default and show verified credential summary -->
+      <div class="panel" style="background:linear-gradient(135deg,#3B123F,#521D50);color:#fff;margin-bottom:20px;border:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <span class="badge ok" style="background:rgba(22,128,74,0.25);color:#86EFAC;border:1px solid rgba(134,239,172,0.3)">✓ Driver Verification Complete</span>
+            <h3 style="color:#fff;margin:10px 0 6px">Your identity and driving licence are verified</h3>
+            <p style="margin:0;color:rgba(255,255,255,0.82);font-size:13.5px">
+              Aadhaar Reference: <strong>${esc(prof.aadhaarNumberMasked || user?.aadhaarMasked || 'Masked reference unavailable')}</strong> ·
+              Driving Licence: <strong>${esc(prof.drivingLicenseMasked || 'Verified')}</strong> ·
+              Valid Until: <strong>${user?.dlValidUntil ? d(user.dlValidUntil) : 'Expiry not recorded'}</strong>
+              ${faceScore ? ` · Face Match: <strong>${faceScore}%</strong>` : ''}
+            </p>
+          </div>
+          <a href="cars.html" class="button btn-orange">Browse Vehicles</a>
+        </div>
+      </div>
+
+      <details class="panel" style="margin-bottom:20px">
+        <summary style="cursor:pointer;font-weight:700;color:var(--brand);display:flex;align-items:center;justify-content:space-between">
+          <span>Need to renew an expired Driving Licence or request re-verification?</span>
+          <span class="btn-outline btn-sm">Update Credentials</span>
+        </summary>
+        <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border-main)">
+          ${renderKycVerificationWizardHtml(prof, faceScore, info, vehicleId)}
+        </div>
+      </details>
+    ` : `
+      <!-- User is not yet verified OR is uploading vehicle compliance documents -->
+      ${renderKycVerificationWizardHtml(prof, faceScore, info, vehicleId)}
+    `}
+
+    <!-- Submitted Records Table -->
+    <section class="panel" style="margin-top:20px;">
+      <h3 style="margin:0 0 12px">Submitted Verification &amp; Compliance Records (${(info.documents || []).length})</h3>
+      ${info.documents && info.documents.length ? `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Document Type</th>
+                <th>Masked Reference</th>
+                <th>Verification Source</th>
+                <th>Status</th>
+                <th>Valid Until</th>
+                <th>Review Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${info.documents.map(doc => `
+                <tr>
+                  <td><strong>${esc(doc.kind)}</strong></td>
+                  <td><code>${esc(doc.documentNumberMasked || (doc.numberLast4 ? '•••• ' + doc.numberLast4 : 'Encrypted'))}</code></td>
+                  <td>${esc(doc.source || 'UPLOAD')}</td>
+                  <td>${badge(doc.status)}</td>
+                  <td>${doc.validUntil ? d(doc.validUntil) : 'Permanent'}</td>
+                  <td>${esc(doc.reviewNote || 'Verified')}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : `<p class="text-muted" style="margin:0">${eligible ? 'Your driver identity is verified via Aadhaar & Biometric Face Match.' : 'No verification documents submitted yet.'}</p>`}
+    </section>`;
+}
+
+function renderKycVerificationWizardHtml(prof, faceScore, info, vehicleId) {
+  return `
     <form id="kyc-facematch-form" class="kyc-wizard-grid" style="margin-bottom:24px">
       <section class="panel" style="margin:0">
         <div class="verification-label">STEP 1 · IDENTITY &amp; LICENCE DETAILS</div>
-        <h3 style="margin-top:4px">Instant Aadhaar &amp; Driving Licence e-KYC</h3>
-        <p class="text-muted" style="margin-bottom:16px">Enter your Aadhaar and Driving Licence numbers. Our system hashes your ID with SHA-256 and runs an automated biometric face match against your live selfie.</p>
+        <h3 style="margin-top:4px">Aadhaar &amp; Driving Licence Verification</h3>
+        <p class="text-muted" style="margin-bottom:16px">Enter your Aadhaar and Driving Licence details. Document numbers are masked and verified alongside your live selfie.</p>
 
         <div class="form-stack">
           <div class="form-grid">
             <label>12-Digit Aadhaar Number
-              <input name="aadhaarNumber" type="text" inputmode="numeric" maxlength="14" required placeholder="e.g. 9876 5432 4829" value="${prof.aadhaarNumberMasked ? '987654324829' : ''}">
+              <input name="aadhaarNumber" type="text" inputmode="numeric" maxlength="14" required placeholder="e.g. 9876 5432 4829" value="">
             </label>
             <label>Registered Mobile Number
-              <input name="mobileNumber" type="tel" placeholder="+919876543210" value="${esc(user?.phone || '+919876543210')}">
+              <input name="mobileNumber" type="tel" placeholder="+91 98765 43210" value="${esc(user?.phone || '')}">
             </label>
           </div>
 
           <div class="form-grid">
             <label>Driving Licence Number
-              <input name="dlNumber" type="text" maxlength="25" required placeholder="e.g. GJ0120190012345" style="text-transform:uppercase" value="${prof.drivingLicenseMasked ? 'GJ0120190012345' : ''}">
+              <input name="dlNumber" type="text" maxlength="25" required placeholder="e.g. GJ0120190012345" style="text-transform:uppercase" value="">
             </label>
             <label>DL Valid Until (Expiry Date)
-              <input name="dlExpiryDate" type="date" required value="2029-12-31">
+              <input name="dlExpiryDate" type="date" required value="">
             </label>
           </div>
 
           <div class="form-grid" style="padding-top:6px">
-            <label>Aadhaar Card Photo (Optional if DigiLocker linked)
+            <label>Aadhaar Card Image (Optional)
               <input type="file" name="aadhaarFile" accept="image/jpeg,image/png,image/webp">
             </label>
-            <label>Driving Licence Front Photo (Optional)
+            <label>Driving Licence Front Image (Optional)
               <input type="file" name="dlFile" accept="image/jpeg,image/png,image/webp">
             </label>
           </div>
 
           <label class="check" style="margin-top:6px">
             <input type="checkbox" name="consent" checked required>
-            <span>I consent to Safar verifying my Aadhaar &amp; Driving Licence and performing automated biometric face matching against my live selfie for self-drive compliance.</span>
+            <span>I consent to Safar verifying my Aadhaar and Driving Licence and performing biometric face matching against my live selfie for rental eligibility.</span>
           </label>
 
           <button type="submit" id="kyc-facematch-submit" class="button btn-orange" style="width:100%;padding:14px 20px;font-size:15px">
-            ⚡ Verify e-KYC &amp; Run Biometric Face Match →
+            Verify Identity &amp; Run Face Match
           </button>
         </div>
       </section>
 
       <!-- Live Camera Selfie Card -->
       <aside class="biometric-camera-card">
-        <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#FF9447">STEP 2 · BIOMETRIC FACE MATCH</span>
+        <span style="font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#F07818">STEP 2 · BIOMETRIC FACE MATCH</span>
         <h3 style="color:#fff;margin:6px 0 4px">Live Customer Selfie</h3>
-        <p style="font-size:12.5px;color:rgba(255,255,255,0.72);margin:0 0 12px">Position your face in the circle or upload a clear selfie. Auto-verifies immediately when confidence &ge; 85%.</p>
+        <p style="font-size:12.5px;color:rgba(255,255,255,0.72);margin:0 0 12px">Position your face in the frame or upload a clear portrait photo.</p>
 
         <div class="biometric-viewport" id="kyc-selfie-viewport">
           <video id="kyc-webcam-video" autoplay playsinline muted hidden></video>
           <img id="kyc-selfie-preview" ${prof.profileImageUrl ? `src="${esc(prof.profileImageUrl)}"` : 'hidden'} alt="Customer selfie preview">
           <div id="kyc-selfie-placeholder" ${prof.profileImageUrl ? 'hidden' : ''} style="padding:16px;color:rgba(255,255,255,0.7);font-size:12.5px">
-            <div style="font-size:42px;margin-bottom:6px">🤳</div>
+            <div style="margin-bottom:8px">${icon('camera')}</div>
             Click <strong>Start Camera</strong> or <strong>Upload Selfie</strong>
           </div>
         </div>
@@ -1783,85 +1853,55 @@ function renderKycTabHtml(info) {
         </div>
 
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-          <button type="button" id="btn-start-webcam" class="button btn-orange btn-sm">🎥 Start Camera</button>
-          <button type="button" id="btn-capture-webcam" class="button btn-sm" hidden style="background:#10B981;border-color:#10B981;color:#fff">📸 Capture Selfie</button>
+          <button type="button" id="btn-start-webcam" class="button btn-orange btn-sm">${icon('camera')} Start Camera</button>
+          <button type="button" id="btn-capture-webcam" class="button btn-sm" hidden style="background:#16804A;border-color:#16804A;color:#fff">Capture Selfie</button>
           <label class="button btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);cursor:pointer;margin:0">
-            📁 Upload Selfie
+            Upload Photo
             <input type="file" id="kyc-selfie-file" accept="image/jpeg,image/png,image/webp" capture="user" hidden>
           </label>
-          <button type="button" id="btn-demo-selfie" class="button btn-ghost btn-sm" style="color:#FF9447;border-color:rgba(255,148,71,0.35)">⚡ Use Instant Demo Selfie</button>
+          <button type="button" id="btn-demo-selfie" class="button btn-ghost btn-sm" style="color:#F07818;border-color:rgba(240,120,24,0.35)">Use Demo Selfie</button>
         </div>
       </aside>
     </form>
 
-    <!-- Host Vehicle Compliance Document Upload & Official DigiLocker Gateway -->
-    <div class="kyc-action-grid">
-      <section class="panel">
-        <div class="verification-label">VEHICLE &amp; MANUAL DOCUMENT UPLOAD</div>
-        <h3>Upload Vehicle RC, Insurance, PUC or DL</h3>
-        <p class="text-muted">Hosts can upload RC, Insurance, and PUC for listed cars${vehicleId ? ` (Vehicle ID: <code>${esc(vehicleId)}</code>)` : ''}, or customers can upload physical document copies.</p>
+    ${vehicleId || ['HOST','DEALER','ADMIN'].includes(user?.role) ? `
+      <div class="kyc-action-grid">
+        <section class="panel">
+          <div class="verification-label">VEHICLE COMPLIANCE DOCUMENTS</div>
+          <h3>Upload Vehicle RC, Insurance or PUC</h3>
+          <p class="text-muted">Upload Registration Certificate (RC), Commercial Insurance, or Pollution Under Control (PUC)${vehicleId ? ` for Vehicle ID <code>${esc(vehicleId)}</code>` : ''}.</p>
 
-        <form id="doc-upload-form" class="form-stack">
-          ${sel('kind', 'Document Type', vehicleId ? ['RC','INSURANCE','PUC','DL'] : ['DL','AADHAAR','RC','INSURANCE','PUC'])}
-          ${vehicleId ? `<input type="hidden" name="vehicleId" value="${esc(vehicleId)}">` : inp('vehicleId', 'Vehicle ID (Only required for RC / Insurance / PUC)', 'text', 'placeholder="Leave blank for personal DL/Aadhaar"')}
-          <label>Document Image (JPG, PNG, WebP · Stored in AWS S3)
-            <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
-          </label>
-          <label class="check">
-            <input type="checkbox" name="consent" checked required>
-            <span>I certify this document is genuine and consent to encrypted S3 storage for verification.</span>
-          </label>
-          <button type="submit" class="button">Upload Document to S3 →</button>
-        </form>
-      </section>
+          <form id="doc-upload-form" class="form-stack">
+            ${sel('kind', 'Document Type', ['RC','INSURANCE','PUC','DL'])}
+            ${vehicleId ? `<input type="hidden" name="vehicleId" value="${esc(vehicleId)}">` : inp('vehicleId', 'Vehicle ID', 'text', 'placeholder="Enter vehicle ID for RC/Insurance/PUC"')}
+            <label>Document File (JPG, PNG, WebP)
+              <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
+            </label>
+            <label class="check">
+              <input type="checkbox" name="consent" checked required>
+              <span>I certify this document is genuine and current.</span>
+            </label>
+            <button type="submit" class="button btn-orange">Upload Compliance Document</button>
+          </form>
+        </section>
 
-      <section class="panel">
-        <div class="verification-label">GOVERNMENT GATEWAY</div>
-        <h3>Fetch directly from DigiLocker</h3>
-        <p class="text-muted">Connect with <code>digilocker.meripehchaan.gov.in</code> via Sandbox e-KYC API when live production credentials are configured.</p>
+        <section class="panel">
+          <div class="verification-label">GOVERNMENT GATEWAY</div>
+          <h3>Fetch directly from DigiLocker</h3>
+          <p class="text-muted">Connect with <code>digilocker.meripehchaan.gov.in</code> when live production gateway credentials are enabled.</p>
 
-        <form id="digilocker-form" class="form-stack">
-          <label class="check">
-            <input name="consent" type="checkbox" required>
-            <span>I consent to Safar retrieving my Aadhaar and driving licence through DigiLocker for rental verification.</span>
-          </label>
-          <button type="submit" class="button btn-outline" ${!info.configured ? 'disabled' : ''}>
-            ${info.configured ? 'Continue with DigiLocker →' : 'DigiLocker Gateway (Use Instant e-KYC Above)'}
-          </button>
-        </form>
-      </section>
-    </div>
-
-    <!-- Submitted Records Table -->
-    <section class="panel" style="margin-top:24px;">
-      <h3>Submitted e-KYC &amp; Compliance Records (${(info.documents || []).length})</h3>
-      ${info.documents && info.documents.length ? `
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Document</th>
-                <th>Masked ID</th>
-                <th>Source</th>
-                <th>Status</th>
-                <th>Valid Until</th>
-                <th>Verification Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${info.documents.map(doc => `
-                <tr>
-                  <td><strong>${esc(doc.kind)}</strong></td>
-                  <td><code>${esc(doc.documentNumberMasked || 'Encrypted')}</code></td>
-                  <td>${esc(doc.source || 'UPLOAD')}</td>
-                  <td>${badge(doc.status)}</td>
-                  <td>${doc.validUntil ? d(doc.validUntil) : 'Permanent'}</td>
-                  <td>${esc(doc.reviewNote || 'Verified')}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>` : empty('No verification records yet', 'Use the Instant Aadhaar & DL e-KYC + Live Selfie wizard above to verify in 60 seconds.')}
-    </section>`;
+          <form id="digilocker-form" class="form-stack">
+            <label class="check">
+              <input name="consent" type="checkbox" required>
+              <span>I consent to Safar retrieving my verification records through DigiLocker.</span>
+            </label>
+            <button type="submit" class="button btn-outline" ${!info.configured ? 'disabled' : ''}>
+              ${info.configured ? 'Continue with DigiLocker' : 'DigiLocker Gateway (Use Form Above)'}
+            </button>
+          </form>
+        </section>
+      </div>
+    ` : ''}`;
 }
 
 async function generateDemoPortraitBlob(labelText = 'SAFAR VERIFIED SELFIE') {
@@ -1870,8 +1910,8 @@ async function generateDemoPortraitBlob(labelText = 'SAFAR VERIFIED SELFIE') {
   canvas.height = 640;
   const ctx = canvas.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 640, 640);
-  grad.addColorStop(0, '#24113F');
-  grad.addColorStop(1, '#E86A17');
+  grad.addColorStop(0, '#3B123F');
+  grad.addColorStop(1, '#F07818');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 640, 640);
   ctx.fillStyle = 'rgba(255,255,255,0.18)';
@@ -1913,7 +1953,7 @@ function bindKycEvents(info) {
       preview.hidden = false;
     }
     const statusEl = $('#kyc-selfie-status');
-    if (statusEl) statusEl.textContent = `✓ Live selfie ready (${Math.round(file.size / 1024)} KB) — Click Verify e-KYC!`;
+    if (statusEl) statusEl.textContent = `✓ Live selfie ready (${Math.round(file.size / 1024)} KB) — Click Verify Identity!`;
   };
 
   $('#btn-start-webcam')?.addEventListener('click', async () => {
@@ -1931,7 +1971,7 @@ function bindKycEvents(info) {
       $('#btn-capture-webcam').hidden = false;
       $('#kyc-selfie-status').textContent = 'Camera active — center your face and click Capture Selfie';
     } catch {
-      toast('Webcam not available on this device — generating high-clarity portrait or choose Upload Selfie.', true);
+      toast('Camera not available on this device — loaded demo portrait.', true);
       const demoFile = await generateDemoPortraitBlob(`${user?.firstName || 'CUSTOMER'} LIVE SELFIE`);
       showPreviewFile(demoFile);
     }
@@ -1963,74 +2003,80 @@ function bindKycEvents(info) {
     stopStream();
     const demoFile = await generateDemoPortraitBlob(`${user?.firstName || 'CUSTOMER'} BIOMETRIC SELFIE`);
     showPreviewFile(demoFile);
-    toast('Biometric test selfie loaded! Now click Verify e-KYC & Run Biometric Face Match.');
+    toast('Demo selfie loaded. Click Verify Identity & Run Face Match.');
   });
 
-  bindForm('#kyc-facematch-form', async (data, form) => {
-    const submitBtn = $('#kyc-facematch-submit');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Uploading to AWS S3 & Running Biometric Face Match…';
-    }
-    try {
-      if (!capturedSelfieFile) {
-        capturedSelfieFile = await generateDemoPortraitBlob(`${user?.firstName || 'DRIVER'} LIVE SELFIE`);
+  if ($('#kyc-facematch-form')) {
+    bindForm('#kyc-facematch-form', async (data, form) => {
+      const submitBtn = $('#kyc-facematch-submit');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verifying Identity & Running Face Match…';
       }
-      const selfieMedia = await uploadFile(capturedSelfieFile, 'SELFIE_KYC');
-      let aadhaarMediaId = undefined;
-      let dlMediaId = undefined;
-      if (form.elements.aadhaarFile?.files?.[0]) {
-        const m = await uploadFile(form.elements.aadhaarFile.files[0], 'AADHAAR');
-        aadhaarMediaId = m.id;
-      }
-      if (form.elements.dlFile?.files?.[0]) {
-        const m = await uploadFile(form.elements.dlFile.files[0], 'DL');
-        dlMediaId = m.id;
-      }
+      try {
+        if (!capturedSelfieFile) {
+          capturedSelfieFile = await generateDemoPortraitBlob(`${user?.firstName || 'DRIVER'} LIVE SELFIE`);
+        }
+        const selfieMedia = await uploadFile(capturedSelfieFile, 'SELFIE_KYC');
+        let aadhaarMediaId = undefined;
+        let dlMediaId = undefined;
+        if (form.elements.aadhaarFile?.files?.[0]) {
+          const m = await uploadFile(form.elements.aadhaarFile.files[0], 'AADHAAR');
+          aadhaarMediaId = m.id;
+        }
+        if (form.elements.dlFile?.files?.[0]) {
+          const m = await uploadFile(form.elements.dlFile.files[0], 'DL');
+          dlMediaId = m.id;
+        }
 
-      const result = await post('/kyc/face-match', {
-        aadhaarNumber: data.aadhaarNumber,
-        dlNumber: data.dlNumber,
-        dlExpiryDate: data.dlExpiryDate,
-        selfieMediaId: selfieMedia.id,
-        aadhaarMediaId,
-        dlMediaId,
+        const result = await post('/kyc/face-match', {
+          aadhaarNumber: data.aadhaarNumber,
+          dlNumber: data.dlNumber,
+          dlExpiryDate: data.dlExpiryDate,
+          selfieMediaId: selfieMedia.id,
+          aadhaarMediaId,
+          dlMediaId,
+          consent: true,
+        });
+
+        user = await api('/auth/profile').catch(() => user);
+        shell();
+        toast(`Biometric Face Match: ${result.faceMatchScore}% — ${result.autoVerified ? 'Driver Verified!' : 'Submitted for review!'}`);
+        await dashboard('kyc', true);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Verify Identity & Run Face Match';
+        }
+      }
+    });
+  }
+
+  if ($('#digilocker-form')) {
+    bindForm('#digilocker-form', async () => {
+      const session = await post('/kyc/sessions', { consent: true });
+      location.assign(session.authorizationUrl);
+    });
+  }
+
+  if ($('#doc-upload-form')) {
+    bindForm('#doc-upload-form', async (data, form) => {
+      const file = form.elements.file?.files?.[0];
+      if (!file) throw new Error('Choose a document image first');
+      const media = await uploadFile(file, data.kind);
+      await post('/kyc/documents', {
+        kind: data.kind,
+        mediaId: media.id,
+        vehicleId: data.vehicleId ? data.vehicleId.trim() : undefined,
         consent: true,
       });
-
-      user = await api('/auth/profile').catch(() => user);
-      shell();
-      toast(`Biometric Face Match: ${result.faceMatchScore}% — ${result.autoVerified ? 'Driver Auto-Verified!' : 'Submitted for review!'}`);
       await dashboard('kyc', true);
-    } finally {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '⚡ Verify e-KYC & Run Biometric Face Match →';
-      }
-    }
-  });
-
-  bindForm('#digilocker-form', async () => {
-    const session = await post('/kyc/sessions', { consent: true });
-    location.assign(session.authorizationUrl);
-  });
-
-  bindForm('#doc-upload-form', async (data, form) => {
-    const file = form.elements.file?.files?.[0];
-    if (!file) throw new Error('Choose a document image first');
-    const media = await uploadFile(file, data.kind);
-    await post('/kyc/documents', {
-      kind: data.kind,
-      mediaId: media.id,
-      vehicleId: data.vehicleId ? data.vehicleId.trim() : undefined,
-      consent: true,
+      toast('Document uploaded and submitted for verification.');
     });
-    await dashboard('kyc', true);
-    toast('Document uploaded to AWS S3 & submitted for verification.');
-  });
+  }
 }
 
-/* ─── HOST PARTNER PRO CONSOLE (ENTERPRISE REDESIGN) ─────────────────── */
+/* ─── HOST PARTNER PRO CONSOLE ───────────────────────────────────────── */
 async function host(activeTab = 'overview') {
   if (!requireUser(['HOST','DEALER','ADMIN'])) return;
   const [vehicles, payoutAccount, hostBookings, payouts] = await Promise.all([
@@ -2045,8 +2091,8 @@ async function host(activeTab = 'overview') {
   const activeTrips = hostBookings.filter(b => b.status === 'ACTIVE').length;
   const grossEarnings = hostBookings.filter(b => b.payment?.status === 'PAID').reduce((sum, b) => sum + Number(b.baseFare || b.totalAmount || 0), 0);
   const settledBookings = hostBookings.filter(b => ['SUCCESS', 'PAID'].includes(b.payment?.status));
-  const netHostRevenue = settledBookings.reduce((sum, b) => sum + Number(b.hostRevenue || 0), 0);
-  const platformFeeTotal = settledBookings.reduce((sum, b) => sum + Number(b.platformFee || 0), 0);
+  const netHostRevenue = settledBookings.reduce((sum, b) => sum + Number(b.hostRevenue || Math.round(Number(b.baseFare || 0) * 0.80)), 0);
+  const platformFeeTotal = settledBookings.reduce((sum, b) => sum + Number(b.platformFee || Math.round(Number(b.baseFare || 0) * 0.20)), 0);
 
   $('#app').innerHTML = `
     <div class="pro-console-shell">
@@ -2054,39 +2100,39 @@ async function host(activeTab = 'overview') {
         <div class="pro-sidebar-brand">
           <div class="pro-sidebar-logo">S</div>
           <div>
-            <strong>Safar Host Pro</strong>
-            <span>${dealer ? 'DEALERSHIP FLEET HUB' : 'PARTNER COMMAND CENTER'}</span>
+            <strong>Safar Host</strong>
+            <span>${dealer ? 'DEALERSHIP FLEET HUB' : 'PARTNER CONSOLE'}</span>
           </div>
         </div>
         <nav class="pro-nav">
           <button type="button" class="pro-nav-item ${activeTab === 'overview' ? 'active' : ''}" data-host-tab="overview">
-            <span>📊 Fleet &amp; Bookings</span><span class="pro-nav-badge">${hostBookings.length}</span>
+            <span>${icon('chart')} Fleet &amp; Bookings</span><span class="pro-nav-badge">${hostBookings.length}</span>
           </button>
           <button type="button" class="pro-nav-item ${activeTab === 'register' ? 'active' : ''}" data-host-tab="register">
-            <span>➕ List New Vehicle</span><span class="pro-nav-badge">8 Angles</span>
+            <span>${icon('plus')} List New Vehicle</span><span class="pro-nav-badge">8 Angles</span>
           </button>
           <button type="button" class="pro-nav-item ${activeTab === 'fleet' ? 'active' : ''}" data-host-tab="fleet">
-            <span>🚗 My Vehicles</span><span class="pro-nav-badge">${vehicles.length}</span>
+            <span>${icon('car')} My Vehicles</span><span class="pro-nav-badge">${vehicles.length}</span>
           </button>
           <button type="button" class="pro-nav-item ${activeTab === 'wallet' ? 'active' : ''}" data-host-tab="wallet">
-            <span>🏦 Revenue &amp; Payouts</span>
+            <span>${icon('wallet')} Revenue &amp; Payouts</span>
           </button>
         </nav>
-        <div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:rgba(255,255,255,0.7);">
-          <strong style="color:#fff;display:block;">${esc(user.firstName + ' ' + user.lastName)}</strong>
-          <span>Configured host settlement · private inspection evidence</span>
+        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border-main);font-size:12px;color:var(--text-muted);">
+          <strong style="color:var(--ink);display:block;">${esc(user.firstName + ' ' + user.lastName)}</strong>
+          <span>80% Partner Share · 8-Angle S3 Verified</span>
         </div>
       </aside>
 
       <div class="pro-main">
         <div class="pro-topbar">
           <div>
-            <h2>${dealer ? 'Dealership Fleet &amp; Handover Console' : 'Host Partner Command Center'}</h2>
-            <p>Manage vehicle listings, 8-angle + selfie hub handovers, lease agreements, and configured host settlements.</p>
+            <h2>${dealer ? 'Dealership Fleet &amp; Handover Console' : 'Host Partner Console'}</h2>
+            <p>Manage vehicle listings, 8-angle + selfie hub handovers, lease agreements, and partner settlements.</p>
           </div>
           <div class="actions">
-            <button type="button" class="button btn-orange btn-sm" id="host-quick-add-btn">+ Register New Car</button>
-            <a class="button btn-outline btn-sm" href="cars.html">View Live Marketplace →</a>
+            <button type="button" class="button btn-orange btn-sm" id="host-quick-add-btn">+ List New Vehicle</button>
+            <a class="button btn-outline btn-sm" href="cars.html">View Marketplace</a>
           </div>
         </div>
 
@@ -2107,9 +2153,9 @@ async function host(activeTab = 'overview') {
             <span class="kpi-sub">Total paid trip base fares</span>
           </div>
           <div class="pro-kpi-card">
-            <span class="kpi-label">Host settlement</span>
-            <strong class="kpi-value" style="color:#059669;">${money(netHostRevenue)}</strong>
-            <span class="kpi-sub">Recorded platform fee: ${money(platformFeeTotal)}</span>
+            <span class="kpi-label">Net Host Settlement (80%)</span>
+            <strong class="kpi-value" style="color:var(--ok);">${money(netHostRevenue)}</strong>
+            <span class="kpi-sub">Platform fee (20%): ${money(platformFeeTotal)}</span>
           </div>
           <div class="pro-kpi-card">
             <span class="kpi-label">Payout Bank Status</span>
@@ -2123,7 +2169,7 @@ async function host(activeTab = 'overview') {
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
               <div>
                 <h3 style="margin:0;">Active &amp; Upcoming Guest Handovers</h3>
-                <p class="text-muted" style="margin:4px 0 0;">Meet the customer at the hub, verify their e-Agreement, and complete the 8-Angle Car + Customer Selfie inspection at Pickup and Return.</p>
+                <p class="text-muted" style="margin:4px 0 0;">Verify the guest's Lease Agreement and complete the 8-Angle Car + Selfie inspection at Pickup and Return.</p>
               </div>
             </div>
             ${renderBookingTable(hostBookings, true)}
@@ -2133,7 +2179,7 @@ async function host(activeTab = 'overview') {
         <section id="host-tab-register" ${activeTab === 'register' ? '' : 'hidden'}>
           <form id="car-listing-form">
             <div class="panel" style="margin-bottom:20px;">
-              <h3>01 · Vehicle Specifications &amp; Dynamic Pricing</h3>
+              <h3>01 · Vehicle Specifications &amp; Pricing</h3>
               <div class="form-grid">
                 ${inp('registrationNumber','Registration Number','text','placeholder="e.g. GJ01AB1234" maxlength="16"')}
                 ${inp('locationCity','Hub / City Location','text','placeholder="e.g. Ahmedabad" value="Ahmedabad"')}
@@ -2150,11 +2196,11 @@ async function host(activeTab = 'overview') {
             </div>
 
             <div class="panel" style="margin-bottom:20px;">
-              <h3>02 · Mandatory 8-Angle Vehicle Digital Twin Photos (AWS S3)</h3>
+              <h3>02 · Mandatory 8-Angle Vehicle Inspection Photos</h3>
               <div class="notice info" style="margin-bottom:16px;">
-                Upload 8 distinct vehicle photos covering every exterior and interior angle (Front, Rear, Left, Right, Interior, Boot, Bonnet, Odometer). Stored in AWS S3 and displayed in the 360° Customer Car Cockpit.
+                Upload 8 distinct vehicle photos covering every exterior and interior angle (Front, Rear, Left, Right, Interior, Boot, Bonnet, Odometer).
               </div>
-              <p id="photo-progress" role="status" style="font-weight:700;color:var(--purple);">0 of 8 photos selected</p>
+              <p id="photo-progress" role="status" style="font-weight:700;color:var(--brand);">0 of 8 photos selected</p>
               <div class="photo-grid">
                 ${PHOTO_ANGLES.map(kind => `
                   <div class="photo-slot" id="slot-${kind}">
@@ -2173,7 +2219,7 @@ async function host(activeTab = 'overview') {
                 <span>I certify that I am the authorised owner/host of this vehicle and agree to the commercial terms shown in the Safar Host Partner Agreement.</span>
               </label>
               <div class="actions" style="margin-top:14px;">
-                <button type="submit" class="button btn-orange">Submit Vehicle &amp; Upload RC / Insurance →</button>
+                <button type="submit" class="button btn-orange">Submit Vehicle &amp; Upload RC / Insurance</button>
               </div>
             </div>
           </form>
@@ -2200,13 +2246,13 @@ async function host(activeTab = 'overview') {
                 </div>
                 <p style="font-size:12.5px;color:var(--text-muted);">${esc(v.reviewNote || 'Verified for self-drive marketplace.')}</p>
                 <div class="admin-tile-actions" style="flex-wrap:wrap">
-                  <a class="button btn-ghost btn-sm" href="kyc.html?vehicle=${encodeURIComponent(v.id)}">RC, Insurance &amp; PUC →</a>
+                  <a class="button btn-outline btn-sm" href="kyc.html?vehicle=${encodeURIComponent(v.id)}">RC, Insurance &amp; PUC</a>
                   <button type="button" class="button btn-outline btn-sm host-schedule" data-id="${v.id}">Availability Calendar</button>
                   <a class="button btn-ghost btn-sm" href="host-agreement.html?id=${encodeURIComponent(v.id)}">Host Agreement</a>
                 </div>
               </div>
             </article>`;
-          }).join('') + `</div>` : empty('No vehicles listed yet', 'Click "+ Register New Car" to onboard your first self-drive vehicle.')}
+          }).join('') + `</div>` : empty('No vehicles listed yet', 'Click "+ List New Vehicle" to onboard your first self-drive vehicle.')}
         </section>
 
         <section id="host-tab-wallet" ${activeTab === 'wallet' ? '' : 'hidden'}>
@@ -2231,12 +2277,12 @@ async function host(activeTab = 'overview') {
           <div class="panel table-wrap">
             <h3>Host Payout &amp; Trip Settlement Ledger</h3>
             <table>
-              <thead><tr><th>Payout Period / Ref</th><th>Host settlement</th><th>Status</th><th>Notes</th></tr></thead>
+              <thead><tr><th>Payout Period / Ref</th><th>Net Host Amount (80%)</th><th>Status</th><th>Notes</th></tr></thead>
               <tbody>
                 ${payouts.length ? payouts.map(p => `
                   <tr>
                     <td>${p.periodStart ? d(p.periodStart) : 'Trip Settlement'} → ${p.periodEnd ? d(p.periodEnd) : 'Completed'}<br><small class="text-muted">${esc(p.reference || p.id.slice(0,8))}</small></td>
-                    <td><strong style="color:#059669;">${money(p.amount)}</strong></td>
+                    <td><strong style="color:var(--ok);">${money(p.amount)}</strong></td>
                     <td>${badge(p.status)}</td>
                     <td>${esc(p.note || 'Host settlement')}</td>
                   </tr>
@@ -2301,7 +2347,7 @@ async function host(activeTab = 'overview') {
       if (cached?.file === file) {
         mediaIds.push(cached.id);
       } else {
-        toast(`Uploading ${kind} to AWS S3…`);
+        toast(`Uploading ${kind}…`);
         const media = await uploadFile(file, kind);
         uploadCache.set(kind, {file, id: media.id});
         mediaIds.push(media.id);
@@ -2315,12 +2361,13 @@ async function host(activeTab = 'overview') {
   });
 }
 
-/* ─── DASHBOARD & CUSTOMER TRIP HUB ──────────────────────────────────── */
+/* ─── CUSTOMER ACCOUNT DASHBOARD (ZOOMCAR-STYLE LEFT SIDEBAR + HORIZONTAL BOOKING CARDS) ─── */
 function formatBookingStatus(b) {
   return b.status === 'PENDING' && new Date(b.expiresAt) < new Date() ? 'EXPIRED' : b.status;
 }
 
 let dashboardCache = null;
+let activeBookingFilter = 'ALL';
 
 async function dashboard(defaultTab = 'trips', forceRefresh = true) {
   if (!requireUser()) return;
@@ -2329,70 +2376,117 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
   const payBookingId = params.get('pay');
 
   if (forceRefresh || !dashboardCache) {
-    const [trips, hosted, kycInfo, accountInfo, notifications, authoredReviews] = await Promise.all([
+    const [trips, hosted, kycInfo, accountInfo, notifications, authoredReviews, allVehicles] = await Promise.all([
       api('/bookings/my-trips').catch(() => []),
       ['HOST','DEALER','ADMIN'].includes(user.role) ? api('/bookings/host-bookings').catch(() => []) : Promise.resolve([]),
       api('/kyc').catch(() => ({ documents: [], sessions: [], environment: 'live', configured: false })),
       api('/account/dashboard').catch(() => null),
       api('/notifications').catch(() => []),
       api('/reviews/mine').catch(() => ({ vehicleReviews: [], partyRatings: [] })),
+      api('/vehicles').catch(() => []),
     ]);
-    dashboardCache = { trips, hosted, kycInfo, accountInfo, notifications, authoredReviews };
+    dashboardCache = { trips, hosted, kycInfo, accountInfo, notifications, authoredReviews, allVehicles };
   }
 
-  const { trips, hosted, kycInfo, accountInfo, notifications, authoredReviews } = dashboardCache;
-  const activeCount = trips.filter(b => b.status === 'ACTIVE').length;
+  const { trips, hosted, kycInfo, accountInfo, notifications, authoredReviews, allVehicles } = dashboardCache;
+  const disputesCount = accountInfo?.disputes?.length || 0;
+  const reviewsCount = (authoredReviews?.vehicleReviews?.length || 0) + (authoredReviews?.partyRatings?.length || 0);
+  const initials = ((user.firstName?.[0] || 'S') + (user.lastName?.[0] || '')).toUpperCase();
+  const unreadAlerts = (notifications || []).filter(n => !n.readAt).length;
 
   $('#app').innerHTML = `
-    ${sectionHead(`Customer Trip &amp; e-KYC Hub`, `Manage your self-drive reservations, online payments, Car Lease e-Agreements, and 8-Angle + Selfie Hub Handovers.`, 'MY SAFAR ACCOUNT')}
+    <div class="acct-shell">
+      <!-- LEFT ACCOUNT SIDEBAR (Inspired by Zoomcar Reference) -->
+      <aside class="acct-side">
+        <div class="acct-profile-box">
+          <div class="acct-avatar">${esc(initials)}</div>
+          <strong class="acct-name">${esc(user.firstName + ' ' + user.lastName)}</strong>
+          <span class="acct-sub">${esc(user.phone || '+91 Verified Member')}</span>
+          <span class="acct-sub">${esc(user.email)}</span>
+        </div>
 
-    <div class="stats" style="margin-bottom: 22px;">
-      <div class="stat">
-        <div class="stat-lbl">Member Identity</div>
-        <strong style="font-size:18px;color:var(--purple);">${esc(user.firstName + ' ' + user.lastName)}</strong>
-        <span style="font-size:12px;color:var(--muted);">${esc(user.email)} · ${user.phoneVerified ? '📱 OTP Verified' : ''} · ${badge(user.role)}</span>
+        <div class="acct-verify-list">
+          <div class="acct-verify-row">
+            <span>Profile Document</span>
+            <strong class="${user.isVerified ? 'ok' : 'warn'}">${user.isVerified ? '✓ Verified' : 'Pending'}</strong>
+          </div>
+          <div class="acct-verify-row">
+            <span>Mobile Number</span>
+            <strong class="ok">✓ Verified</strong>
+          </div>
+          <div class="acct-verify-row">
+            <span>Driving Licence</span>
+            <strong class="${user.isVerified ? 'ok' : 'warn'}">${user.isVerified ? '✓ Verified' : 'Action Needed'}</strong>
+          </div>
+        </div>
+
+        <nav class="acct-menu" aria-label="Account navigation">
+          <button type="button" class="acct-menu-btn ${activeTab === 'trips' ? 'active' : ''}" onclick="switchAccountTab('trips')">
+            <span class="acct-menu-lbl">${icon('calendar')} My Bookings</span>
+            <span class="acct-menu-badge">${trips.length}</span>
+          </button>
+          <button type="button" class="acct-menu-btn ${activeTab === 'profile' ? 'active' : ''}" onclick="switchAccountTab('profile')">
+            <span class="acct-menu-lbl">${icon('user')} Account Information</span>
+          </button>
+          <button type="button" class="acct-menu-btn ${activeTab === 'kyc' ? 'active' : ''}" onclick="switchAccountTab('kyc')">
+            <span class="acct-menu-lbl">${icon('idcard')} KYC &amp; Verification</span>
+            <span class="acct-menu-badge">${user.isVerified ? '✓' : '!'}</span>
+          </button>
+          <button type="button" class="acct-menu-btn ${activeTab === 'disputes' ? 'active' : ''}" onclick="switchAccountTab('disputes')">
+            <span class="acct-menu-lbl">${icon('scale')} Booking Disputes</span>
+            ${disputesCount ? `<span class="acct-menu-badge">${disputesCount}</span>` : ''}
+          </button>
+          <button type="button" class="acct-menu-btn ${activeTab === 'reviews' ? 'active' : ''}" onclick="switchAccountTab('reviews')">
+            <span class="acct-menu-lbl">${icon('star')} Reviews &amp; Ratings</span>
+            ${reviewsCount ? `<span class="acct-menu-badge">${reviewsCount}</span>` : ''}
+          </button>
+          <button type="button" class="acct-menu-btn ${activeTab === 'history' ? 'active' : ''}" onclick="switchAccountTab('history')">
+            <span class="acct-menu-lbl">${icon('history')} Trip &amp; Damage History</span>
+          </button>
+          <button type="button" class="acct-menu-btn ${activeTab === 'saved' ? 'active' : ''}" onclick="switchAccountTab('saved')">
+            <span class="acct-menu-lbl">${icon('car')} Saved Vehicles &amp; Alerts</span>
+            ${unreadAlerts ? `<span class="acct-menu-badge">${unreadAlerts}</span>` : ''}
+          </button>
+        </nav>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--border-main)">
+          <button type="button" id="sidebar-logout-btn" class="btn-outline btn-sm" style="width:100%;justify-content:center">
+            ${icon('logout')} Sign Out
+          </button>
+        </div>
+      </aside>
+
+      <!-- RIGHT MAIN WORKSPACE -->
+      <div class="acct-main" id="account-tab-content">
+        ${activeTab === 'kyc'
+          ? renderKycTabHtml(kycInfo)
+          : activeTab === 'profile'
+          ? renderProfileTabHtml(kycInfo)
+          : activeTab === 'disputes'
+          ? renderDisputesTabHtml(trips, accountInfo)
+          : activeTab === 'history'
+          ? renderHistoryTabHtml(trips)
+          : activeTab === 'reviews'
+          ? renderReviewsTabHtml(authoredReviews, trips)
+          : activeTab === 'saved'
+          ? renderSavedAndAlertsTabHtml(allVehicles, notifications)
+          : renderTripsTabHtml(trips, hosted, accountInfo)}
       </div>
-      <div class="stat">
-        <div class="stat-lbl">Biometric e-KYC &amp; Face Match</div>
-        <strong style="font-size:18px;color:${user.isVerified ? '#059669' : '#D97706'}">${user.isVerified ? '✓ Auto-Verified Driver' : 'Verification Pending'}</strong>
-        <span style="font-size:12px;color:var(--muted);">${user.faceMatchScore ? `Face Match: ${Number(user.faceMatchScore).toFixed(1)}%` : (user.isVerified ? 'Identity & DL Approved' : 'Complete Aadhaar + Selfie Face Match')}</span>
-      </div>
-      <div class="stat">
-        <div class="stat-lbl">My Reservations</div>
-        <strong style="font-size:22px;">${trips.length}</strong>
-        <span style="font-size:12px;color:var(--muted);">${activeCount} Active On-Road Trips</span>
-      </div>
-    </div>
-
-    ${renderNotificationsHtml(notifications)}
-
-    <div class="admin-tabs" style="margin-bottom: 24px;">
-      <button type="button" class="${activeTab === 'trips' ? 'active' : ''}" onclick="switchAccountTab('trips')">
-        ${icon('car', 'ic-sm')} My Trips &amp; Handovers <span>${trips.length}</span>
-      </button>
-      <button type="button" class="${activeTab === 'kyc' ? 'active' : ''}" onclick="switchAccountTab('kyc')">
-        ${icon('idcard', 'ic-sm')} Biometric e-KYC &amp; Face Match <span>${user.isVerified ? '✓' : '!'}</span>
-      </button>
-      <button type="button" class="${activeTab === 'profile' ? 'active' : ''}" onclick="switchAccountTab('profile')">
-        ${icon('user', 'ic-sm')} Profile &amp; Security
-      </button>
-      <button type="button" class="${activeTab === 'disputes' ? 'active' : ''}" onclick="switchAccountTab('disputes')">
-        ${icon('scale', 'ic-sm')} Disputes <span>${accountInfo?.disputes?.length || 0}</span>
-      </button>
-      <button type="button" class="${activeTab === 'history' ? 'active' : ''}" onclick="switchAccountTab('history')">
-        ${icon('history', 'ic-sm')} Trip History
-      </button>
-      <button type="button" class="${activeTab === 'reviews' ? 'active' : ''}" onclick="switchAccountTab('reviews')">
-        ${icon('star', 'ic-sm')} Reviews <span>${(authoredReviews?.vehicleReviews?.length || 0) + (authoredReviews?.partyRatings?.length || 0)}</span>
-      </button>
-    </div>
-
-    <div id="account-tab-content" class="view-fade-in">
-      ${activeTab === 'kyc' ? renderKycTabHtml(kycInfo) : activeTab === 'profile' ? renderProfileTabHtml(kycInfo) : activeTab === 'disputes' ? renderDisputesTabHtml(trips, accountInfo) : activeTab === 'history' ? renderHistoryTabHtml(trips) : activeTab === 'reviews' ? renderReviewsTabHtml(authoredReviews) : renderTripsTabHtml(trips, hosted, accountInfo)}
     </div>`;
+
+  $('#sidebar-logout-btn')?.addEventListener('click', async () => {
+    await post('/auth/logout').catch(() => {});
+    location.href = 'index.html';
+  });
 
   if (activeTab === 'trips') {
     bindBookingEvents();
+    $$('[data-bk-filter]').forEach(btn => {
+      btn.onclick = () => {
+        activeBookingFilter = btn.dataset.bkFilter;
+        dashboard('trips', false);
+      };
+    });
     if (payBookingId) {
       const targetBooking = trips.find(b => b.id === payBookingId);
       if (targetBooking && formatBookingStatus(targetBooking) === 'PENDING') {
@@ -2410,25 +2504,45 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
       location.href = 'index.html';
     });
   }
-  bindNotificationEvents();
+  if (activeTab === 'saved') bindNotificationEvents();
 }
 
-function renderNotificationsHtml(items) {
+function renderSavedAndAlertsTabHtml(allVehicles, items) {
   const notifications = Array.isArray(items) ? items : [];
   const unread = notifications.filter(item => !item.readAt).length;
-  return `<section class="panel account-notifications" style="margin-bottom:24px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div><h3 style="margin:0">Live Trip &amp; e-KYC Alerts ${unread ? `<span class="badge warn">${unread} new</span>` : ''}</h3><p class="text-muted" style="margin:4px 0 0">Payment confirmations, e-Agreement execution, 8-angle handover logs, and deposit settlements.</p></div>
-      ${unread ? '<button type="button" class="button btn-outline btn-sm" id="mark-all-notifications">Mark all read</button>' : ''}
-    </div>
-    <div class="notification-list" style="display:grid;gap:10px;margin-top:16px;">
-      ${notifications.length ? notifications.slice(0, 4).map(item => `<article class="notification-item ${item.readAt ? '' : 'is-unread'}" data-notification-id="${esc(item.id)}" style="padding:12px 14px;border:1px solid var(--border-main);border-radius:12px;background:var(--bg-subtle);">
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><strong>${esc(item.title)}</strong>${item.readAt ? '' : '<span class="badge warn">NEW</span>'}</div>
-        <p style="margin:5px 0;color:var(--text-main);">${esc(item.message)}</p>
-        <small class="text-muted">${dt(item.createdAt)} ${item.readAt ? '' : ' · Click to mark read'}</small>
-      </article>`).join('') : '<p class="text-muted" style="margin:14px 0 0">No alerts yet.</p>'}
-    </div>
-  </section>`;
+  const featured = (allVehicles || []).slice(0, 3);
+  return `
+    <section class="panel" style="margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h3 style="margin:0">Account Notifications &amp; Activity Alerts ${unread ? `<span class="badge warn">${unread} unread</span>` : ''}</h3>
+          <p class="text-muted" style="margin:4px 0 0">Booking confirmations, digital lease updates, handover inspections, and deposit settlements.</p>
+        </div>
+        ${unread ? '<button type="button" class="button btn-outline btn-sm" id="mark-all-notifications">Mark all read</button>' : ''}
+      </div>
+      <div class="notification-list" style="display:grid;gap:10px;margin-top:16px;">
+        ${notifications.length ? notifications.map(item => `
+          <article class="notification-item ${item.readAt ? '' : 'is-unread'}" data-notification-id="${esc(item.id)}" style="padding:12px 14px;border:1px solid var(--border-main);border-radius:12px;background:var(--bg-subtle);">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+              <strong>${esc(item.title)}</strong>
+              ${item.readAt ? '<span class="text-muted" style="font-size:11px">Read</span>' : '<span class="badge warn">NEW</span>'}
+            </div>
+            <p style="margin:5px 0;color:var(--text-main);font-size:13.5px">${esc(item.message)}</p>
+            <small class="text-muted">${dt(item.createdAt)}${item.readAt ? '' : ' · Click to mark read'}</small>
+          </article>`).join('') : '<p class="text-muted" style="margin:14px 0 0">No notifications yet.</p>'}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <h3 style="margin:0">Recommended &amp; Quick-Rebook Vehicles</h3>
+          <p class="text-muted" style="margin:4px 0 0">Verified fleet vehicles ready for immediate self-drive reservation.</p>
+        </div>
+        <a href="cars.html" class="button btn-outline btn-sm">Browse All Vehicles</a>
+      </div>
+      <div class="car-grid">${featured.map(carCard).join('')}</div>
+    </section>`;
 }
 
 function bindNotificationEvents() {
@@ -2437,7 +2551,7 @@ function bindNotificationEvents() {
     catch (error) { toast(error.message, true); }
   });
   $('#mark-all-notifications')?.addEventListener('click', async () => {
-    try { await post('/notifications/read-all', {}); await dashboard(undefined, true); }
+    try { await post('/notifications/read-all', {}); await dashboard('saved', true); }
     catch (error) { toast(error.message, true); }
   });
 }
@@ -2451,23 +2565,57 @@ function switchAccountTab(tabName) {
 }
 
 function renderTripsTabHtml(trips, hosted, accountInfo) {
+  const filterCounts = {
+    ALL: trips.length,
+    UPCOMING: trips.filter(b => formatBookingStatus(b) === 'CONFIRMED').length,
+    ONGOING: trips.filter(b => formatBookingStatus(b) === 'ACTIVE').length,
+    COMPLETED: trips.filter(b => formatBookingStatus(b) === 'COMPLETED').length,
+    PENDING: trips.filter(b => formatBookingStatus(b) === 'PENDING').length,
+    CANCELLED: trips.filter(b => ['CANCELLED', 'EXPIRED'].includes(formatBookingStatus(b))).length,
+  };
+
+  const filteredTrips = trips.filter(b => {
+    const st = formatBookingStatus(b);
+    if (activeBookingFilter === 'UPCOMING') return st === 'CONFIRMED';
+    if (activeBookingFilter === 'ONGOING') return st === 'ACTIVE';
+    if (activeBookingFilter === 'COMPLETED') return st === 'COMPLETED';
+    if (activeBookingFilter === 'PENDING') return st === 'PENDING';
+    if (activeBookingFilter === 'CANCELLED') return ['CANCELLED', 'EXPIRED'].includes(st);
+    return true;
+  });
+
   return `
     ${!user.isVerified ? `
-      <div class="notice" style="margin-bottom:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-        <div><strong>Biometric e-KYC Required:</strong> Complete Aadhaar + Live Selfie Face Match so you can unlock self-drive bookings and hub handovers.</div>
-        <button type="button" onclick="switchAccountTab('kyc')" class="button btn-sm btn-orange">Launch Biometric e-KYC →</button>
+      <div class="notice" style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        <div><strong>Driver Verification Pending:</strong> Complete your Aadhaar, Driving Licence, and Selfie verification to unlock self-drive bookings.</div>
+        <button type="button" onclick="switchAccountTab('kyc')" class="button btn-sm btn-orange">Complete KYC Verification</button>
       </div>` : ''}
 
-    <section class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+    <div class="panel" style="margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
         <div>
-          <h3 style="margin:0;">My Self-Drive Reservations</h3>
-          <p class="text-muted" style="margin:4px 0 0;">Complete payment to generate your Car Lease e-Agreement, then upload 8 Car Angles + 1 Selfie at Pickup and Return.</p>
+          <h3 style="margin:0;">My Bookings</h3>
+          <p class="text-muted" style="margin:4px 0 0;">View upcoming, ongoing, and completed self-drive trips, download agreements and invoices, or complete handover inspections.</p>
         </div>
-        <a class="button btn-outline btn-sm" href="cars.html">+ Book Another Car</a>
+        <a class="button btn-orange btn-sm" href="cars.html">+ New Booking</a>
       </div>
-      ${renderBookingTable(trips, false)}
-    </section>
+
+      <!-- Booking Status Filter Pills -->
+      <div class="bk-filter-bar">
+        <button type="button" class="chip ${activeBookingFilter === 'ALL' ? 'active' : ''}" data-bk-filter="ALL">All Bookings (${filterCounts.ALL})</button>
+        <button type="button" class="chip ${activeBookingFilter === 'UPCOMING' ? 'active' : ''}" data-bk-filter="UPCOMING">Upcoming (${filterCounts.UPCOMING})</button>
+        <button type="button" class="chip ${activeBookingFilter === 'ONGOING' ? 'active' : ''}" data-bk-filter="ONGOING">Ongoing (${filterCounts.ONGOING})</button>
+        <button type="button" class="chip ${activeBookingFilter === 'COMPLETED' ? 'active' : ''}" data-bk-filter="COMPLETED">Completed (${filterCounts.COMPLETED})</button>
+        <button type="button" class="chip ${activeBookingFilter === 'PENDING' ? 'active' : ''}" data-bk-filter="PENDING">Pending Payment (${filterCounts.PENDING})</button>
+        <button type="button" class="chip ${activeBookingFilter === 'CANCELLED' ? 'active' : ''}" data-bk-filter="CANCELLED">Cancelled (${filterCounts.CANCELLED})</button>
+      </div>
+
+      ${filteredTrips.length ? `
+        <div class="bk-list">
+          ${filteredTrips.map(b => renderHorizontalBookingCard(b)).join('')}
+        </div>
+      ` : empty('No bookings in this view', '<a href="cars.html" class="button btn-orange btn-sm">Browse Self-Drive Cars</a>')}
+    </div>
 
     ${hosted.length ? `
       <section class="panel" style="margin-top:24px;">
@@ -2476,95 +2624,326 @@ function renderTripsTabHtml(trips, hosted, accountInfo) {
       </section>` : ''}`;
 }
 
+function renderHorizontalBookingCard(b) {
+  const st = formatBookingStatus(b);
+  const v = b.vehicle || {};
+  const hrs = b.tenureHours || Math.max(1, Math.ceil((new Date(b.endDate) - new Date(b.startDate)) / 3600000));
+  const hubCity = v.locationCity || 'Ahmedabad';
+  const statusBannerMap = {
+    COMPLETED: 'COMPLETED TRIP',
+    ACTIVE: 'ONGOING TRIP',
+    CONFIRMED: 'UPCOMING CONFIRMED TRIP',
+    PENDING: 'PAYMENT PENDING',
+    CANCELLED: 'CANCELLED BOOKING',
+    EXPIRED: 'EXPIRED HOLD',
+  };
+  const statusTitle = statusBannerMap[st] || st;
+  const coverUrl = v.media?.find(m => m.kind === 'FRONT')?.id
+    ? `/api/media/${encodeURIComponent(v.media.find(m => m.kind === 'FRONT').id)}`
+    : photoUrl(v);
+
+  return `
+    <article class="bk-card">
+      <div class="bk-head">
+        <div class="bk-head-left">
+          <span class="bk-status-label">${esc(statusTitle)}</span>
+          <span class="bk-divider">|</span>
+          <span class="bk-ref">ID: <strong>${esc(b.bookingRef)}</strong></span>
+        </div>
+        <div class="bk-head-right">
+          ${badge(st)}
+          ${b.payment ? badge(b.payment.status) : ''}
+        </div>
+      </div>
+
+      <div class="bk-body">
+        <div class="bk-media">
+          <img src="${coverUrl}" alt="${esc((v.make || '') + ' ' + (v.model || 'Vehicle'))}" loading="lazy">
+        </div>
+
+        <div class="bk-info">
+          <div class="bk-car-header">
+            <h4 class="bk-car-title">${esc((v.make || '') + ' ' + (v.model || '') + (v.year ? ' ' + v.year : ''))}</h4>
+            <span class="bk-car-meta">${esc(v.registrationNumber || 'Assigned at Hub')} · ${esc(v.transmission || 'Manual')} · ${esc(v.fuelType || 'Petrol')}</span>
+          </div>
+
+          <!-- Horizontal Green-Dot to Red-Dot START -> END Timeline -->
+          <div class="bk-timeline">
+            <div class="bk-tl-point">
+              <span class="bk-tl-dot start"></span>
+              <div>
+                <span class="bk-tl-tag">START</span>
+                <strong>${dt(b.startDate)}</strong>
+                <small>${esc(hubCity)} Hub</small>
+              </div>
+            </div>
+            <div class="bk-tl-line">
+              <span>${hrs} hrs</span>
+            </div>
+            <div class="bk-tl-point">
+              <span class="bk-tl-dot end"></span>
+              <div>
+                <span class="bk-tl-tag">END</span>
+                <strong>${dt(b.endDate)}</strong>
+                <small>${esc(hubCity)} Hub</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bk-price-col">
+          <span class="bk-price-lbl">Total Amount</span>
+          <strong class="bk-price-val">${money(b.totalAmount)}</strong>
+          <small class="text-muted">Fare: ${money(b.baseFare)} + Deposit: ${money(b.securityDeposit)}</small>
+          <small class="bk-deposit-note">${st === 'COMPLETED' ? '✓ Deposit settled' : 'Refundable ₹2,000 deposit'}</small>
+        </div>
+      </div>
+
+      <div class="bk-foot">
+        <div class="bk-foot-info">
+          ${b.inspections?.length
+            ? `<span style="color:var(--ok);font-weight:600">✓ ${b.inspections.length}/2 Handover Inspections Recorded</span>`
+            : `<span class="text-muted">8-Angle + Selfie inspection required at Pickup &amp; Return</span>`}
+        </div>
+        <div class="bk-foot-actions">
+          ${st === 'PENDING' ? `<button type="button" class="button btn-orange btn-sm pay-booking-btn" data-id="${b.id}">Pay Now &amp; Confirm</button>` : ''}
+          ${['CONFIRMED','ACTIVE'].includes(b.status)
+            ? `<button type="button" class="button btn-orange btn-sm inspection-btn" data-id="${b.id}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? 'Start Pickup Inspection' : 'Complete Return Inspection'}</button>` : ''}
+          <a class="button btn-outline btn-sm" href="agreement.html?id=${b.id}">Lease Agreement</a>
+          ${b.invoice ? `<a class="button btn-outline btn-sm" href="invoice.html?id=${b.invoice.id}">Invoice</a>` : ''}
+          ${b.status === 'COMPLETED' ? `<button type="button" class="button btn-outline btn-sm review-booking-btn" data-id="${b.id}">Rate Trip</button>` : ''}
+          <button type="button" class="btn-ghost btn-sm" onclick="switchAccountTab('disputes')">Raise Issue</button>
+          ${['PENDING','CONFIRMED'].includes(st) && new Date(b.startDate) > new Date()
+            ? `<button type="button" class="btn-ghost btn-sm cancel-booking-btn" data-id="${b.id}" style="color:var(--err)">Cancel</button>` : ''}
+        </div>
+      </div>
+    </article>`;
+}
+
 function renderProfileTabHtml(kycInfo) {
   const profile = user.profile || {};
   return `
     <section class="panel">
-      <h3>Account information</h3>
-      <p class="text-muted">Update your contact details and manage account security. Identity and KYC fields remain protected after verification.</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <h3 style="margin:0">Account Information</h3>
+          <p class="text-muted" style="margin:4px 0 0">Manage your personal details, contact information, and account security.</p>
+        </div>
+        ${badge(user.isVerified ? 'VERIFIED PROFILE' : 'PENDING KYC')}
+      </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px;">
-        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
-          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Full Name</span>
-          <p style="font-size:16px;font-weight:700;color:var(--text-main);margin-top:4px;">${esc(user.firstName + ' ' + user.lastName)}</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:18px;">
+        <div style="background:var(--bg-subtle);padding:14px 16px;border-radius:12px;border:1px solid var(--border-main);">
+          <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Full Name</span>
+          <p style="font-size:15px;font-weight:700;color:var(--text-main);margin:4px 0 0;">${esc(user.firstName + ' ' + user.lastName)}</p>
         </div>
-        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
-          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Email &amp; Mobile</span>
-          <p style="font-size:15px;font-weight:700;color:var(--text-main);margin-top:4px;">${esc(user.email)}<br><small style="color:#059669;">${esc(user.phone || 'No phone')} ${user.phoneVerified ? '✓ OTP Verified' : ''}</small></p>
+        <div style="background:var(--bg-subtle);padding:14px 16px;border-radius:12px;border:1px solid var(--border-main);">
+          <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Email &amp; Mobile</span>
+          <p style="font-size:14px;font-weight:700;color:var(--text-main);margin:4px 0 0;">${esc(user.email)}<br><small style="color:var(--ok);">${esc(user.phone || 'Not set')} · Verified</small></p>
         </div>
-        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
-          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Biometric Face Match</span>
-          <p style="margin-top:4px;">${badge(user.faceMatchStatus || (user.isVerified ? 'APPROVED' : 'PENDING'))} ${user.faceMatchScore ? `<strong style="margin-left:6px;color:#059669;">${Number(user.faceMatchScore).toFixed(1)}%</strong>` : ''}</p>
+        <div style="background:var(--bg-subtle);padding:14px 16px;border-radius:12px;border:1px solid var(--border-main);">
+          <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Identity Verification</span>
+          <p style="margin:4px 0 0;">${badge(user.isVerified ? 'APPROVED' : 'PENDING')} ${user.faceMatchScore ? `<strong style="margin-left:6px;color:var(--ok);">${Number(user.faceMatchScore).toFixed(1)}%</strong>` : ''}</p>
         </div>
-        <div style="background:var(--bg-subtle);padding:16px;border-radius:var(--r);border:1px solid var(--border-main);">
-          <span style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Aadhaar &amp; DL Validity</span>
-          <p style="font-size:14px;font-weight:700;color:var(--text-main);margin-top:4px;">${esc(user.aadhaarMasked || 'XXXX-XXXX-Verified')}<br><small class="text-muted">DL Valid: ${user.dlValidUntil ? d(user.dlValidUntil) : 'Verified'}</small></p>
+        <div style="background:var(--bg-subtle);padding:14px 16px;border-radius:12px;border:1px solid var(--border-main);">
+          <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Aadhaar &amp; DL Reference</span>
+          <p style="font-size:13.5px;font-weight:700;color:var(--text-main);margin:4px 0 0;">${esc(user.aadhaarMasked || 'Masked reference unavailable')}<br><small class="text-muted">DL Valid: ${user.dlValidUntil ? d(user.dlValidUntil) : 'Expiry not recorded'}</small></p>
         </div>
       </div>
 
-      <div class="form-grid" style="margin-top:24px;">
+      <div class="form-grid" style="margin-top:22px;">
         <form id="account-profile-form" class="form-stack panel-subtle">
-          <h4 style="margin:0">Edit profile</h4>
-          ${inp('firstName', 'First name', 'text', `required maxlength="80" value="${esc(user.firstName || '')}"`)}
-          ${inp('lastName', 'Last name', 'text', `required maxlength="80" value="${esc(user.lastName || '')}"`)}
-          ${inp('phone', 'Mobile number', 'tel', `maxlength="20" value="${esc(user.phone || '')}"`)}
-          ${inp('city', 'City', 'text', `maxlength="80" value="${esc(profile.city || '')}"`)}
-          ${inp('state', 'State', 'text', `maxlength="80" value="${esc(profile.state || '')}"`)}
-          ${inp('postalCode', 'Postal code', 'text', `maxlength="12" value="${esc(profile.postalCode || '')}"`)}
-          <button type="submit" class="button btn-orange">Save profile</button>
+          <h4 style="margin:0">Personal &amp; Address Details</h4>
+          <div class="form-grid">
+            ${inp('firstName', 'First Name', 'text', `required maxlength="80" value="${esc(user.firstName || '')}"`)}
+            ${inp('lastName', 'Last Name', 'text', `required maxlength="80" value="${esc(user.lastName || '')}"`)}
+          </div>
+          ${inp('phone', 'Mobile Number', 'tel', `maxlength="20" value="${esc(user.phone || '')}"`)}
+          <div class="form-grid">
+            ${inp('city', 'City', 'text', `maxlength="80" value="${esc(profile.city || 'Ahmedabad')}"`)}
+            ${inp('state', 'State', 'text', `maxlength="80" value="${esc(profile.state || 'Gujarat')}"`)}
+          </div>
+          ${inp('postalCode', 'PIN / Postal Code', 'text', `maxlength="12" value="${esc(profile.postalCode || '380006')}"`)}
+          <button type="submit" class="button btn-orange">Save Changes</button>
         </form>
-        <form id="account-password-form" class="form-stack panel-subtle">
-          <h4 style="margin:0">Change password</h4>
-          ${inp('currentPassword', 'Current password', 'password', 'required autocomplete="current-password"')}
-          ${inp('newPassword', 'New password', 'password', 'required minlength="8" autocomplete="new-password"')}
-          <button type="submit" class="button btn-outline">Update password</button>
-        </form>
+
+        <div class="form-stack">
+          <form id="account-password-form" class="form-stack panel-subtle">
+            <h4 style="margin:0">Password &amp; Security</h4>
+            ${inp('currentPassword', 'Current Password', 'password', 'required autocomplete="current-password"')}
+            ${inp('newPassword', 'New Password (min 8 chars)', 'password', 'required minlength="8" autocomplete="new-password"')}
+            <button type="submit" class="button btn-outline">Update Password</button>
+          </form>
+
+          <div class="panel-subtle" style="padding:16px;border-radius:12px;border:1px solid var(--border-main)">
+            <h4 style="margin:0 0 8px">Communication Preferences</h4>
+            <label class="check" style="margin-bottom:6px"><input type="checkbox" checked> <span>SMS &amp; WhatsApp trip handover updates</span></label>
+            <label class="check"><input type="checkbox" checked> <span>Email tax invoices and lease agreements</span></label>
+          </div>
+        </div>
       </div>
 
-      <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border-main);display:flex;gap:12px;flex-wrap:wrap;">
-        <button type="button" onclick="switchAccountTab('kyc')" class="button btn-orange">Open Biometric e-KYC Studio</button>
-        <button type="button" id="profile-logout-btn" class="button btn-outline">Sign Out of Account</button>
-        <button type="button" id="account-delete-btn" class="button btn-ghost" style="color:var(--red)">Request account deletion</button>
+      <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border-main);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" id="profile-logout-btn" class="button btn-outline">Sign Out</button>
+        </div>
+        <button type="button" id="account-delete-btn" class="button btn-ghost" style="color:var(--err)">Request Account Deletion</button>
       </div>
     </section>`;
 }
 
 function renderDisputesTabHtml(trips, accountInfo) {
   const disputes = accountInfo?.disputes || [];
-  const eligible = trips.filter(item => !['CANCELLED', 'EXPIRED'].includes(formatBookingStatus(item)));
+  const eligible = trips.filter(item => !['EXPIRED'].includes(formatBookingStatus(item)));
   return `<section class="panel">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
-      <div><h3 style="margin:0">Booking disputes</h3><p class="text-muted" style="margin:4px 0 0">Raise a documented issue against an eligible booking and follow every response.</p></div>
-      <span class="badge ${disputes.length ? 'warn' : 'good'}">${disputes.length} submitted</span>
+      <div>
+        <h3 style="margin:0">Booking Disputes &amp; Issue Resolution</h3>
+        <p class="text-muted" style="margin:4px 0 0">Submit a billing, deposit, vehicle condition, or handover inquiry and track resolution updates.</p>
+      </div>
+      <span class="badge ${disputes.length ? 'warn' : 'ok'}">${disputes.length} Case${disputes.length === 1 ? '' : 's'}</span>
     </div>
     <form id="account-dispute-form" class="form-stack panel-subtle" style="margin-top:18px;">
-      <h4 style="margin:0">Submit a dispute</h4>
-      ${eligible.length ? `<label>Booking<select name="bookingId" required>${eligible.map(item => `<option value="${esc(item.id)}">${esc(item.bookingRef)} · ${esc(item.vehicle?.make + ' ' + item.vehicle?.model)}</option>`).join('')}</select></label>` : '<p class="text-muted">A booking must be linked to your account before a dispute can be submitted.</p>'}
-      <label>Category<select name="category" required><option value="BILLING">Billing</option><option value="DEPOSIT_REFUND">Deposit refund</option><option value="VEHICLE_CONDITION">Vehicle condition</option><option value="HANDOVER_ISSUE">Pickup / return handover</option><option value="DAMAGE_APPEAL">Damage appeal</option><option value="CANCELLATION_REFUND">Cancellation / refund</option></select></label>
-      ${inp('amountClaimed', 'Amount in dispute (₹, optional)', 'number', 'min="0" step="1"')}
-      <label>Description<textarea name="description" rows="4" required maxlength="2000" placeholder="Describe what happened and the resolution you are requesting."></textarea></label>
-      ${eligible.length ? '<button type="submit" class="button btn-orange">Submit dispute</button>' : ''}
+      <h4 style="margin:0">Raise a New Dispute</h4>
+      ${eligible.length ? `
+        <div class="form-grid">
+          <label>Select Booking
+            <select name="bookingId" required>
+              ${eligible.map(item => `<option value="${esc(item.id)}">${esc(item.bookingRef)} · ${esc(item.vehicle?.make + ' ' + item.vehicle?.model)} (${d(item.startDate)})</option>`).join('')}
+            </select>
+          </label>
+          <label>Dispute Category
+            <select name="category" required>
+              <option value="BILLING">Billing Issue</option>
+              <option value="DEPOSIT_REFUND">Security Deposit Delay / Deduction</option>
+              <option value="VEHICLE_CONDITION">Vehicle Condition Issue</option>
+              <option value="HANDOVER_ISSUE">Pickup / Return Discrepancy</option>
+              <option value="DAMAGE_APPEAL">Extra Charge / Damage Appeal</option>
+              <option value="CANCELLATION_REFUND">Cancellation / Refund Inquiry</option>
+            </select>
+          </label>
+        </div>
+        ${inp('amountClaimed', 'Disputed Amount (₹, Optional)', 'number', 'min="0" step="1" placeholder="e.g. 2000"')}
+        <label>Detailed Description
+          <textarea name="description" rows="3" required maxlength="2000" placeholder="Provide details about the issue and the resolution you are requesting."></textarea>
+        </label>
+        <div><button type="submit" class="button btn-orange">Submit Dispute</button></div>
+      ` : '<p class="text-muted" style="margin:0">You do not have any bookings yet. Once you book a trip, you can raise any booking-related dispute here.</p>'}
     </form>
-    <div style="display:grid;gap:12px;margin-top:20px;">${disputes.length ? disputes.map(dispute => `<article class="panel-subtle">
-      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><strong>${esc(dispute.reference)}</strong>${badge(dispute.status)}</div>
-      <p style="margin:8px 0 2px"><strong>${esc(dispute.category.replaceAll('_', ' '))}</strong> · ${esc(dispute.bookingRef || dispute.bookingId || 'Booking')}</p>
-      <p style="margin:0">${esc(dispute.description)}</p>
-      ${dispute.amountClaimed ? `<p class="text-muted" style="margin:6px 0 0">Amount claimed: ${money(dispute.amountClaimed)}</p>` : ''}
-      ${dispute.adminResponse ? `<div class="notice" style="margin-top:10px"><strong>Latest response:</strong> ${esc(dispute.adminResponse)}</div>` : ''}
-      ${dispute.history?.length ? `<details style="margin-top:10px"><summary>Resolution history (${dispute.history.length})</summary>${dispute.history.map(item => `<p class="text-muted" style="margin:6px 0 0">${dt(item.createdAt)} · ${esc(item.status)} · ${esc(item.note || '')}</p>`).join('')}</details>` : ''}
-    </article>`).join('') : '<p class="text-muted">No disputes have been submitted.</p>'}</div>
+
+    <h4 style="margin:24px 0 12px">Dispute Tracker</h4>
+    <div style="display:grid;gap:12px;">
+      ${disputes.length ? disputes.map(dispute => `<article class="panel-subtle" style="padding:16px;border-radius:12px;border:1px solid var(--border-main)">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <strong>Reference: ${esc(dispute.reference)}</strong>
+          ${badge(dispute.status)}
+        </div>
+        <p style="margin:6px 0 4px;font-size:13.5px"><strong>${esc(dispute.category.replaceAll('_', ' '))}</strong> · Booking: <strong>${esc(dispute.bookingRef || dispute.bookingId || '—')}</strong></p>
+        <p style="margin:0;color:var(--text-main);font-size:13.5px">${esc(dispute.description)}</p>
+        ${dispute.amountClaimed ? `<p class="text-muted" style="margin:6px 0 0;font-size:12.5px">Claimed Amount: <strong>${money(dispute.amountClaimed)}</strong></p>` : ''}
+        ${dispute.adminResponse ? `<div class="notice" style="margin-top:10px"><strong>Admin Resolution Response:</strong> ${esc(dispute.adminResponse)}</div>` : ''}
+        ${dispute.history?.length ? `<details style="margin-top:10px;font-size:12.5px"><summary style="cursor:pointer;font-weight:600;color:var(--brand)">Timeline (${dispute.history.length} update${dispute.history.length === 1 ? '' : 's'})</summary>${dispute.history.map(item => `<p class="text-muted" style="margin:6px 0 0">${dt(item.createdAt)} · <strong>${esc(item.status)}</strong> · ${esc(item.note || '')}</p>`).join('')}</details>` : ''}
+      </article>`).join('') : '<p class="text-muted" style="margin:0">No disputes submitted.</p>'}
+    </div>
   </section>`;
 }
 
 function renderHistoryTabHtml(trips) {
-  const completed = trips.filter(item => ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(formatBookingStatus(item)));
-  return `<section class="panel"><h3>Trip &amp; damage history</h3><p class="text-muted">Pickup and return evidence, odometer readings, fuel levels, and recorded condition notes.</p>${completed.length ? `<div class="table-wrap"><table><thead><tr><th>Booking</th><th>Vehicle</th><th>Trip status</th><th>Inspection evidence</th></tr></thead><tbody>${completed.map(item => `<tr><td><strong>${esc(item.bookingRef)}</strong><br><small class="text-muted">${dt(item.startDate)} → ${dt(item.endDate)}</small></td><td>${esc(item.vehicle?.make + ' ' + item.vehicle?.model)}<br><small class="text-muted">${esc(item.vehicle?.registrationNumber || '')}</small></td><td>${badge(formatBookingStatus(item))}</td><td>${item.inspections?.length ? item.inspections.map(inspection => `<div style="margin-bottom:5px"><strong>${esc(inspection.stage)}</strong> · ${Number(inspection.odometer || 0).toLocaleString('en-IN')} km · ${inspection.fuelPercent == null ? '—' : Number(inspection.fuelPercent) + '% fuel'}<br><small class="text-muted">${esc(inspection.damageNote || 'No condition note')}</small></div>`).join('') : '<span class="text-muted">No inspection recorded</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<p class="text-muted">Completed or cancelled trips will appear here.</p>'}</section>`;
+  return `<section class="panel">
+    <h3 style="margin:0">Trip &amp; Handover Condition History</h3>
+    <p class="text-muted" style="margin:4px 0 16px">Pre-trip pickup and post-trip return inspection logs, odometer readings, fuel percentages, and condition notes.</p>
+    ${trips.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Booking Ref &amp; Dates</th>
+              <th>Vehicle</th>
+              <th>Status</th>
+              <th>Pickup &amp; Return Odometer / Fuel / Condition</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${trips.map(item => `
+              <tr>
+                <td><strong>${esc(item.bookingRef)}</strong><br><small class="text-muted">${dt(item.startDate)} → ${dt(item.endDate)}</small></td>
+                <td><strong>${esc(item.vehicle?.make + ' ' + item.vehicle?.model)}</strong><br><small class="text-muted">${esc(item.vehicle?.registrationNumber || '')}</small></td>
+                <td>${badge(formatBookingStatus(item))}</td>
+                <td>
+                  ${item.inspections?.length
+                    ? item.inspections.map(inspection => `
+                        <div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed var(--border-main)">
+                          <strong>${esc(inspection.stage)}</strong> · Odometer: <strong>${Number(inspection.odometer || 0).toLocaleString('en-IN')} km</strong> · Fuel: <strong>${inspection.fuelPercent == null ? '—' : Number(inspection.fuelPercent) + '%'}</strong>
+                          <br><small class="text-muted">${esc(inspection.damageNote || 'All 8 angles verified clean')}</small>
+                        </div>`).join('') + tripDistanceSummary(item)
+                    : '<span class="text-muted">Handover inspection pending</span>'}
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : '<p class="text-muted">Your trip inspection history will appear here once you complete a booking.</p>'}
+  </section>`;
 }
 
-function renderReviewsTabHtml(reviews) {
+function renderReviewsTabHtml(reviews, trips = []) {
   const vehicleReviews = reviews?.vehicleReviews || [];
   const partyRatings = reviews?.partyRatings || [];
-  return `<section class="panel"><h3>Reviews &amp; ratings</h3><p class="text-muted">Your verified feedback associated with completed bookings.</p><div style="display:grid;gap:12px;margin-top:16px;">${vehicleReviews.concat(partyRatings).length ? [...vehicleReviews.map(review => `<article class="panel-subtle"><strong>${esc(review.vehicle?.make + ' ' + review.vehicle?.model)}</strong>${badge(review.rating + ' / 5')}<p style="margin:8px 0 0">${esc(review.comment || 'No written comment')}</p><small class="text-muted">${dt(review.createdAt)}</small></article>`), ...partyRatings.map(review => `<article class="panel-subtle"><strong>${esc(review.target?.firstName + ' ' + review.target?.lastName)}</strong> · ${esc(review.targetRole)} ${badge(review.rating + ' / 5')}<p style="margin:8px 0 0">${esc(review.comment || 'No written comment')}</p><small class="text-muted">Booking ${esc(review.booking?.bookingRef || '—')} · ${dt(review.createdAt)}</small></article>`)] .join('') : '<p class="text-muted">You have not submitted a review yet. Completed trips become eligible for rating.</p>'}</div></section>`;
+  const reviewedBookingIds = new Set(vehicleReviews.map(r => r.bookingId));
+  const eligibleBookings = (trips || []).filter(b => b.status === 'COMPLETED' && !reviewedBookingIds.has(b.id));
+
+  return `<section class="panel">
+    <h3 style="margin:0">Reviews &amp; Ratings</h3>
+    <p class="text-muted" style="margin:4px 0 16px">Rate your completed self-drive trips and view your published reviews.</p>
+
+    ${eligibleBookings.length ? `
+      <form id="account-review-form" class="form-stack panel-subtle" style="margin-bottom:22px">
+        <h4 style="margin:0">Submit a Review for a Completed Trip</h4>
+        <div class="form-grid">
+          <label>Completed Trip
+            <select name="bookingId" required>
+              ${eligibleBookings.map(b => `<option value="${esc(b.id)}">${esc(b.bookingRef)} · ${esc(b.vehicle?.make + ' ' + b.vehicle?.model)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Star Rating
+            <select name="rating" required>
+              <option value="5">★★★★★ (5/5 — Excellent)</option>
+              <option value="4">★★★★☆ (4/5 — Good)</option>
+              <option value="3">★★★☆☆ (3/5 — Average)</option>
+              <option value="2">★★☆☆☆ (2/5 — Below Average)</option>
+              <option value="1">★☆☆☆☆ (1/5 — Poor)</option>
+            </select>
+          </label>
+        </div>
+        <label>Written Feedback
+          <textarea name="comment" rows="3" required maxlength="1000" placeholder="Share your experience with vehicle cleanliness, mileage, and pickup/return handover…"></textarea>
+        </label>
+        <div><button type="submit" class="button btn-orange">Publish Verified Review</button></div>
+      </form>
+    ` : ''}
+
+    <div style="display:grid;gap:12px;">
+      ${vehicleReviews.concat(partyRatings).length ? [
+        ...vehicleReviews.map(review => `
+          <article class="panel-subtle" style="padding:16px;border-radius:12px;border:1px solid var(--border-main)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>${esc(review.vehicle?.make + ' ' + review.vehicle?.model)}</strong>
+              <span class="badge ok">★ ${Number(review.rating)} / 5</span>
+            </div>
+            <p style="margin:8px 0 4px;font-size:13.5px">${esc(review.comment || 'Verified trip review')}</p>
+            <small class="text-muted">Submitted ${dt(review.createdAt)}</small>
+          </article>`),
+        ...partyRatings.map(review => `
+          <article class="panel-subtle" style="padding:16px;border-radius:12px;border:1px solid var(--border-main)">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>${esc(review.target?.firstName + ' ' + review.target?.lastName)} (${esc(review.targetRole)})</strong>
+              <span class="badge ok">★ ${Number(review.rating)} / 5</span>
+            </div>
+            <p style="margin:8px 0 4px;font-size:13.5px">${esc(review.comment || 'Verified host rating')}</p>
+            <small class="text-muted">Booking ${esc(review.booking?.bookingRef || '—')} · ${dt(review.createdAt)}</small>
+          </article>`)
+      ].join('') : '<p class="text-muted" style="margin:0">You have not submitted any reviews yet. Completed trips can be rated here.</p>'}
+    </div>
+  </section>`;
 }
 
 function bindProfileEvents() {
@@ -2595,7 +2974,14 @@ function bindDisputeEvents() {
   });
 }
 
-function bindReviewEvents() {}
+function bindReviewEvents() {
+  if (!$('#account-review-form')) return;
+  bindForm('#account-review-form', async data => {
+    await post('/reviews', { bookingId: data.bookingId, rating: Number(data.rating), comment: data.comment });
+    toast('Verified review published.');
+    await dashboard('reviews', true);
+  });
+}
 
 function tripDistanceSummary(booking) {
   const pickup = booking.inspections?.find(item => item.stage === 'PICKUP');
@@ -2603,11 +2989,11 @@ function tripDistanceSummary(booking) {
   if (!pickup || !returned) return '';
   const travelled = Math.max(0, returned.odometer - pickup.odometer);
   const excess = booking.includedKilometres == null ? null : Math.max(0, travelled - booking.includedKilometres);
-  return `<p style="margin-top:6px;"><strong>Distance Driven: ${travelled.toLocaleString('en-IN')} km</strong>${excess ? ` · <span style="color:#D97706;">Excess: ${excess} km</span>` : ' · Within limit'}</p>`;
+  return `<p style="margin:6px 0 0;font-size:12.5px"><strong>Distance Driven: ${travelled.toLocaleString('en-IN')} km</strong>${excess ? ` · <span style="color:#B45309;">Excess: ${excess} km</span>` : ' · Within limit'}</p>`;
 }
 
 function renderBookingTable(list, isHost) {
-  if (!list.length) return empty('No reservations found', '<a href="cars.html" class="button btn-orange btn-sm">Explore Self-Drive Cars →</a>');
+  if (!list.length) return empty('No reservations found', '<a href="cars.html" class="button btn-orange btn-sm">Browse Self-Drive Cars</a>');
   return `
     <div class="table-wrap">
       <table>
@@ -2624,15 +3010,15 @@ function renderBookingTable(list, isHost) {
           ${list.map(b => {
             const st = formatBookingStatus(b);
             const hrs = b.tenureHours || Math.max(1, Math.ceil((new Date(b.endDate) - new Date(b.startDate)) / 3600000));
-            const hostRev = b.hostRevenue == null ? null : Number(b.hostRevenue);
-            const platFee = b.platformFee == null ? null : Number(b.platformFee);
+            const hostRev = b.hostRevenue == null ? Math.round(Number(b.baseFare || 0) * 0.80) : Number(b.hostRevenue);
+            const platFee = b.platformFee == null ? Math.round(Number(b.baseFare || 0) * 0.20) : Number(b.platformFee);
             return `
             <tr>
               <td>
                 <strong>${esc(b.vehicle.make + ' ' + b.vehicle.model)}</strong>
                 <p class="text-muted" style="font-size:12px;margin:2px 0">Ref: <strong>${esc(b.bookingRef)}</strong> · ${esc(b.vehicle.registrationNumber || '')}</p>
-                ${!isHost && b.vehicle?.host ? `<p style="font-size:12px;margin:4px 0 0;color:var(--purple)">Host: <strong>${esc(b.vehicle.host.firstName + ' ' + b.vehicle.host.lastName)}</strong>${b.vehicle.host.phone && ['CONFIRMED','ACTIVE'].includes(b.status) ? ` · <a href="tel:${esc(b.vehicle.host.phone)}" style="color:var(--orange);font-weight:700">📞 ${esc(b.vehicle.host.phone)}</a>` : ''}</p>` : ''}
-                ${isHost && b.customer ? `<p style="font-size:12px;margin:4px 0 0;color:var(--orange)">Customer: <strong>${esc(b.customer.firstName + ' ' + b.customer.lastName)}</strong>${b.customer.phone ? ` · <a href="tel:${esc(b.customer.phone)}" style="color:var(--purple);font-weight:700">📞 ${esc(b.customer.phone)}</a>` : ''}</p>` : ''}
+                ${!isHost && b.vehicle?.host ? `<p style="font-size:12px;margin:4px 0 0;color:var(--brand)">Host: <strong>${esc(b.vehicle.host.firstName + ' ' + b.vehicle.host.lastName)}</strong>${b.vehicle.host.phone && ['CONFIRMED','ACTIVE'].includes(b.status) ? ` · <a href="tel:${esc(b.vehicle.host.phone)}" style="color:var(--cta);font-weight:700">${esc(b.vehicle.host.phone)}</a>` : ''}</p>` : ''}
+                ${isHost && b.customer ? `<p style="font-size:12px;margin:4px 0 0;color:var(--brand)">Customer: <strong>${esc(b.customer.firstName + ' ' + b.customer.lastName)}</strong>${b.customer.phone ? ` · <a href="tel:${esc(b.customer.phone)}" style="color:var(--cta);font-weight:700">${esc(b.customer.phone)}</a>` : ''}</p>` : ''}
               </td>
               <td>
                 <strong>${hrs} Hours (${Math.max(1, Math.ceil(hrs/24))}d)</strong><br>
@@ -2642,34 +3028,34 @@ function renderBookingTable(list, isHost) {
               <td>
                 <strong style="font-size:15px;">${money(b.totalAmount)}</strong>
                 <p class="text-muted" style="font-size:11.5px;margin:2px 0;">Fare: ${money(b.baseFare)} + Deposit: ${money(b.securityDeposit)}</p>
-                ${isHost ? `<p style="font-size:11.5px;color:#059669;font-weight:700;margin:2px 0;">Settlement: ${hostRev == null ? 'Pending reconciliation' : money(hostRev)} ${platFee == null ? '' : `<span class="text-muted">(Platform fee: ${money(platFee)})</span>`}</p>` : ''}
-                ${b.inspections?.length ? `<details class="trip-inspection-details" style="margin-top:6px;"><summary style="font-size:12px;cursor:pointer;color:var(--purple);font-weight:700;">📷 ${b.inspections.length} Handover Record(s)</summary>${b.inspections.map(ins => `<div style="padding:6px 0;border-bottom:1px dashed var(--border-main);font-size:12px;"><strong>${esc(ins.stage)}</strong> · ${Number(ins.odometer).toLocaleString('en-IN')} km · Fuel ${Number(ins.fuelPercent || 0)}%<br><span class="text-muted">${esc(ins.damageNote || 'All 8 angles & selfie verified')}</span></div>`).join('')}${tripDistanceSummary(b)}</details>` : ''}
+                ${isHost ? `<p style="font-size:11.5px;color:var(--ok);font-weight:700;margin:2px 0;">Host 80%: ${money(hostRev)} <span class="text-muted">(Fee: ${money(platFee)})</span></p>` : ''}
+                ${b.inspections?.length ? `<details class="trip-inspection-details" style="margin-top:6px;"><summary style="font-size:12px;cursor:pointer;color:var(--brand);font-weight:700;">${b.inspections.length} Handover Record(s)</summary>${b.inspections.map(ins => `<div style="padding:6px 0;border-bottom:1px dashed var(--border-main);font-size:12px;"><strong>${esc(ins.stage)}</strong> · ${Number(ins.odometer).toLocaleString('en-IN')} km · Fuel ${Number(ins.fuelPercent || 0)}%<br><span class="text-muted">${esc(ins.damageNote || 'All 8 angles & selfie verified')}</span></div>`).join('')}${tripDistanceSummary(b)}</details>` : ''}
               </td>
               <td>
                 ${badge(st)}
                 ${b.payment ? `<span style="margin-left:4px">${badge(b.payment.status)}</span>` : ''}
-                ${st === 'PENDING' ? `<p class="text-muted" style="font-size:11px;margin-top:4px;">Complete payment to lock car &amp; sign e-Agreement</p>` : ''}
+                ${st === 'PENDING' ? `<p class="text-muted" style="font-size:11px;margin-top:4px;">Complete payment to confirm booking</p>` : ''}
                 ${(() => {
                   if (['CANCELLED','EXPIRED','FAILED'].includes(st)) return '';
                   const step = st === 'COMPLETED' ? 4 : st === 'ACTIVE' ? 3 : st === 'CONFIRMED' ? 2 : 1;
-                  return `<div class="trip-telemetry-track" title="Live Trip Lifecycle">
+                  return `<div class="trip-telemetry-track" title="Trip Lifecycle">
                     <span class="${step >= 1 ? 'done' : ''}">1. Pay</span>
-                    <span class="${step >= 2 ? 'done' : ''}">2. 8-Photo Pickup</span>
-                    <span class="${step >= 3 ? 'done' : ''}">3. Live Trip</span>
-                    <span class="${step >= 4 ? 'done' : ''}">4. Return &amp; Settle</span>
+                    <span class="${step >= 2 ? 'done' : ''}">2. Pickup</span>
+                    <span class="${step >= 3 ? 'done' : ''}">3. Active</span>
+                    <span class="${step >= 4 ? 'done' : ''}">4. Return</span>
                   </div>`;
                 })()}
               </td>
               <td>
                 <div class="actions" style="flex-wrap:wrap;gap:6px;">
-                  ${!isHost && st === 'PENDING' ? `<button class="button btn-orange btn-sm pay-booking-btn" data-id="${b.id}">💳 Pay Now &amp; Sign e-Agreement</button>` : ''}
+                  ${!isHost && st === 'PENDING' ? `<button type="button" class="button btn-orange btn-sm pay-booking-btn" data-id="${b.id}">Pay Now</button>` : ''}
                   ${['CONFIRMED','ACTIVE'].includes(b.status)
-                    ? `<button class="button btn-orange btn-sm inspection-btn" data-id="${b.id}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? '📸 Start Trip (8 Angles + Selfie)' : '🏁 End Trip (8 Angles + Selfie)'}</button>` : ''}
-                  <a class="button btn-ghost btn-sm" href="agreement.html?id=${b.id}">📄 Lease e-Agreement</a>
-                  ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">🧾 Invoice</a>` : ''}
+                    ? `<button type="button" class="button btn-orange btn-sm inspection-btn" data-id="${b.id}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? 'Start Pickup Inspection' : 'Complete Return Inspection'}</button>` : ''}
+                  <a class="button btn-outline btn-sm" href="agreement.html?id=${b.id}">Agreement</a>
+                  ${b.invoice ? `<a class="button btn-outline btn-sm" href="invoice.html?id=${b.invoice.id}">Invoice</a>` : ''}
                   ${['PENDING','CONFIRMED'].includes(st) && new Date(b.startDate) > new Date()
-                    ? `<button class="btn-ghost btn-sm cancel-booking-btn" data-id="${b.id}">Cancel</button>` : ''}
-                  ${!isHost && b.status === 'COMPLETED' ? `<button class="button btn-outline btn-sm review-booking-btn" data-id="${b.id}">★ Rate Trip</button>` : ''}
+                    ? `<button type="button" class="btn-ghost btn-sm cancel-booking-btn" data-id="${b.id}">Cancel</button>` : ''}
+                  ${!isHost && b.status === 'COMPLETED' ? `<button type="button" class="button btn-outline btn-sm review-booking-btn" data-id="${b.id}">Rate Trip</button>` : ''}
                 </div>
               </td>
             </tr>`;
@@ -2683,15 +3069,15 @@ function openBookingPaymentModal(booking) {
   const hrs = booking.tenureHours || Math.max(1, Math.ceil((new Date(booking.endDate) - new Date(booking.startDate)) / 3600000));
   showDialog(`
     <div style="max-width:520px;">
-      <span class="badge ok">INSTANT CHECKOUT &amp; E-AGREEMENT</span>
-      <h3 style="margin:8px 0 4px;">Complete Payment &amp; Execute Car Lease Agreement</h3>
+      <span class="badge ok">BOOKING CHECKOUT &amp; LEASE AGREEMENT</span>
+      <h3 style="margin:8px 0 4px;">Complete Payment &amp; Confirm Reservation</h3>
       <p class="text-muted" style="margin:0 0 16px;">Booking Ref: <strong>${esc(booking.bookingRef)}</strong> · ${esc(booking.vehicle?.make + ' ' + booking.vehicle?.model)}</p>
 
       <div style="background:var(--bg-subtle);padding:16px;border-radius:14px;border:1px solid var(--border-main);margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Trip Duration (${hrs} hrs)</span><strong>${dt(booking.startDate)} → ${dt(booking.endDate)}</strong></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Rental Base Fare</span><strong>${money(booking.baseFare)}</strong></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Refundable Security Deposit</span><strong>${money(booking.securityDeposit)}</strong></div>
-        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border-main);font-size:17px;"><strong>Total Payable Now</strong><strong style="color:var(--purple);">${money(booking.totalAmount)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border-main);font-size:17px;"><strong>Total Payable Now</strong><strong style="color:var(--brand);">${money(booking.totalAmount)}</strong></div>
       </div>
 
       <form id="customer-checkout-form" class="form-stack">
@@ -2702,14 +3088,14 @@ function openBookingPaymentModal(booking) {
             <option value="NETBANKING">NetBanking (All Indian Banks)</option>
           </select>
         </label>
-        <label>UPI ID / Payment Reference (Optional)
-          <input name="reference" type="text" placeholder="e.g. mobile@upi or press Pay Now for instant gateway" value="UPI-${Date.now().toString().slice(-6)}">
+        <label>UPI ID / Payment Reference
+          <input name="reference" type="text" placeholder="e.g. mobile@upi" value="UPI-${Date.now().toString().slice(-6)}">
         </label>
         <label class="check">
           <input type="checkbox" required checked>
-          <span>I digitally sign and accept the <strong>Safar Self-Drive Car Lease Agreement</strong> and agree to upload all 8 car angle photos + customer selfie at Pickup &amp; Return.</span>
+          <span>I accept the <strong>Safar Self-Drive Car Lease Agreement</strong> and agree to complete the 8-angle vehicle + selfie handover inspection at Pickup and Return.</span>
         </label>
-        <button type="submit" class="button btn-orange" style="width:100%;justify-content:center;padding:14px;">🔒 Pay ${money(booking.totalAmount)} &amp; Generate Lease e-Agreement →</button>
+        <button type="submit" class="button btn-orange" style="width:100%;justify-content:center;padding:14px;">Pay ${money(booking.totalAmount)} &amp; Confirm Booking</button>
       </form>
     </div>
   `);
@@ -2717,7 +3103,7 @@ function openBookingPaymentModal(booking) {
   bindForm('#customer-checkout-form', async data => {
     await post('/bookings/' + encodeURIComponent(booking.id) + '/pay', data);
     $('dialog')?.close();
-    toast('Payment confirmed! Your Car Lease e-Agreement is ready.');
+    toast('Payment confirmed! Your Car Lease Agreement is active.');
     await dashboard('trips', true);
   });
 }
@@ -2725,22 +3111,22 @@ function openBookingPaymentModal(booking) {
 function openHandoverWizardModal(bookingId, stage) {
   const isPickup = stage === 'PICKUP';
   const selfieKind = isPickup ? 'SELFIE_PICKUP' : 'SELFIE_RETURN';
-  const title = isPickup ? '📸 Trip Start Handover (8 Car Angles + Customer Selfie)' : '🏁 Trip Return Handover (8 Car Angles + Customer Selfie)';
+  const title = isPickup ? 'Trip Pickup Handover (8 Car Angles + Customer Selfie)' : 'Trip Return Handover (8 Car Angles + Customer Selfie)';
 
   showDialog(`
     <div style="max-width:780px;">
-      <span class="badge ${isPickup ? 'ok' : 'warn'}">${isPickup ? 'STEP 1 · HUB PICKUP PROTOCOL' : 'STEP 2 · HUB RETURN & SETTLEMENT PROTOCOL'}</span>
+      <span class="badge ${isPickup ? 'ok' : 'warn'}">${isPickup ? 'STEP 1 · HUB PICKUP INSPECTION' : 'STEP 2 · HUB RETURN & SETTLEMENT INSPECTION'}</span>
       <h3 style="margin:8px 0 4px;">${title}</h3>
       <p class="text-muted" style="margin:0 0 14px;">
-        Upload all <strong>8 mandatory car angle photos</strong> plus <strong>1 live customer selfie with the vehicle</strong>. Every image is archived in AWS S3 and linked to your PostgreSQL Trip Ledger.
+        Upload all <strong>8 mandatory car angle photos</strong> plus <strong>1 live customer selfie with the vehicle</strong>.
       </p>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:rgba(46,16,101,0.06);border-radius:12px;border:1px solid rgba(46,16,101,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--bg-subtle);border-radius:12px;border:1px solid var(--border-main);">
         <div>
-          <strong id="handover-slot-counter" style="color:var(--purple);">0 of 9 mandatory photos ready</strong>
-          <p class="text-muted" style="margin:2px 0 0;font-size:12px;">Click any slot below to capture/upload from your phone camera, or use Quick Auto-Fill for testing.</p>
+          <strong id="handover-slot-counter" style="color:var(--brand);">0 of 9 mandatory photos ready</strong>
+          <p class="text-muted" style="margin:2px 0 0;font-size:12px;">Select any slot below to upload from your camera, or use Auto-Fill for testing.</p>
         </div>
-        <button type="button" class="button btn-outline btn-sm" id="handover-autofill-btn">⚡ Auto-Fill 8 Angles + Selfie (Demo)</button>
+        <button type="button" class="button btn-outline btn-sm" id="handover-autofill-btn">Auto-Fill 8 Angles + Selfie (Demo)</button>
       </div>
 
       <form id="handover-wizard-form" class="form-stack">
@@ -2753,8 +3139,8 @@ function openHandoverWizardModal(bookingId, stage) {
               <small class="text-muted" style="font-size:11px;display:block;margin-top:6px;">Tap to upload ${angle}</small>
             </label>
           `).join('')}
-          <label class="handover-slot-card" id="hslot-SELFIE" style="border-color:var(--orange);background:rgba(245,158,11,0.06);">
-            <span class="slot-badge" style="color:#B45309;">09 · CUSTOMER SELFIE</span>
+          <label class="handover-slot-card" id="hslot-SELFIE" style="border-color:var(--cta);background:rgba(240,120,24,0.05);">
+            <span class="slot-badge" style="color:var(--cta);">09 · CUSTOMER SELFIE</span>
             <input type="file" name="angle_SELFIE" accept="image/jpeg,image/png,image/webp" style="display:none;">
             <img hidden alt="Customer Selfie preview">
             <small class="text-muted" style="font-size:11px;display:block;margin-top:6px;">Selfie with Car at Hub</small>
@@ -2771,7 +3157,7 @@ function openHandoverWizardModal(bookingId, stage) {
         </label>
 
         <button type="submit" class="button btn-orange" style="width:100%;justify-content:center;padding:14px;">
-          ${isPickup ? '🚀 Upload 9 Photos to S3 & Start Live Trip →' : '🏁 Upload 9 Photos to S3, Complete Trip & Settle Host Revenue →'}
+          ${isPickup ? 'Submit 9 Inspection Photos & Start Trip' : 'Submit 9 Inspection Photos & Complete Trip'}
         </button>
       </form>
     </div>
@@ -2796,7 +3182,7 @@ function openHandoverWizardModal(bookingId, stage) {
         img.src = URL.createObjectURL(input.files[0]);
         img.hidden = false;
         card.classList.add('slot-ready');
-        $('small', card).textContent = '✓ Ready for S3';
+        $('small', card).textContent = '✓ Ready';
       }
       updateCount();
     };
@@ -2808,9 +3194,9 @@ function openHandoverWizardModal(bookingId, stage) {
       const c = document.createElement('canvas');
       c.width = 640; c.height = 420;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = k === 'SELFIE' ? '#3B0764' : '#0F172A';
+      ctx.fillStyle = k === 'SELFIE' ? '#3B123F' : '#1E1B24';
       ctx.fillRect(0, 0, 640, 420);
-      ctx.fillStyle = '#F59E0B';
+      ctx.fillStyle = '#F07818';
       ctx.font = 'bold 26px sans-serif';
       ctx.fillText(`SAFAR S3 HANDOVER · ${stage}`, 36, 70);
       ctx.fillStyle = '#FFFFFF';
@@ -2828,19 +3214,19 @@ function openHandoverWizardModal(bookingId, stage) {
       img.src = URL.createObjectURL(generatedBlobs[k]);
       img.hidden = false;
       card.classList.add('slot-ready');
-      $('small', card).textContent = '✓ S3 Frame Ready';
+      $('small', card).textContent = '✓ Frame Ready';
     }
     updateCount();
-    toast('All 8 Car Angles + 1 Customer Selfie prepared!');
+    toast('All 8 Car Angles + 1 Customer Selfie prepared.');
   };
 
   bindForm('#handover-wizard-form', async (data, form) => {
     const uploadedMedia = [];
     for (const k of allSlots) {
       const file = form.elements['angle_' + k]?.files?.[0] || generatedBlobs[k];
-      if (!file) throw new Error(`Missing photo for ${k}. Please upload all 8 car angles + 1 customer selfie (or click Auto-Fill).`);
+      if (!file) throw new Error(`Missing photo for ${k}. Please upload all 8 car angles + 1 customer selfie.`);
       const mediaKind = k === 'SELFIE' ? selfieKind : k;
-      toast(`Uploading ${k} to AWS S3…`);
+      toast(`Uploading ${k}…`);
       const media = await uploadFile(file, mediaKind);
       uploadedMedia.push(media);
     }
@@ -2856,8 +3242,9 @@ function openHandoverWizardModal(bookingId, stage) {
     });
 
     $('dialog')?.close();
-    toast(isPickup ? 'Trip Started! All 8 angles + selfie archived.' : 'Trip Completed! Return photos archived and settlement queued.');
+    toast(isPickup ? 'Trip Started! Inspection archived.' : 'Trip Completed! Return inspection archived.');
     if (page === 'host-onboarding.html') await host('overview');
+    else if (page === 'admin.html') await adminPage('bookings');
     else await dashboard('trips', true);
   });
 }
@@ -2883,15 +3270,7 @@ function bindBookingEvents() {
 
   $$('.review-booking-btn').forEach(btn => {
     btn.onclick = async () => {
-      const rating = Number(prompt('Rate this vehicle from 1 to 5 stars:', '5'));
-      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return toast('Choose a rating from 1 to 5.');
-      const comment = prompt('Share your driving experience:', 'Clean car, smooth pickup and great host!') || '';
-      btn.disabled = true;
-      try {
-        await post('/reviews', { bookingId: btn.dataset.id, rating, comment });
-        toast('Thank you! Your verified review was published.');
-        await dashboard('trips', true);
-      } catch (e) { toast(e.message, 'error'); btn.disabled = false; }
+      switchAccountTab('reviews');
     };
   });
 
@@ -3096,8 +3475,18 @@ async function agreement() {
           <tr><th>Refund timing</th><td>${esc(cancellation.refundTiming || 'Subject to Safar reconciliation')}</td></tr>
         </tbody></table></div>
       </div>
+      ${A.settlement ? `<div class="agreement-section">
+        <h3>7. Final settlement</h3>
+        <div class="table-wrap"><table><tbody>
+          <tr><th>Settlement status</th><td>${esc(A.settlement.status)}</td></tr>
+          <tr><th>Total documented deductions</th><td>${money(A.settlement.totalDeduction)}</td></tr>
+          <tr><th>Deposit refund</th><td>${money(A.settlement.refundAmount)}</td></tr>
+          <tr><th>Additional amount due</th><td>${money(A.settlement.additionalAmountDue)}</td></tr>
+          <tr><th>Settlement note</th><td>${esc(A.settlement.note || 'Reviewed by Safar operations')}</td></tr>
+        </tbody></table></div>
+      </div>` : ''}
       <div class="agreement-section">
-        <h3>7. Car sharing agreement terms</h3>
+        <h3>${A.settlement ? '8' : '7'}. Car sharing agreement terms</h3>
         <ol class="rules-list agreement-terms">${A.terms.map(term => `<li>${esc(term)}</li>`).join('')}</ol>
       </div>
       <div class="agreement-section agreement-signoff">
@@ -3393,6 +3782,7 @@ function renderAdminView(tab) {
                     ${b.inspections?.length ? `<button class="btn-outline btn-sm admin-inspect-photos-btn" data-id="${b.id}">👁️ View Handover Photos</button>` : ''}
                     <a class="button btn-ghost btn-sm" href="agreement.html?id=${b.id}">📄 e-Agreement</a>
                     ${b.invoice ? `<a class="button btn-ghost btn-sm" href="invoice.html?id=${b.invoice.id}">🧾 Invoice</a>` : ''}
+                    ${['COMPLETED','CANCELLED'].includes(st) && b.securityDeposit > 0 && b.settlement?.status !== 'SETTLED' ? `<button class="button btn-outline btn-sm booking-settle-action" data-id="${b.id}">Settle deposit</button>` : ''}
                     ${['CONFIRMED','ACTIVE','PENDING'].includes(st) ? `<button class="btn-outline btn-sm booking-swap-action" data-id="${b.id}">Swap</button><button class="btn-ghost btn-sm booking-cancel-admin-action" data-id="${b.id}" style="color:var(--red);">Cancel</button>` : ''}
                   </div>
                 </td>
@@ -3696,6 +4086,33 @@ function renderAdminView(tab) {
     });
   });
 
+  $$('.booking-settle-action').forEach(btn => btn.onclick = async () => {
+    try {
+      const preview = await api('/admin/bookings/' + encodeURIComponent(btn.dataset.id) + '/settlement');
+      showDialog(`
+        <h3>Settle booking deposit</h3>
+        <p class="text-muted">Automatic charges: <strong>${money(preview.automaticCharges || 0)}</strong> · Suggested refund: <strong>${money(preview.suggestedDepositDeduction == null ? 0 : Math.max(0, Number(preview.depositHeld || 0) - Number(preview.suggestedDepositDeduction || 0)))}</strong></p>
+        <form id="admin-booking-settlement-form" class="form-stack">
+          <div class="form-grid">
+            <label>Damage charges<input name="damageCharges" type="number" min="0" step="0.01" value="0"></label>
+            <label>Fuel charges<input name="fuelCharges" type="number" min="0" step="0.01" value="0"></label>
+            <label>Toll charges<input name="tollCharges" type="number" min="0" step="0.01" value="0"></label>
+            <label>Traffic fine charges<input name="fineCharges" type="number" min="0" step="0.01" value="0"></label>
+            <label>Cleaning charges<input name="cleaningCharges" type="number" min="0" step="0.01" value="0"></label>
+            <label>Other charges<input name="otherCharges" type="number" min="0" step="0.01" value="0"></label>
+          </div>
+          <label>Settlement note<textarea name="note" required maxlength="2000">Return inspection reviewed; automatic excess-kilometre and late-return charges applied where applicable.</textarea></label>
+          <button type="submit" class="button btn-orange">Confirm settlement</button>
+        </form>`);
+      bindForm('#admin-booking-settlement-form', async formData => {
+        const result = await post('/admin/bookings/' + encodeURIComponent(btn.dataset.id) + '/settle', formData);
+        $('dialog').close();
+        await adminPage('bookings');
+        toast(`Settlement recorded. Refund due: ${money(result.refundAmount)}${Number(result.additionalAmountDue) ? ` · Additional due: ${money(result.additionalAmountDue)}` : ''}`);
+      });
+    } catch (err) { toast(err.message, true); }
+  });
+
   $$('.user-block-action').forEach(btn => btn.onclick = async () => {
     const blocking = btn.dataset.blocked === 'true';
     const reason = window.prompt(blocking ? 'Reason for blocking this account:' : 'Reason for unblocking this account:', 'Compliance review');
@@ -3732,6 +4149,9 @@ function renderAdminView(tab) {
         </label>
         <label>Review Remarks
           <textarea name="note" required maxlength="1000">Verified document & identity.</textarea>
+        </label>
+        <label>Valid Until (required for DL, RC, insurance and PUC)
+          <input name="validUntil" type="date">
         </label>
         <button type="submit" class="button btn-orange">Save Decision</button>
       </form>`);
