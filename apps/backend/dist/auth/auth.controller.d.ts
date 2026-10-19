@@ -14,11 +14,32 @@ export declare class AuthController {
         token: any;
         devOtp: any;
     }>;
+    requestLoginOtp(body: any): Promise<{
+        sent: boolean;
+        maskedPhone: string;
+        expiresInSeconds: number;
+        devOtp: string | undefined;
+    } | {
+        sent: boolean;
+        maskedPhone: string;
+        expiresInSeconds: number;
+        devOtp?: undefined;
+    }>;
+    verifyLoginOtp(body: any, res: Response): Promise<{
+        user: any;
+        token: any;
+        devOtp: any;
+    }>;
     logout(res: Response): {
         message: string;
     };
     profile(req: any): Promise<any>;
     sendOtp(req: any, body: any): Promise<{
+        sent: boolean;
+        maskedPhone: string;
+        expiresInSeconds: number;
+        devOtp?: undefined;
+    } | {
         sent: boolean;
         maskedPhone: string;
         expiresInSeconds: number;

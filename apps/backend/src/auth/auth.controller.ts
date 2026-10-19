@@ -31,6 +31,16 @@ export class AuthController {
     return this.session(res, await this.auth.login(body));
   }
 
+  @Post('login/otp/request')
+  requestLoginOtp(@Body() body: any) {
+    return this.auth.requestLoginOtp(body?.phone);
+  }
+
+  @Post('login/otp/verify')
+  async verifyLoginOtp(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+    return this.session(res, await this.auth.loginWithOtp(body?.phone, body?.otp));
+  }
+
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('safar_session', { path: '/' });

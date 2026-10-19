@@ -49,15 +49,32 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcryptjs"));
 const node_crypto_1 = require("node:crypto");
+const msg91_service_1 = require("./msg91.service");
 let AuthService = class AuthService {
     prisma;
     jwtService;
-    constructor(prisma, jwtService) {
+    msg91;
+    constructor(prisma, jwtService, msg91) {
         this.prisma = prisma;
         this.jwtService = jwtService;
+        this.msg91 = msg91;
     }
     sha256(val) {
         return (0, node_crypto_1.createHash)('sha256').update(String(val)).digest('hex');
+    }
+    isMsg91() {
+        return this.msg91.isEnabled();
+    }
+    exposeDevOtp() {
+        return process.env.NODE_ENV !== 'production' && !this.isMsg91() && process.env.OTP_PROVIDER !== 'live';
+    }
+    async findByPhone(phone) {
+        const normalized = this.msg91.normalizePhone(phone);
+        const candidates = [normalized, normalized.slice(1)];
+        return this.prisma.user.findFirst({
+            where: { OR: candidates.map(value => ({ phone: value })) },
+            include: { wallet: true, profile: true },
+        });
     }
     sanitizeUser(user) {
         if (!user)
@@ -76,15 +93,13 @@ let AuthService = class AuthService {
         data.lastName = (0, validation_1.text)(data.lastName, 'Last name', 60);
         data.role = (0, validation_1.choice)(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST', 'DEALER']);
         if (data.phone) {
-            data.phone = (0, validation_1.text)(data.phone, 'Phone', 16).replace(/[\s-]/g, '');
-            if (!/^\+?[0-9]{10,15}$/.test(data.phone))
-                throw new common_1.BadRequestException('Invalid phone number');
+            data.phone = this.msg91.normalizePhone((0, validation_1.text)(data.phone, 'Phone', 20));
         }
         const existing = await this.prisma.user.findFirst({
             where: {
                 OR: [
                     { email: data.email },
-                    ...(data.phone ? [{ phone: data.phone }] : []),
+                    ...(data.phone ? [{ phone: data.phone }, { phone: data.phone.slice(1) }] : []),
                 ],
             },
         });
@@ -94,8 +109,8 @@ let AuthService = class AuthService {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(data.password, salt);
         const otpCode = String((0, node_crypto_1.randomInt)(100000, 999999));
-        const otpCodeHash = this.sha256(otpCode);
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+        const otpCodeHash = this.isMsg91() ? null : this.sha256(otpCode);
+        const otpExpiresAt = this.isMsg91() ? null : new Date(Date.now() + 10 * 60 * 1000);
         const user = await this.prisma.user.create({
             data: {
                 email: data.email,
@@ -125,13 +140,18 @@ let AuthService = class AuthService {
                 profile: true,
             },
         });
-        console.log(`[SAFAR OTP] Mobile Verification OTP for ${user.phone || user.email}: ${otpCode}`);
+        if (this.isMsg91()) {
+            await this.msg91.sendOtp(user.phone);
+        }
+        else if (this.exposeDevOtp()) {
+            console.log(`[SAFAR OTP] Mobile Verification OTP for ${user.phone || user.email}: ${otpCode}`);
+        }
         const payload = { id: user.id, email: user.email, role: user.role };
         const token = this.jwtService.sign(payload);
         return {
             user: this.sanitizeUser(user),
             token,
-            devOtp: process.env.OTP_PROVIDER === 'live' ? undefined : otpCode,
+            devOtp: this.exposeDevOtp() ? otpCode : undefined,
         };
     }
     async login(data) {
@@ -155,18 +175,62 @@ let AuthService = class AuthService {
         const token = this.jwtService.sign(payload);
         return { user: this.sanitizeUser(user), token };
     }
+    async requestLoginOtp(phoneInput) {
+        const phone = this.msg91.normalizePhone((0, validation_1.text)(phoneInput, 'Phone', 20));
+        const user = await this.findByPhone(phone);
+        if (user && !user.isBlocked) {
+            if (this.isMsg91()) {
+                await this.msg91.sendOtp(phone);
+                await this.prisma.user.update({ where: { id: user.id }, data: { phone } });
+            }
+            else {
+                const code = String((0, node_crypto_1.randomInt)(100000, 999999));
+                await this.prisma.user.update({ where: { id: user.id }, data: { phone, otpCodeHash: this.sha256(code), otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
+                return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600, devOtp: this.exposeDevOtp() ? code : undefined };
+            }
+        }
+        return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600 };
+    }
+    async loginWithOtp(phoneInput, otpInput) {
+        const phone = this.msg91.normalizePhone((0, validation_1.text)(phoneInput, 'Phone', 20));
+        const code = String(otpInput || '').trim();
+        if (!/^\d{6}$/.test(code))
+            throw new common_1.BadRequestException('Enter a valid 6-digit OTP');
+        const user = await this.findByPhone(phone);
+        if (!user)
+            throw new common_1.UnauthorizedException('Invalid or expired OTP code. Please try again.');
+        if (user.isBlocked)
+            throw new common_1.UnauthorizedException('This account is blocked. Contact Safar support.');
+        if (this.isMsg91()) {
+            await this.msg91.verifyOtp(phone, code);
+        }
+        else {
+            const valid = (user.otpCodeHash && user.otpExpiresAt && new Date(user.otpExpiresAt) > new Date() && user.otpCodeHash === this.sha256(code)) || (this.exposeDevOtp() && code === '123456');
+            if (!valid)
+                throw new common_1.BadRequestException('Invalid or expired OTP code. Please try again.');
+        }
+        const updated = await this.prisma.user.update({ where: { id: user.id }, data: { phone, phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null }, include: { wallet: true, profile: true } });
+        const token = this.jwtService.sign({ id: updated.id, email: updated.email, role: updated.role });
+        return { user: this.sanitizeUser(updated), token };
+    }
+    maskPhone(phone) {
+        return phone.length > 4 ? `${phone.slice(0, 3)}•••••${phone.slice(-4)}` : phone;
+    }
     async sendOtp(userId, phoneInput) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user)
             throw new common_1.UnauthorizedException('User not found');
         let phone = user.phone;
         if (phoneInput) {
-            phone = (0, validation_1.text)(phoneInput, 'Phone', 16).replace(/[\s-]/g, '');
-            if (!/^\+?[0-9]{10,15}$/.test(phone))
-                throw new common_1.BadRequestException('Invalid phone number');
+            phone = this.msg91.normalizePhone((0, validation_1.text)(phoneInput, 'Phone', 20));
         }
         if (!phone)
             throw new common_1.BadRequestException('Please provide a mobile number to receive OTP');
+        if (this.isMsg91()) {
+            await this.msg91.sendOtp(phone);
+            await this.prisma.user.update({ where: { id: userId }, data: { phone, otpCodeHash: null, otpExpiresAt: null } });
+            return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600 };
+        }
         const otpCode = String((0, node_crypto_1.randomInt)(100000, 999999));
         const otpCodeHash = this.sha256(otpCode);
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -174,13 +238,14 @@ let AuthService = class AuthService {
             where: { id: userId },
             data: { phone, otpCodeHash, otpExpiresAt },
         });
-        console.log(`[SAFAR OTP] Sent 6-digit OTP to ${phone}: ${otpCode}`);
-        const maskedPhone = phone.length > 4 ? `${phone.slice(0, 3)}•••••${phone.slice(-4)}` : phone;
+        if (this.exposeDevOtp())
+            console.log(`[SAFAR OTP] Sent 6-digit OTP to ${phone}: ${otpCode}`);
+        const maskedPhone = this.maskPhone(phone);
         return {
             sent: true,
             maskedPhone,
             expiresInSeconds: 600,
-            devOtp: process.env.OTP_PROVIDER === 'live' ? undefined : otpCode,
+            devOtp: this.exposeDevOtp() ? otpCode : undefined,
         };
     }
     async verifyOtp(userId, otpInput) {
@@ -193,7 +258,16 @@ let AuthService = class AuthService {
         });
         if (!user)
             throw new common_1.UnauthorizedException('User not found');
-        const isUniversalTestOtp = process.env.OTP_PROVIDER !== 'live' && code === '123456';
+        if (this.isMsg91()) {
+            await this.msg91.verifyOtp(user.phone || '', code);
+            const updated = await this.prisma.user.update({
+                where: { id: userId },
+                data: { phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null },
+                include: { wallet: true, profile: true },
+            });
+            return { verified: true, user: this.sanitizeUser(updated) };
+        }
+        const isUniversalTestOtp = this.exposeDevOtp() && code === '123456';
         const isStoredOtpValid = user.otpCodeHash &&
             user.otpExpiresAt &&
             new Date(user.otpExpiresAt) > new Date() &&
@@ -232,6 +306,7 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        msg91_service_1.Msg91Service])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

@@ -38,6 +38,12 @@ let AuthController = class AuthController {
     async login(body, res) {
         return this.session(res, await this.auth.login(body));
     }
+    requestLoginOtp(body) {
+        return this.auth.requestLoginOtp(body?.phone);
+    }
+    async verifyLoginOtp(body, res) {
+        return this.session(res, await this.auth.loginWithOtp(body?.phone, body?.otp));
+    }
     logout(res) {
         res.clearCookie('safar_session', { path: '/' });
         return { message: 'Signed out' };
@@ -69,6 +75,21 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('login/otp/request'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "requestLoginOtp", null);
+__decorate([
+    (0, common_1.Post)('login/otp/verify'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyLoginOtp", null);
 __decorate([
     (0, common_1.Post)('logout'),
     __param(0, (0, common_1.Res)({ passthrough: true })),

@@ -12,6 +12,7 @@ const jwt_1 = require("@nestjs/jwt");
 const auth_service_1 = require("./auth.service");
 const auth_controller_1 = require("./auth.controller");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
+const msg91_service_1 = require("./msg91.service");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -25,8 +26,8 @@ exports.AuthModule = AuthModule = __decorate([
             }),
         ],
         controllers: [auth_controller_1.AuthController],
-        providers: [auth_service_1.AuthService, jwt_auth_guard_1.JwtAuthGuard],
-        exports: [auth_service_1.AuthService, jwt_auth_guard_1.JwtAuthGuard],
+        providers: [auth_service_1.AuthService, jwt_auth_guard_1.JwtAuthGuard, msg91_service_1.Msg91Service],
+        exports: [auth_service_1.AuthService, jwt_auth_guard_1.JwtAuthGuard, msg91_service_1.Msg91Service],
     })
 ], AuthModule);
 //# sourceMappingURL=auth.module.js.map

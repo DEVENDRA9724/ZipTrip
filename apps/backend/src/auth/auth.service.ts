@@ -4,16 +4,35 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomInt } from 'node:crypto';
+import { Msg91Service } from './msg91.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private msg91: Msg91Service,
   ) {}
 
   private sha256(val: string) {
     return createHash('sha256').update(String(val)).digest('hex');
+  }
+
+  private isMsg91() {
+    return this.msg91.isEnabled();
+  }
+
+  private exposeDevOtp() {
+    return process.env.NODE_ENV !== 'production' && !this.isMsg91() && process.env.OTP_PROVIDER !== 'live';
+  }
+
+  private async findByPhone(phone: string) {
+    const normalized = this.msg91.normalizePhone(phone);
+    const candidates = [normalized, normalized.slice(1)];
+    return this.prisma.user.findFirst({
+      where: { OR: candidates.map(value => ({ phone: value })) },
+      include: { wallet: true, profile: true },
+    });
   }
 
   private sanitizeUser(user: any) {
@@ -32,14 +51,13 @@ export class AuthService {
     data.lastName = text(data.lastName, 'Last name', 60);
     data.role = choice(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST', 'DEALER']);
     if (data.phone) {
-      data.phone = text(data.phone, 'Phone', 16).replace(/[\s-]/g, '');
-      if (!/^\+?[0-9]{10,15}$/.test(data.phone)) throw new BadRequestException('Invalid phone number');
+      data.phone = this.msg91.normalizePhone(text(data.phone, 'Phone', 20));
     }
     const existing = await this.prisma.user.findFirst({
       where: {
         OR: [
           { email: data.email },
-          ...(data.phone ? [{ phone: data.phone }] : []),
+          ...(data.phone ? [{ phone: data.phone }, { phone: data.phone.slice(1) }] : []),
         ],
       },
     });
@@ -51,8 +69,8 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(data.password, salt);
     const otpCode = String(randomInt(100000, 999999));
-    const otpCodeHash = this.sha256(otpCode);
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const otpCodeHash = this.isMsg91() ? null : this.sha256(otpCode);
+    const otpExpiresAt = this.isMsg91() ? null : new Date(Date.now() + 10 * 60 * 1000);
 
     const user = await this.prisma.user.create({
       data: {
@@ -84,7 +102,11 @@ export class AuthService {
       },
     });
 
-    console.log(`[SAFAR OTP] Mobile Verification OTP for ${user.phone || user.email}: ${otpCode}`);
+    if (this.isMsg91()) {
+      await this.msg91.sendOtp(user.phone!);
+    } else if (this.exposeDevOtp()) {
+      console.log(`[SAFAR OTP] Mobile Verification OTP for ${user.phone || user.email}: ${otpCode}`);
+    }
 
     const payload = { id: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
@@ -92,7 +114,7 @@ export class AuthService {
     return {
       user: this.sanitizeUser(user),
       token,
-      devOtp: process.env.OTP_PROVIDER === 'live' ? undefined : otpCode,
+      devOtp: this.exposeDevOtp() ? otpCode : undefined,
     };
   }
 
@@ -120,16 +142,62 @@ export class AuthService {
     return { user: this.sanitizeUser(user), token };
   }
 
+  async requestLoginOtp(phoneInput: string) {
+    const phone = this.msg91.normalizePhone(text(phoneInput, 'Phone', 20));
+    const user = await this.findByPhone(phone);
+    // Keep the response generic so an attacker cannot enumerate registered
+    // phone numbers. Verification still requires an existing, unblocked user.
+    if (user && !user.isBlocked) {
+      if (this.isMsg91()) {
+        await this.msg91.sendOtp(phone);
+        await this.prisma.user.update({ where: { id: user.id }, data: { phone } });
+      } else {
+        const code = String(randomInt(100000, 999999));
+        await this.prisma.user.update({ where: { id: user.id }, data: { phone, otpCodeHash: this.sha256(code), otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
+        return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600, devOtp: this.exposeDevOtp() ? code : undefined };
+      }
+    }
+    return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600 };
+  }
+
+  async loginWithOtp(phoneInput: string, otpInput: string) {
+    const phone = this.msg91.normalizePhone(text(phoneInput, 'Phone', 20));
+    const code = String(otpInput || '').trim();
+    if (!/^\d{6}$/.test(code)) throw new BadRequestException('Enter a valid 6-digit OTP');
+    const user = await this.findByPhone(phone);
+    if (!user) throw new UnauthorizedException('Invalid or expired OTP code. Please try again.');
+    if (user.isBlocked) throw new UnauthorizedException('This account is blocked. Contact Safar support.');
+
+    if (this.isMsg91()) {
+      await this.msg91.verifyOtp(phone, code);
+    } else {
+      const valid = (user.otpCodeHash && user.otpExpiresAt && new Date(user.otpExpiresAt) > new Date() && user.otpCodeHash === this.sha256(code)) || (this.exposeDevOtp() && code === '123456');
+      if (!valid) throw new BadRequestException('Invalid or expired OTP code. Please try again.');
+    }
+    const updated = await this.prisma.user.update({ where: { id: user.id }, data: { phone, phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null }, include: { wallet: true, profile: true } });
+    const token = this.jwtService.sign({ id: updated.id, email: updated.email, role: updated.role });
+    return { user: this.sanitizeUser(updated), token };
+  }
+
+  private maskPhone(phone: string) {
+    return phone.length > 4 ? `${phone.slice(0, 3)}•••••${phone.slice(-4)}` : phone;
+  }
+
   async sendOtp(userId: string, phoneInput?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
 
     let phone = user.phone;
     if (phoneInput) {
-      phone = text(phoneInput, 'Phone', 16).replace(/[\s-]/g, '');
-      if (!/^\+?[0-9]{10,15}$/.test(phone)) throw new BadRequestException('Invalid phone number');
+      phone = this.msg91.normalizePhone(text(phoneInput, 'Phone', 20));
     }
     if (!phone) throw new BadRequestException('Please provide a mobile number to receive OTP');
+
+    if (this.isMsg91()) {
+      await this.msg91.sendOtp(phone);
+      await this.prisma.user.update({ where: { id: userId }, data: { phone, otpCodeHash: null, otpExpiresAt: null } });
+      return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600 };
+    }
 
     const otpCode = String(randomInt(100000, 999999));
     const otpCodeHash = this.sha256(otpCode);
@@ -140,14 +208,14 @@ export class AuthService {
       data: { phone, otpCodeHash, otpExpiresAt },
     });
 
-    console.log(`[SAFAR OTP] Sent 6-digit OTP to ${phone}: ${otpCode}`);
-    const maskedPhone = phone.length > 4 ? `${phone.slice(0, 3)}•••••${phone.slice(-4)}` : phone;
+    if (this.exposeDevOtp()) console.log(`[SAFAR OTP] Sent 6-digit OTP to ${phone}: ${otpCode}`);
+    const maskedPhone = this.maskPhone(phone);
 
     return {
       sent: true,
       maskedPhone,
       expiresInSeconds: 600,
-      devOtp: process.env.OTP_PROVIDER === 'live' ? undefined : otpCode,
+      devOtp: this.exposeDevOtp() ? otpCode : undefined,
     };
   }
 
@@ -161,7 +229,17 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException('User not found');
 
-    const isUniversalTestOtp = process.env.OTP_PROVIDER !== 'live' && code === '123456';
+    if (this.isMsg91()) {
+      await this.msg91.verifyOtp(user.phone || '', code);
+      const updated = await this.prisma.user.update({
+        where: { id: userId },
+        data: { phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null },
+        include: { wallet: true, profile: true },
+      });
+      return { verified: true, user: this.sanitizeUser(updated) };
+    }
+
+    const isUniversalTestOtp = this.exposeDevOtp() && code === '123456';
     const isStoredOtpValid =
       user.otpCodeHash &&
       user.otpExpiresAt &&

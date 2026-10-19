@@ -738,8 +738,9 @@ function initCountUp() {
 
 
 /* ─── AUTH PAGE (LOGIN & REGISTER) ───────────────────────────────────── */
-function auth(forceRegister) {
+function auth(forceRegister, loginMode = 'password') {
   const isReg = forceRegister ?? (new URLSearchParams(location.search).get('tab') === 'register');
+  const isOtpLogin = !isReg && loginMode === 'otp';
 
   $('#app').innerHTML = `
     <div class="auth-box">
@@ -764,7 +765,7 @@ function auth(forceRegister) {
         </div>
 
         <h2>${isReg ? 'Create your account' : 'Welcome back'}</h2>
-        <p class="text-muted">${isReg ? 'Register as a customer or vehicle host.' : 'Enter your email and password to continue.'}</p>
+        <p class="text-muted">${isReg ? 'Register as a customer or vehicle host.' : (isOtpLogin ? 'Enter your mobile number and we will send a one-time password.' : 'Enter your email and password to continue.')}</p>
 
         <form id="auth-form" class="form-stack">
           ${isReg ? `
@@ -773,8 +774,10 @@ function auth(forceRegister) {
               ${inp('lastName', 'Last name', 'text', 'autocomplete="family-name" maxlength="60" placeholder="e.g. Sharma"')}
             </div>` : ''}
 
-          ${inp('email', 'Email address', 'email', 'autocomplete="email" maxlength="254" placeholder="you@example.com"')}
-          ${inp('password', 'Password', 'password', `autocomplete="${isReg ? 'new-password' : 'current-password'}" minlength="${isReg ? 8 : 1}" maxlength="72" placeholder="${isReg ? 'At least 8 characters' : 'Enter password'}"`)}
+          ${isOtpLogin
+            ? inp('phone', 'Mobile number (+91)', 'tel', 'autocomplete="tel" inputmode="tel" maxlength="20" placeholder="+919876543210"')
+            : `${inp('email', 'Email address', 'email', 'autocomplete="email" maxlength="254" placeholder="you@example.com"')}
+               ${inp('password', 'Password', 'password', `autocomplete="${isReg ? 'new-password' : 'current-password'}" minlength="${isReg ? 8 : 1}" maxlength="72" placeholder="${isReg ? 'At least 8 characters' : 'Enter password'}"`)}`}
 
           ${isReg ? `
             ${inp('phone', 'Mobile number (+91)', 'tel', 'autocomplete="tel" required placeholder="+919876543210"')}
@@ -783,9 +786,11 @@ function auth(forceRegister) {
           ` : ''}
 
           <button type="submit" class="button btn-orange" style="width:100%;margin-top:8px">
-            ${isReg ? 'Send Mobile OTP &amp; Create Account →' : 'Sign In →'}
+            ${isReg ? 'Send Mobile OTP &amp; Create Account →' : (isOtpLogin ? 'Send Login OTP →' : 'Sign In →')}
           </button>
         </form>
+
+        ${!isReg ? `<p style="font-size:13px;color:var(--muted);margin:14px 0 0;text-align:center"><a href="#" id="toggle-login-mode">${isOtpLogin ? 'Use password instead' : 'Sign in with mobile OTP'}</a></p>` : ''}
 
         <p style="font-size:13px;color:var(--muted);margin-top:16px;text-align:center">
           ${isReg
@@ -799,23 +804,47 @@ function auth(forceRegister) {
   $('#tab-reg').onclick = () => auth(true);
   $('#link-login')?.addEventListener('click', e => { e.preventDefault(); auth(false); });
   $('#link-reg')?.addEventListener('click', e => { e.preventDefault(); auth(true); });
+  $('#toggle-login-mode')?.addEventListener('click', e => { e.preventDefault(); auth(false, isOtpLogin ? 'password' : 'otp'); });
 
   bindForm('#auth-form', async data => {
+    if (isOtpLogin) {
+      const res = await post('/auth/login/otp/request', { phone: data.phone });
+      const devOtpCode = res.devOtp;
+      showDialog(`
+        <div style="text-align:center;padding:8px 4px">
+          <div style="width:56px;height:56px;border-radius:16px;background:rgba(59,18,63,0.08);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px"><span class="ico">${icon('phone')}</span></div>
+          <h3 style="margin:0 0 6px">Enter your login OTP</h3>
+          <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit OTP to <strong>${esc(res.maskedPhone || data.phone)}</strong>.</p>
+          ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;text-align:left"><strong>Development OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></div>` : ''}
+          <form id="login-otp-modal-form" class="form-stack" style="text-align:left">
+            <label>Enter 6-Digit OTP
+              <input name="otp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required ${devOtpCode ? `value="${esc(devOtpCode)}"` : ''} style="font-size:22px;font-weight:800;letter-spacing:0.35em;text-align:center">
+            </label>
+            <button type="submit" class="button btn-orange" style="width:100%">Verify &amp; Sign In →</button>
+          </form>
+        </div>`);
+      bindForm('#login-otp-modal-form', async otpData => {
+        const login = await post('/auth/login/otp/verify', { phone: data.phone, otp: otpData.otp });
+        $('dialog').close();
+        finishLogin(login);
+      });
+      return;
+    }
     const res = await post('/auth/' + (isReg ? 'register' : 'login'), data);
     if (isReg) {
-      const devOtpCode = res.devOtp || '123456';
+      const devOtpCode = res.devOtp;
       showDialog(`
         <div style="text-align:center;padding:8px 4px">
           <div style="width:56px;height:56px;border-radius:16px;background:rgba(59,18,63,0.08);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px"><span class="ico">${icon('phone')}</span></div>
           <h3 style="margin:0 0 6px">Verify Your Mobile Number</h3>
           <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit verification OTP to <strong>${esc(data.phone || 'your mobile')}</strong>.</p>
-          <div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left">
-            <span><strong>Verification OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
+          ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left">
+            <span><strong>Development OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
             <button type="button" id="autofill-otp-btn" class="btn-outline btn-sm">Auto-Fill OTP</button>
-          </div>
+          </div>` : ''}
           <form id="otp-verify-modal-form" class="form-stack" style="text-align:left">
             <label>Enter 6-Digit Mobile OTP
-              <input name="otp" id="otp-modal-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required value="${esc(devOtpCode)}" style="font-size:22px;font-weight:800;letter-spacing:0.35em;text-align:center">
+              <input name="otp" id="otp-modal-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required ${devOtpCode ? `value="${esc(devOtpCode)}"` : ''} style="font-size:22px;font-weight:800;letter-spacing:0.35em;text-align:center">
             </label>
             <button type="submit" class="button btn-orange" style="width:100%">Verify OTP &amp; Proceed to e-KYC →</button>
           </form>
@@ -833,19 +862,23 @@ function auth(forceRegister) {
         }, 500);
       });
     } else {
-      const redirect = new URLSearchParams(location.search).get('redirect');
-      const target = redirect ? new URL(redirect, location.href) : null;
-      if (target && target.origin === location.origin && !target.pathname.endsWith('auth.html')) {
-        location.href = target.pathname + target.search;
-      } else if (res?.user?.role === 'ADMIN') {
-        location.href = 'admin.html';
-      } else if (res?.user?.role === 'HOST' || res?.user?.role === 'DEALER') {
-        location.href = 'host-onboarding.html';
-      } else {
-        location.href = 'dashboard.html';
-      }
+      finishLogin(res);
     }
   });
+
+  function finishLogin(res) {
+    const redirect = new URLSearchParams(location.search).get('redirect');
+    const target = redirect ? new URL(redirect, location.href) : null;
+    if (target && target.origin === location.origin && !target.pathname.endsWith('auth.html')) {
+      location.href = target.pathname + target.search;
+    } else if (res?.user?.role === 'ADMIN') {
+      location.href = 'admin.html';
+    } else if (res?.user?.role === 'HOST' || res?.user?.role === 'DEALER') {
+      location.href = 'host-onboarding.html';
+    } else {
+      location.href = 'dashboard.html';
+    }
+  }
 }
 
 /* ─── VEHICLE BROWSE & DISCOVERY STUDIO ──────────────────────────────── */
