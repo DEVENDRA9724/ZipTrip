@@ -37,17 +37,41 @@ const dotenv = __importStar(require("dotenv"));
 const node_path_1 = require("node:path");
 const node_fs_1 = require("node:fs");
 const envPaths = [
-    (0, node_path_1.resolve)(__dirname, '../.env'),
-    (0, node_path_1.resolve)(__dirname, '../../.env'),
     (0, node_path_1.resolve)(process.cwd(), '.env'),
     (0, node_path_1.resolve)(process.cwd(), 'apps/backend/.env'),
+    (0, node_path_1.resolve)(__dirname, '../.env'),
+    (0, node_path_1.resolve)(__dirname, '../../.env'),
+    '/home/ubuntu/ZipTrip/apps/backend/.env',
+    '/home/ubuntu/ZipTrip/.env',
 ];
 for (const p of envPaths) {
     if ((0, node_fs_1.existsSync)(p)) {
-        dotenv.config({ path: p });
+        dotenv.config({ path: p, override: true });
+        try {
+            const raw = (0, node_fs_1.readFileSync)(p, 'utf8');
+            for (const line of raw.split('\n')) {
+                const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+                if (m) {
+                    let v = (m[2] || '').trim();
+                    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+                        v = v.slice(1, -1);
+                    }
+                    if (m[1] === 'DATABASE_URL' || m[1] === 'POSTGRES_DATABASE_URL') {
+                        if (/^postgres(ql)?:\/\//.test(v)) {
+                            process.env[m[1]] = v;
+                            process.env.DATABASE_URL = v;
+                        }
+                    }
+                    else if (!process.env[m[1]]) {
+                        process.env[m[1]] = v;
+                    }
+                }
+            }
+        }
+        catch { }
     }
 }
-dotenv.config();
+dotenv.config({ override: true });
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
 const express_1 = require("express");

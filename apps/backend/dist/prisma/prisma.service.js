@@ -51,20 +51,57 @@ const dotenv = __importStar(require("dotenv"));
 const node_path_1 = require("node:path");
 const node_fs_1 = require("node:fs");
 const envPaths = [
-    (0, node_path_1.resolve)(__dirname, '../../.env'),
-    (0, node_path_1.resolve)(__dirname, '../.env'),
     (0, node_path_1.resolve)(process.cwd(), '.env'),
     (0, node_path_1.resolve)(process.cwd(), 'apps/backend/.env'),
+    (0, node_path_1.resolve)(__dirname, '../../.env'),
+    (0, node_path_1.resolve)(__dirname, '../.env'),
+    '/home/ubuntu/ZipTrip/apps/backend/.env',
+    '/home/ubuntu/ZipTrip/.env',
 ];
 for (const p of envPaths) {
     if ((0, node_fs_1.existsSync)(p)) {
-        dotenv.config({ path: p });
+        dotenv.config({ path: p, override: true });
+        try {
+            const raw = (0, node_fs_1.readFileSync)(p, 'utf8');
+            for (const line of raw.split('\n')) {
+                const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+                if (m) {
+                    let v = (m[2] || '').trim();
+                    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+                        v = v.slice(1, -1);
+                    }
+                    if (m[1] === 'DATABASE_URL' || m[1] === 'POSTGRES_DATABASE_URL') {
+                        if (/^postgres(ql)?:\/\//.test(v)) {
+                            process.env[m[1]] = v;
+                            process.env.DATABASE_URL = v;
+                        }
+                    }
+                    else if (!process.env[m[1]]) {
+                        process.env[m[1]] = v;
+                    }
+                }
+            }
+        }
+        catch { }
     }
 }
-dotenv.config();
+dotenv.config({ override: true });
 let PrismaService = class PrismaService extends client_1.PrismaClient {
     constructor() {
-        const url = process.env.DATABASE_URL || 'file:./portal.db';
+        let url = process.env.DATABASE_URL || process.env.POSTGRES_DATABASE_URL || '';
+        if (process.env.POSTGRES_DATABASE_URL && /^postgres(ql)?:\/\//.test(process.env.POSTGRES_DATABASE_URL)) {
+            url = process.env.POSTGRES_DATABASE_URL;
+            process.env.DATABASE_URL = url;
+        }
+        if (!url || !/^postgres(ql)?:\/\//.test(url)) {
+            if (process.env.NODE_ENV === 'production' || (0, node_fs_1.existsSync)('/home/ubuntu/ZipTrip')) {
+                url = 'postgresql://root:rootpassword@127.0.0.1:5432/ziptrip?schema=public';
+                process.env.DATABASE_URL = url;
+            }
+            else {
+                url = url || 'file:./portal.db';
+            }
+        }
         const isPostgres = /^postgres(ql)?:\/\//.test(url);
         const adapter = isPostgres
             ? new adapter_pg_1.PrismaPg({ connectionString: url })

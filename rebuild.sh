@@ -6,6 +6,7 @@ cd /home/ubuntu/ZipTrip/apps/backend
 node scripts/prepare-postgres.js
 npx prisma db push --accept-data-loss
 npx prisma generate
+npm run build
 node scripts/seed.js
 
 sudo mkdir -p /var/www/safar

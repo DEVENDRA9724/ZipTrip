@@ -1,24 +1,45 @@
 import * as dotenv from 'dotenv';
 import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const envPaths = [
-  resolve(__dirname, '../.env'),
-  resolve(__dirname, '../../.env'),
   resolve(process.cwd(), '.env'),
   resolve(process.cwd(), 'apps/backend/.env'),
+  resolve(__dirname, '../.env'),
+  resolve(__dirname, '../../.env'),
+  '/home/ubuntu/ZipTrip/apps/backend/.env',
+  '/home/ubuntu/ZipTrip/.env',
 ];
 for (const p of envPaths) {
   if (existsSync(p)) {
-    dotenv.config({ path: p });
+    dotenv.config({ path: p, override: true });
+    try {
+      const raw = readFileSync(p, 'utf8');
+      for (const line of raw.split('\n')) {
+        const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+        if (m) {
+          let v = (m[2] || '').trim();
+          if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+            v = v.slice(1, -1);
+          }
+          if (m[1] === 'DATABASE_URL' || m[1] === 'POSTGRES_DATABASE_URL') {
+            if (/^postgres(ql)?:\/\//.test(v)) {
+              process.env[m[1]] = v;
+              process.env.DATABASE_URL = v;
+            }
+          } else if (!process.env[m[1]]) {
+            process.env[m[1]] = v;
+          }
+        }
+      }
+    } catch {}
   }
 }
-dotenv.config();
+dotenv.config({ override: true });
+
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-
-
 import { json, raw } from 'express';
 
 async function bootstrap() {
@@ -74,4 +95,3 @@ bootstrap().catch((err) => {
   console.error('[Bootstrap] Fatal startup error:', err);
   process.exit(1);
 });
-
