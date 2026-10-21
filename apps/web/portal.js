@@ -236,10 +236,18 @@ let user = null, adminData;
 
 /* ─── API Client ─────────────────────────────────────────────────────── */
 async function api(path, opts = {}) {
+  const token = localStorage.getItem('safar_token');
+  const headers = opts.body instanceof FormData
+    ? (token ? { 'Authorization': 'Bearer ' + token } : {})
+    : { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...(opts.headers || {}) };
+
   const res = await fetch('/api' + path, {
     credentials: 'same-origin', ...opts,
-    headers: opts.body instanceof FormData ? {} : {'Content-Type':'application/json', ...(opts.headers||{})},
+    headers,
   });
+  if (res.status === 401 && path !== '/auth/login' && path !== '/auth/register' && path !== '/auth/login/otp/verify') {
+    localStorage.removeItem('safar_token');
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(Array.isArray(data.message) ? data.message.join(', ') : data.message || `Request failed (${res.status})`);
   return data;
@@ -413,6 +421,7 @@ function shell() {
     if (m?.open && !m.contains(e.target)) m.open = false;
   });
   $('#logout-btn')?.addEventListener('click', async () => {
+    localStorage.removeItem('safar_token');
     await post('/auth/logout', {}).catch(() => {});
     location.href = 'index.html';
   });
@@ -768,6 +777,16 @@ function auth(forceRegister, loginMode = 'password') {
         <p class="text-muted">${isReg ? 'Register as a customer or vehicle host.' : (isOtpLogin ? 'Enter your mobile number and we will send a one-time password.' : 'Enter your email and password to continue.')}</p>
 
         <form id="auth-form" class="form-stack">
+          ${!isReg && !isOtpLogin ? `
+            <div style="margin-bottom:14px;padding:12px;background:rgba(240,120,24,0.06);border:1px solid rgba(240,120,24,0.22);border-radius:10px">
+              <div style="font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Quick Demo Logins (1-Click Fill)</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="admin@safar.com" data-pass="Admin@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">👑 Admin</button>
+                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="host@safar.com" data-pass="Host@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">🚗 Host</button>
+                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="customer@safar.com" data-pass="Customer@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">👤 Customer</button>
+              </div>
+            </div>` : ''}
+
           ${isReg ? `
             <div class="form-grid">
               ${inp('firstName', 'First name', 'text', 'autocomplete="given-name" maxlength="60" placeholder="e.g. Rahul"')}
@@ -806,6 +825,17 @@ function auth(forceRegister, loginMode = 'password') {
   $('#link-reg')?.addEventListener('click', e => { e.preventDefault(); auth(true); });
   $('#toggle-login-mode')?.addEventListener('click', e => { e.preventDefault(); auth(false, isOtpLogin ? 'password' : 'otp'); });
 
+  $$('.fill-demo-btn').forEach(btn => {
+    btn.onclick = () => {
+      const emailInput = $('input[name="email"]', $('#auth-form'));
+      const passInput = $('input[name="password"]', $('#auth-form'));
+      if (emailInput && passInput) {
+        emailInput.value = btn.dataset.email;
+        passInput.value = btn.dataset.pass;
+      }
+    };
+  });
+
   bindForm('#auth-form', async data => {
     if (isOtpLogin) {
       const res = await post('/auth/login/otp/request', { phone: data.phone });
@@ -825,6 +855,7 @@ function auth(forceRegister, loginMode = 'password') {
         </div>`);
       bindForm('#login-otp-modal-form', async otpData => {
         const login = await post('/auth/login/otp/verify', { phone: data.phone, otp: otpData.otp });
+        if (login?.token) localStorage.setItem('safar_token', login.token);
         $('dialog').close();
         finishLogin(login);
       });
@@ -854,7 +885,8 @@ function auth(forceRegister, loginMode = 'password') {
         $('#otp-modal-input').value = devOtpCode;
       });
       bindForm('#otp-verify-modal-form', async otpData => {
-        await post('/auth/otp/verify', { otp: otpData.otp });
+        const verifyRes = await post('/auth/otp/verify', { otp: otpData.otp });
+        if (verifyRes?.token) localStorage.setItem('safar_token', verifyRes.token);
         $('dialog').close();
         toast('Mobile number verified! Proceeding to e-KYC & Face Match…');
         setTimeout(() => {
@@ -867,6 +899,9 @@ function auth(forceRegister, loginMode = 'password') {
   });
 
   function finishLogin(res) {
+    if (res?.token) {
+      localStorage.setItem('safar_token', res.token);
+    }
     const redirect = new URLSearchParams(location.search).get('redirect');
     const target = redirect ? new URL(redirect, location.href) : null;
     if (target && target.origin === location.origin && !target.pathname.endsWith('auth.html')) {
@@ -2810,6 +2845,7 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
     </div>`;
 
   $('#sidebar-logout-btn')?.addEventListener('click', async () => {
+    localStorage.removeItem('safar_token');
     await post('/auth/logout').catch(() => {});
     location.href = 'index.html';
   });
@@ -2835,6 +2871,7 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
   if (activeTab === 'profile') {
     bindProfileEvents();
     $('#profile-logout-btn')?.addEventListener('click', async () => {
+      localStorage.removeItem('safar_token');
       await post('/auth/logout').catch(() => {});
       location.href = 'index.html';
     });

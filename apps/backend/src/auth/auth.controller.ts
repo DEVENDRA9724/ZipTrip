@@ -7,8 +7,10 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  private session(res: Response, result: any) {
-    const isHttps = (process.env.WEB_ORIGIN || '').startsWith('https://');
+  private session(req: any, res: Response, result: any) {
+    const isForwardedHttps = req?.headers?.['x-forwarded-proto'] === 'https';
+    const isDirectHttps = req?.secure === true;
+    const isHttps = isForwardedHttps || isDirectHttps;
     res.cookie('safar_session', result.token, {
       httpOnly: true,
       secure: isHttps,
@@ -22,13 +24,13 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body: any, @Res({ passthrough: true }) res: Response) {
-    return this.session(res, await this.auth.register(body));
+  async register(@Request() req: any, @Body() body: any, @Res({ passthrough: true }) res: Response) {
+    return this.session(req, res, await this.auth.register(body));
   }
 
   @Post('login')
-  async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
-    return this.session(res, await this.auth.login(body));
+  async login(@Request() req: any, @Body() body: any, @Res({ passthrough: true }) res: Response) {
+    return this.session(req, res, await this.auth.login(body));
   }
 
   @Post('login/otp/request')
@@ -37,8 +39,8 @@ export class AuthController {
   }
 
   @Post('login/otp/verify')
-  async verifyLoginOtp(@Body() body: any, @Res({ passthrough: true }) res: Response) {
-    return this.session(res, await this.auth.loginWithOtp(body?.phone, body?.otp));
+  async verifyLoginOtp(@Request() req: any, @Body() body: any, @Res({ passthrough: true }) res: Response) {
+    return this.session(req, res, await this.auth.loginWithOtp(body?.phone, body?.otp));
   }
 
   @Post('logout')
