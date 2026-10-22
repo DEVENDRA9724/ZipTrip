@@ -1,0 +1,104 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Msg91Service = void 0;
+const common_1 = require("@nestjs/common");
+let Msg91Service = class Msg91Service {
+    provider = (process.env.OTP_PROVIDER || 'local').trim().toLowerCase();
+    isEnabled() {
+        return this.provider === 'msg91';
+    }
+    normalizePhone(input) {
+        if (typeof input !== 'string')
+            throw new common_1.BadRequestException('Phone is required');
+        let value = input.trim().replace(/[\s()-]/g, '');
+        if (!value)
+            throw new common_1.BadRequestException('Phone is required');
+        if (value.startsWith('00'))
+            value = `+${value.slice(2)}`;
+        if (!/^\+?\d{10,15}$/.test(value))
+            throw new common_1.BadRequestException('Invalid phone number');
+        let digits = value.replace(/^\+/, '');
+        if (digits.length === 10)
+            digits = `91${digits}`;
+        if (digits.length === 11 && digits.startsWith('0'))
+            digits = `91${digits.slice(1)}`;
+        if (digits.length < 10 || digits.length > 15)
+            throw new common_1.BadRequestException('Invalid phone number');
+        return `+${digits}`;
+    }
+    providerPhone(phone) {
+        return this.normalizePhone(phone).slice(1);
+    }
+    config() {
+        const authkey = process.env.MSG91_AUTHKEY?.trim();
+        const templateId = process.env.MSG91_OTP_TEMPLATE_ID?.trim();
+        if (!authkey || !templateId) {
+            throw new common_1.ServiceUnavailableException('MSG91 OTP is not configured. Set MSG91_AUTHKEY and MSG91_OTP_TEMPLATE_ID.');
+        }
+        return { authkey, templateId };
+    }
+    async parse(response) {
+        const raw = await response.text();
+        try {
+            return raw ? JSON.parse(raw) : {};
+        }
+        catch {
+            return { message: raw };
+        }
+    }
+    successful(response, payload) {
+        if (!response.ok)
+            return false;
+        const state = String(payload.type || payload.status || '').toLowerCase();
+        return !state || state === 'success' || state === 'ok' || state === 'true' || state.includes('success');
+    }
+    providerError(payload) {
+        const message = payload.message || payload.error || payload.detail;
+        return typeof message === 'string' && message.length < 240 ? message : 'MSG91 rejected the OTP request';
+    }
+    async sendOtp(phone) {
+        const { authkey, templateId } = this.config();
+        const url = new URL(process.env.MSG91_OTP_SEND_URL || 'https://control.msg91.com/api/v5/otp');
+        url.searchParams.set('template_id', templateId);
+        url.searchParams.set('mobile', this.providerPhone(phone));
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { authkey, 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({}),
+        });
+        const payload = await this.parse(response);
+        if (!this.successful(response, payload)) {
+            throw new common_1.ServiceUnavailableException(this.providerError(payload));
+        }
+        return { requestId: payload.request_id || payload.reqId || payload.requestId || null };
+    }
+    async verifyOtp(phone, otp) {
+        const { authkey } = this.config();
+        const code = String(otp || '').trim();
+        if (!/^\d{6}$/.test(code))
+            throw new common_1.BadRequestException('Enter a valid 6-digit OTP');
+        const url = new URL(process.env.MSG91_OTP_VERIFY_URL || 'https://control.msg91.com/api/v5/otp/verify');
+        url.searchParams.set('mobile', this.providerPhone(phone));
+        url.searchParams.set('otp', code);
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { authkey, Accept: 'application/json' },
+        });
+        const payload = await this.parse(response);
+        if (!this.successful(response, payload)) {
+            throw new common_1.BadRequestException('Invalid or expired OTP code. Please try again.');
+        }
+        return { verified: true };
+    }
+};
+exports.Msg91Service = Msg91Service;
+exports.Msg91Service = Msg91Service = __decorate([
+    (0, common_1.Injectable)()
+], Msg91Service);
+//# sourceMappingURL=msg91.service.js.map
