@@ -29,73 +29,156 @@ enum VehicleStatus {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  phone         String?   @unique
-  passwordHash  String
-  firstName     String
-  lastName      String
-  role          Role      @default(CUSTOMER)
-  isVerified    Boolean   @default(false)
-  isBlocked     Boolean   @default(false)
-  profileImage  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  username        String?   @unique
+  email           String    @unique
+  phone           String?   @unique
+  phoneVerifiedAt DateTime?
+  otpCodeHash     String?
+  otpExpiresAt    DateTime?
+  passwordHash    String
+  firstName       String
+  lastName        String
+  role            Role      @default(CUSTOMER)
+  isVerified      Boolean   @default(false)
+  isBlocked       Boolean   @default(false)
+  profileImage    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  vehicles      Vehicle[] @relation("HostVehicles")
-  bookings      Booking[] @relation("CustomerBookings")
-  reviewsGiven  Review[]  @relation("ReviewAuthor")
-  ratingsGiven   PartyRating[] @relation("PartyRatingAuthor")
+  profile         UserProfile?
+  vehicles        Vehicle[] @relation("HostVehicles")
+  bookings        Booking[] @relation("CustomerBookings")
+  driverBookings  Booking[] @relation("DriverBookings")
+  reviewsGiven    Review[]  @relation("ReviewAuthor")
+  ratingsGiven    PartyRating[] @relation("PartyRatingAuthor")
   ratingsReceived PartyRating[] @relation("PartyRatingTarget")
-  wallet        Wallet?
-  documents     Document[]
-  kycSessions   KycSession[]
-  media         Media[]
-  dlValidUntil  DateTime?
-  payoutAccount PayoutAccount?
-  notifications Notification[]
+  wallet          Wallet?
+  documents       Document[]
+  kycSessions     KycSession[]
+  media           Media[]
+  dlValidUntil    DateTime?
+  payoutAccount   PayoutAccount?
+  notifications   Notification[]
+
+  @@index([phone, email])
+}
+
+model UserProfile {
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  firstName            String
+  lastName             String
+  city                 String    @default("Ahmedabad")
+  state                String    @default("Gujarat")
+  postalCode           String?
+  aadhaarNumberHash    String?   @unique
+  aadhaarNumberMasked  String?
+  panNumberHash        String?   @unique
+  panNumberMasked      String?
+  drivingLicenseHash   String?   @unique
+  drivingLicenseMasked String?
+  dlExpiryDate         DateTime?
+  profileImageUrl      String?
+  selfieMediaId        String?
+  faceMatchScore       Float?
+  faceMatchStatus      String?   @default("UNVERIFIED")
+  isKycVerified        Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Hub {
+  id              String    @id @default(uuid())
+  hubName         String
+  city            String
+  latitude        Float
+  longitude       Float
+  address         String
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  vehicles        Vehicle[]
+  pickupBookings  Booking[] @relation("PickupHubBookings")
+  dropoffBookings Booking[] @relation("DropoffHubBookings")
+
+  @@index([city, isActive])
+}
+
+model VehicleModel {
+  id              String    @id @default(uuid())
+  brand           String
+  modelName       String
+  segment         String
+  transmission    String
+  fuelType        String
+  seatingCapacity Int
+  baseHourlyRate  Decimal
+  freeKmPerHour   Int       @default(12)
+  createdAt       DateTime  @default(now())
+
+  vehicles        Vehicle[]
+
+  @@unique([brand, modelName, transmission, fuelType])
 }
 
 model Vehicle {
-  id             String        @id @default(uuid())
-  hostId         String
-  make           String
-  model          String
-  year           Int
-  category       String        
-  transmission   String
-  fuelType       String
-  seats          Int
-  pricePerDay    Decimal
-  status         VehicleStatus @default(PENDING_APPROVAL)
-  locationCity   String
-  latitude       Float?
-  longitude      Float?
-  images         String      
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                       String        @id @default(uuid())
+  hostId                   String
+  modelSpecId              String?
+  currentHubId             String?
+  make                     String
+  model                    String
+  year                     Int
+  category                 String        
+  transmission             String
+  fuelType                 String
+  seats                    Int
+  pricePerDay              Decimal
+  extraKmCharge            Decimal       @default(12)
+  includedKilometresPerDay Int           @default(300)
+  securityDeposit          Decimal       @default(2000)
+  status                   VehicleStatus @default(PENDING_APPROVAL)
+  serviceType              String        @default("self_drive")
+  locationCity             String
+  pickupAddress            String?
+  dropAddress              String?
+  latitude                 Float?
+  longitude                Float?
+  images                   String      
+  features                 String?
+  vinNumber                String?       @unique
+  gpsDeviceImei            String?       @unique
+  fuelLevelPercent         Int           @default(100)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 
-  host           User          @relation("HostVehicles", fields: [hostId], references: [id])
-  bookings       Booking[]
-  reviews        Review[]
-  registrationNumber String? @unique
-  odometer       Int @default(0)
-  reviewNote     String?
+  host               User                @relation("HostVehicles", fields: [hostId], references: [id])
+  modelSpec          VehicleModel?       @relation(fields: [modelSpecId], references: [id])
+  currentHub         Hub?                @relation(fields: [currentHubId], references: [id])
+  bookings           Booking[]
+  reviews            Review[]
+  registrationNumber String?             @unique
+  odometer           Int                 @default(0)
+  reviewNote         String?
   // Approval (DRAFT | PENDING_APPROVAL | APPROVED | REJECTED) and availability (ACTIVE | INACTIVE) are separate.
   // A car is publicly bookable only when APPROVED + ACTIVE + compliant (src/vehicles/vehicle-status.ts). The legacy
   // `status` column above is kept in sync from these two fields for existing readers.
-  approvalStatus     String    @default("DRAFT")
-  availability       String    @default("INACTIVE")
+  approvalStatus     String              @default("DRAFT")
+  availability       String              @default("INACTIVE")
   availabilityReason String?
   approvedById       String?
   approvedAt         DateTime?
   rejectedReason     String?
-  media          Media[]
-  documents      Document[]
+  media              Media[]
+  documents          Document[]
+  availabilityBlocks AvailabilityBlock[]
 
   @@index([locationCity, status])
   @@index([approvalStatus, availability])
-  availabilityBlocks AvailabilityBlock[]
+  @@index([currentHubId, status])
 }
 
 model AvailabilityBlock {
@@ -111,33 +194,113 @@ model AvailabilityBlock {
 }
 
 model Booking {
-  id             String        @id @default(uuid())
-  bookingRef     String        @unique 
-  customerId     String
-  vehicleId      String
-  startDate      DateTime
-  endDate        DateTime
-  totalAmount    Decimal
-  status         BookingStatus @default(PENDING)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                  String        @id @default(uuid())
+  bookingRef          String        @unique 
+  customerId          String
+  vehicleId           String
+  driverId            String?
+  pickupHubId         String?
+  dropoffHubId        String?
+  startDate           DateTime
+  endDate             DateTime
+  tenureHours         Int           @default(24)
+  serviceType         String        @default("self_drive")
+  baseFare            Decimal       @default(0)
+  securityDeposit     Decimal       @default(0)
+  insuranceFee        Decimal       @default(0)
+  discountAmount      Decimal       @default(0)
+  taxAmount           Decimal       @default(0)
+  platformFee         Decimal       @default(0)
+  hostRevenue         Decimal       @default(0)
+  totalAmount         Decimal
+  status              BookingStatus @default(PENDING)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  customer       User          @relation("CustomerBookings", fields: [customerId], references: [id])
-  vehicle        Vehicle       @relation(fields: [vehicleId], references: [id])
-  payment        Payment?
-  expiresAt      DateTime?
-  requestKey     String? @unique
-  dailyRate      Decimal @default(0)
-  rentalDays     Int @default(1)
-  includedKilometres Int?
-  securityDeposit Decimal @default(0)
-  agreementVersion String @default("safarcars-car-sharing-v2")
-  agreementSnapshot String?
-  invoice        Invoice?
-  inspections    Inspection[]
-  partyRatings   PartyRating[]
+  customer            User          @relation("CustomerBookings", fields: [customerId], references: [id])
+  driver              User?         @relation("DriverBookings", fields: [driverId], references: [id])
+  vehicle             Vehicle       @relation(fields: [vehicleId], references: [id])
+  pickupHub           Hub?          @relation("PickupHubBookings", fields: [pickupHubId], references: [id])
+  dropoffHub          Hub?          @relation("DropoffHubBookings", fields: [dropoffHubId], references: [id])
+  payment             Payment?
+  trip                Trip?
+  expiresAt           DateTime?
+  requestKey          String?       @unique
+  dailyRate           Decimal       @default(0)
+  rentalDays          Int           @default(1)
+  includedKilometres  Int?
+  agreementVersion    String        @default("safarcars-car-sharing-v2")
+  agreementSnapshot   String?
+  agreementAcceptedAt DateTime?
+  invoice             Invoice?
+  inspections         Inspection[]
+  partyRatings        PartyRating[]
+  settlement          BookingSettlement?
 
+  @@index([customerId, status])
   @@index([vehicleId, startDate, endDate, status])
+}
+
+model Trip {
+  id                   String           @id @default(uuid())
+  bookingId            String           @unique
+  actualStartTime      DateTime?
+  actualEndTime        DateTime?
+  startOdometer        Int?
+  endOdometer          Int?
+  startFuelLevel       Int?
+  endFuelLevel         Int?
+  startChecklistImages String?
+  endChecklistImages   String?
+  startSelfieUrl       String?
+  endSelfieUrl         String?
+  extraKmDriven        Int              @default(0)
+  extraHours           Decimal          @default(0.0)
+  penaltyCharges       Decimal          @default(0.0)
+  tripStatus           String           @default("not_started")
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  booking              Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  telematics           TripTelematics[]
+}
+
+model BookingSettlement {
+  id                  String   @id @default(uuid())
+  bookingId           String   @unique
+  depositHeld         Decimal
+  automaticCharges    Decimal  @default(0)
+  damageCharges       Decimal  @default(0)
+  fuelCharges         Decimal  @default(0)
+  tollCharges         Decimal  @default(0)
+  fineCharges         Decimal  @default(0)
+  cleaningCharges     Decimal  @default(0)
+  otherCharges        Decimal  @default(0)
+  totalDeduction      Decimal  @default(0)
+  refundAmount        Decimal  @default(0)
+  additionalAmountDue Decimal  @default(0)
+  status              String   @default("PENDING")
+  note                String?
+  reviewedById        String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  booking             Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  @@index([status, createdAt])
+}
+
+model TripTelematics {
+  id         String   @id @default(uuid())
+  tripId     String
+  latitude   Float
+  longitude  Float
+  speedKmph  Decimal?
+  fuelLevel  Int?
+  recordedAt DateTime @default(now())
+
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, recordedAt])
 }
 
 model Media {
@@ -156,20 +319,25 @@ model Media {
 }
 
 model Document {
-  id String @id @default(uuid())
-  userId String
-  vehicleId String?
-  kind String
-  mediaId String?
-  status String @default("PENDING")
-  source String @default("UPLOAD")
-  providerSessionId String?
-  validUntil DateTime?
-  reviewNote String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user User @relation(fields: [userId], references: [id])
-  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+  id                   String    @id @default(uuid())
+  userId               String
+  vehicleId            String?
+  kind                 String
+  documentNumberMasked String?
+  documentFrontUrl     String?
+  documentBackUrl      String?
+  mediaId              String?
+  status               String    @default("PENDING")
+  source               String    @default("UPLOAD")
+  providerSessionId    String?
+  validUntil           DateTime?
+  reviewNote           String?
+  verifiedById         String?
+  verifiedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle              Vehicle?  @relation(fields: [vehicleId], references: [id])
   @@index([userId, kind, status])
 }
 
@@ -204,6 +372,7 @@ model Inspection {
   odometer Int
   mediaId String
   mediaIds String?
+  selfieMediaId String?
   note String?
   fuelPercent Int?
   damageNote String?
@@ -222,15 +391,17 @@ model AuditLog {
 }
 
 model Payment {
-  id             String   @id @default(uuid())
-  bookingId      String   @unique
-  transactionId  String   @unique 
-  amount         Decimal
-  currency       String   @default("INR")
-  status         String   
-  createdAt      DateTime @default(now())
+  id              String   @id @default(uuid())
+  bookingId       String   @unique
+  transactionId   String   @unique 
+  gatewayProvider String   @default("Razorpay")
+  paymentType     String   @default("booking_fare")
+  amount          Decimal
+  currency        String   @default("INR")
+  status          String   
+  createdAt       DateTime @default(now())
 
-  booking        Booking  @relation(fields: [bookingId], references: [id])
+  booking         Booking  @relation(fields: [bookingId], references: [id])
 }
 
 model Review {

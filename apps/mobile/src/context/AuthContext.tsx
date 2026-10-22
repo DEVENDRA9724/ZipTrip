@@ -7,6 +7,8 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  requestLoginOtp: (phone: string) => Promise<{ maskedPhone?: string; devOtp?: string }>;
+  loginWithOtp: (phone: string, otp: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -58,6 +60,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const requestLoginOtp = async (phone: string) => {
+    return apiRequest('/auth/login/otp/request', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+  };
+
+  const loginWithOtp = async (phone: string, otp: string) => {
+    setLoading(true);
+    try {
+      const res = await apiRequest('/auth/login/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({ phone, otp }),
+      });
+      await AsyncStorage.setItem('token', res.token);
+      setToken(res.token);
+      setUser(res.user);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const register = async (data: any) => {
     setLoading(true);
     try {
@@ -99,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, token, loading, login, requestLoginOtp, loginWithOtp, register, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

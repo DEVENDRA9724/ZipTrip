@@ -162,7 +162,8 @@ describe('Vehicle document uploads against an isolated database', () => {
 
   it('rejects unsupported document categories and mismatched uploads', async () => {
     const mediaId = await upload(hostA, 'RC');
-    for (const kind of ['AADHAAR', 'PASSPORT', 'rc', ''])
+    // AADHAAR is a personal document (accepted for review without a car); these are not document types at all.
+    for (const kind of ['PASSPORT', 'rc', ''])
       await expect(
         submit(hostA, { kind, mediaId, vehicleId: 'car-a' }),
       ).rejects.toThrow('Invalid Document type');

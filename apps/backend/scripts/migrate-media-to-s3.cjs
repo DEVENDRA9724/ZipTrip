@@ -14,8 +14,9 @@ const { s3Storage } = require('./s3-storage.cjs');
 const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
 // Only the first characters of ids are reported.
 const mask = (id) => String(id).slice(0, 8) + '…';
-// Stored names are generated UUIDs; anything else (path separators, "..") is refused rather than read.
-const SAFE_KEY = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+// Stored names are generated UUIDs, optionally under one folder ("safar-media/<id>.jpg" from the earlier storage code);
+// anything else (deeper paths, "..") is refused rather than read.
+const SAFE_KEY = /^([A-Za-z0-9][A-Za-z0-9._-]*\/)?[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 async function migrateMediaToS3({ db, storage, uploadsDir, verifyOnly = false }) {
   const rows = db.prepare('SELECT "id", "storageKey", "mimeType", "kind" FROM "Media" ORDER BY "createdAt"').all();

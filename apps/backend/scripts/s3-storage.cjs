@@ -7,7 +7,9 @@ const { S3Client, PutObjectCommand, GetObjectCommand, HeadBucketCommand } = requ
 function s3Storage(env = process.env) {
   if (!env.S3_BUCKET) throw new Error('Set S3_BUCKET (and the other S3_* settings) in apps/backend/.env first.');
   const bucket = env.S3_BUCKET;
-  const prefix = env.S3_PREFIX ?? 'media/';
+  const prefix = (env.S3_PREFIX ?? 'media/').replace(/^\/+/, '').replace(/([^/])$/, '$1/');
+  // Records written by the earlier storage code already hold the full object key.
+  const objectKey = (key) => (key.startsWith(prefix) ? key : prefix + key);
   const client = new S3Client({
     region: env.S3_REGION || env.AWS_REGION || 'ap-south-1',
     endpoint: env.S3_ENDPOINT || undefined,
@@ -23,14 +25,14 @@ function s3Storage(env = process.env) {
     },
     async put(key, body, contentType) {
       await client.send(new PutObjectCommand({
-        Bucket: bucket, Key: prefix + key, Body: body, ContentType: contentType,
+        Bucket: bucket, Key: objectKey(key), Body: body, ContentType: contentType,
         ...(env.S3_SERVER_SIDE_ENCRYPTION ? { ServerSideEncryption: env.S3_SERVER_SIDE_ENCRYPTION } : {}),
       }));
     },
     /** The object's bytes, or null when it does not exist. */
     async get(key) {
       try {
-        const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: prefix + key }));
+        const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: objectKey(key) }));
         return Buffer.from(await result.Body.transformToByteArray());
       } catch (error) {
         if (error?.name === 'NoSuchKey' || error?.name === 'NotFound') return null;

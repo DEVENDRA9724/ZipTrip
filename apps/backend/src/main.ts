@@ -4,7 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { json } from 'express';
+import { json, raw } from 'express';
 import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { trustProxySetting } from './common/trust-proxy';
 import { CONTENT_SECURITY_POLICY } from './common/security-headers';
@@ -22,6 +22,9 @@ async function bootstrap() {
   if (trustProxy !== undefined) app.set('trust proxy', trustProxy);
   app.useGlobalFilters(new PrismaExceptionFilter(app.get(HttpAdapterHost).httpAdapter));
   app.setGlobalPrefix('api');
+  // Payment gateways sign the exact raw JSON body. Parse this callback before
+  // the normal JSON middleware so the webhook can verify the signature.
+  app.use('/api/payments/webhook', raw({ type: 'application/json', limit: '100kb' }));
   app.use(json({ limit: '100kb' }));
   const origins = (process.env.WEB_ORIGIN || 'http://localhost:3000').split(',').map(v => v.trim());
   app.enableCors({ origin: origins, credentials: true });
@@ -34,11 +37,12 @@ async function bootstrap() {
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     // Applied in every environment so development and tests exercise the same policy as production.
     res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
-    if (process.env.NODE_ENV === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    if (process.env.NODE_ENV === 'production' && (process.env.WEB_ORIGIN || '').startsWith('https://')) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     if (req.path.startsWith('/api') || req.path.endsWith('.css') || req.path.endsWith('.js') || req.path.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers.origin && !origins.includes(req.headers.origin)) return res.status(403).json({ message: 'Origin not allowed' });
+    const reqHostOrigin = req.headers.host ? `${req.headers['x-forwarded-proto'] || req.protocol || 'http'}://${req.headers.host}` : '';
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers.origin && !origins.includes(req.headers.origin) && req.headers.origin !== reqHostOrigin) return res.status(403).json({ message: 'Origin not allowed' });
     if (/^\/api\/(auth|kyc|media)/.test(req.path) && req.method === 'POST') {
       const now = Date.now();
       for (const [key, value] of attempts) if (value.until < now) attempts.delete(key);
@@ -59,5 +63,7 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
   console.log(`Safar portal running at http://localhost:${port}`);
 }
-bootstrap();
-
+bootstrap().catch((err) => {
+  console.error('[Bootstrap] Fatal startup error:', err);
+  process.exit(1);
+});

@@ -24,5 +24,5 @@ export function fleetManager(user: { role: string }) {
   if (!FLEET_ROLES.includes(user.role as any)) throw new ForbiddenException('Host or dealer account required');
 }
 export const PHOTO_KINDS = ['FRONT', 'REAR', 'LEFT', 'RIGHT', 'INTERIOR', 'BOOT', 'BONNET', 'ODOMETER'] as const;
-export const INSPECTION_KINDS = ['ODOMETER', 'SELFIE_PICKUP', 'SELFIE_RETURN', 'DAMAGE', 'INSPECTION_PICKUP', 'INSPECTION_RETURN'] as const;
-export const DOCUMENT_KINDS = ['DL', 'RC', 'INSURANCE', 'PUC'] as const;
+export const INSPECTION_KINDS = ['ODOMETER', 'SELFIE_PICKUP', 'SELFIE_RETURN', 'SELFIE_KYC', 'DAMAGE', 'INSPECTION_PICKUP', 'INSPECTION_RETURN'] as const;
+export const DOCUMENT_KINDS = ['AADHAAR', 'DL', 'RC', 'INSURANCE', 'PUC'] as const;

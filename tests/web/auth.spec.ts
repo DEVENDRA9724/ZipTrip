@@ -40,9 +40,11 @@ test.describe('Authentication', () => {
     await page.getByLabel('Email address').fill(users.hostB.email);
     await page.getByLabel('Password').fill(password);
     await page.locator('#auth-form').getByRole('button', { name: /sign in/i }).click();
-    await page.waitForURL(/dashboard\.html|index\.html|\/$/);
+    await page.waitForURL((url) => !url.pathname.endsWith('auth.html'));
     expect((await page.request.get('/api/auth/profile')).status()).toBe(200);
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    // Sign out lives in the account menu.
+    await page.locator('.ds-user-menu summary').click();
+    await page.getByRole('menuitem', { name: /Sign out/ }).click();
     await expect(page).toHaveURL(/auth\.html/);
     expect((await page.context().cookies()).some((c) => c.name === 'safar_session')).toBe(false);
     expect((await page.request.get('/api/auth/profile')).status()).toBe(401);

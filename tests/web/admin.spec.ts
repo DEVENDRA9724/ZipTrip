@@ -96,6 +96,9 @@ test.describe('Admin panel', () => {
   });
 });
 
+// A rejected or missing image falls back to a bundled asset: the logo or the model's stock photo.
+const BUNDLED_FALLBACK = /^(safar-logo\.png|cars\/[a-z0-9]+\.jpg)$/;
+
 test.describe('Public vehicle image security', () => {
   test('stored hostile image URLs and names cannot inject markup or run script on listings', async ({ page }) => {
     const verify = await trapScriptInjection(page);
@@ -103,7 +106,7 @@ test.describe('Public vehicle image security', () => {
     const card = page.locator('a[href*="id=pw-car-xss"]').first();
     await expect(card).toBeVisible();
     const img = page.locator('img[data-vehicle-image][alt*="Injection PW"]').first();
-    await expect(img).toHaveAttribute('src', 'safar-logo.png');
+    await expect(img).toHaveAttribute('src', BUNDLED_FALLBACK);
     expect(await img.evaluate((el) => el.getAttributeNames().sort())).toEqual(['alt', 'data-vehicle-image', 'loading', 'src']);
     // The hostile make is shown as text, not parsed as an <img> element.
     await expect(page.getByText('<img src=x onerror=').first()).toBeVisible();
@@ -114,7 +117,7 @@ test.describe('Public vehicle image security', () => {
   test('vehicle detail pages render hostile values safely', async ({ page }) => {
     const verify = await trapScriptInjection(page);
     await page.goto('/cars.html?id=pw-car-xss');
-    await expect(page.locator('#car-hero-img')).toHaveAttribute('src', 'safar-logo.png');
+    await expect(page.locator('#car-hero-img')).toHaveAttribute('src', BUNDLED_FALLBACK);
     // Scoped to page content: the shared header logo has its own constant onerror fallback.
     expect(await page.locator('#app').locator('img[src="x"], [onerror], [onload]').count()).toBe(0);
     await verify();
@@ -125,7 +128,7 @@ test.describe('Public vehicle image security', () => {
     await page.goto('/cars.html?id=pw-car-https');
     await expect(page.locator('#car-hero-img')).toHaveAttribute('src', 'https://images.example.test/car.png');
     await page.goto('/cars.html?id=pw-car-http');
-    await expect(page.locator('#car-hero-img')).toHaveAttribute('src', 'safar-logo.png');
+    await expect(page.locator('#car-hero-img')).toHaveAttribute('src', BUNDLED_FALLBACK);
     await page.goto('/cars.html?id=pw-car-a');
     await expect(page.locator('#car-hero-img')).toHaveAttribute('src', /^\/api\/media\/[0-9a-f-]+$/);
     expect(await page.locator('#car-hero-img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
@@ -173,12 +176,12 @@ test.describe('Placeholder content removed', () => {
     expect(await page.locator('a[href^="tel:"], a[href*="wa.me"]').count()).toBe(0);
     // The city picker always offers the fixed service cities (names only, no invented pickup points), plus any other
     // city that has a listed car, with no duplicates; the search still works.
-    const options = (await page.locator('#bw-city option').allTextContents()).slice(1).sort();
+    const options = (await page.locator('#lp-city option').allTextContents()).slice(1).sort();
     const fixed = ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'];
     expect(options).toEqual([...new Set([...fixed, ...cities])].sort());
     expect(options.some((o) => o.includes('('))).toBe(false);
-    await page.locator('#bw-city').selectOption('Surat');
-    await page.locator('#find-available-cars').click();
+    await page.locator('#lp-city').selectOption('Surat');
+    await page.locator('#lp-search button[type=submit]').click();
     await expect(page).toHaveURL(/cars\.html\?.*city=Surat/);
     await expect(page.locator('a[href*="id=pw-car-b"]').first()).toBeVisible();
   });

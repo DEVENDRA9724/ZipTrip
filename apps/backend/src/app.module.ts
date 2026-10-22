@@ -17,6 +17,9 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { PayoutsModule } from './payouts/payouts.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ContactController } from './contact/contact.controller';
+import { PaymentWebhookController } from './payments/payment-webhook.controller';
+import { OperationsModule } from './operations/operations.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -29,8 +32,10 @@ import { ContactController } from './contact/contact.controller';
     ReviewsModule,
     PayoutsModule,
     NotificationsModule,
+    OperationsModule,
+    PaymentsModule,
   ],
-  controllers: [AppController, MediaController, KycController, AdminController, ContactController],
+  controllers: [AppController, MediaController, KycController, AdminController, ContactController, PaymentWebhookController],
   providers: [AppService, MediaService, SandboxService, DocumentEvidenceService],
 })
 export class AppModule {}

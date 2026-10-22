@@ -5,23 +5,46 @@ import { router } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { ArrowLeft, Mail, Lock } from 'lucide-react-native';
+import { ArrowLeft, Mail, Lock, Phone } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const colors = Colors.light;
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [mode, setMode] = useState<'password' | 'otp'>('password');
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login } = require('@/context/AuthContext').useAuth();
+  const { login, requestLoginOtp, loginWithOtp } = require('@/context/AuthContext').useAuth();
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please fill in all fields');
+    if (mode === 'otp') {
+      if (!phone) { setError('Enter your mobile number'); return; }
+      if (!otpSent) {
+        setError('');
+        setLoading(true);
+        try {
+          const res = await requestLoginOtp(phone);
+          setOtpSent(true);
+          if (res?.devOtp) setOtp(res.devOtp);
+        } catch (err: any) {
+          setError(err.message || 'Could not send OTP');
+        } finally { setLoading(false); }
+        return;
+      }
+      if (!/^\d{6}$/.test(otp)) { setError('Enter the 6-digit OTP'); return; }
+      setError('');
+      setLoading(true);
+      try { await loginWithOtp(phone, otp); router.replace('/'); }
+      catch (err: any) { setError(err.message || 'Invalid or expired OTP'); }
+      finally { setLoading(false); }
       return;
     }
+    if (!email || !password) { setError('Please fill in all fields'); return; }
     setError('');
     setLoading(true);
     try {
@@ -57,33 +80,31 @@ export default function LoginScreen() {
         ) : null}
 
         <View style={styles.form}>
-          <ThemedText style={styles.label}>Email Address</ThemedText>
-          <View style={[styles.inputContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-            <Mail size={18} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="Enter your email"
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
-
-          <ThemedText style={styles.label}>Password</ThemedText>
-          <View style={[styles.inputContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-            <Lock size={18} color={colors.textSecondary} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="Enter your password"
-              placeholderTextColor={colors.textSecondary}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          </View>
+          {mode === 'otp' ? <>
+            <ThemedText style={styles.label}>Mobile number</ThemedText>
+            <View style={[styles.inputContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+              <Phone size={18} color={colors.textSecondary} style={styles.inputIcon} />
+              <TextInput style={[styles.input, { color: colors.text }]} placeholder="+91 9876543210" placeholderTextColor={colors.textSecondary} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoCapitalize="none" editable={!otpSent} />
+            </View>
+            {otpSent ? <>
+              <ThemedText style={styles.label}>6-digit OTP</ThemedText>
+              <View style={[styles.inputContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+                <Lock size={18} color={colors.textSecondary} style={styles.inputIcon} />
+                <TextInput style={[styles.input, { color: colors.text }]} placeholder="Enter OTP" placeholderTextColor={colors.textSecondary} value={otp} onChangeText={setOtp} keyboardType="number-pad" maxLength={6} />
+              </View>
+            </> : null}
+          </> : <>
+            <ThemedText style={styles.label}>Email Address</ThemedText>
+            <View style={[styles.inputContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+              <Mail size={18} color={colors.textSecondary} style={styles.inputIcon} />
+              <TextInput style={[styles.input, { color: colors.text }]} placeholder="Enter your email" placeholderTextColor={colors.textSecondary} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+            </View>
+            <ThemedText style={styles.label}>Password</ThemedText>
+            <View style={[styles.inputContainer, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
+              <Lock size={18} color={colors.textSecondary} style={styles.inputIcon} />
+              <TextInput style={[styles.input, { color: colors.text }]} placeholder="Enter your password" placeholderTextColor={colors.textSecondary} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
+            </View>
+          </>}
 
           <TouchableOpacity
             style={[styles.button, { backgroundColor: colors.primary }]}
@@ -93,8 +114,12 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <ThemedText style={styles.buttonText}>Sign In</ThemedText>
+              <ThemedText style={styles.buttonText}>{mode === 'otp' ? (otpSent ? 'Verify & Sign In' : 'Send Login OTP') : 'Sign In'}</ThemedText>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => { setMode(mode === 'otp' ? 'password' : 'otp'); setOtpSent(false); setOtp(''); setError(''); }}>
+            <ThemedText style={[styles.switchText, { color: colors.primary }]}>{mode === 'otp' ? 'Use email and password instead' : 'Sign in with mobile OTP'}</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -192,6 +217,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  switchText: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: Spacing.two,
   },
   footer: {
     flexDirection: 'row',

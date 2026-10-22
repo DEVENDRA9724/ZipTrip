@@ -7,7 +7,7 @@ export const CONTENT_SECURITY_POLICY = [
   "script-src 'self'",
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
   // https: covers allow-listed external vehicle images; blob: is used for local photo previews before upload.
   "img-src 'self' data: blob: https:",
   "connect-src 'self'",

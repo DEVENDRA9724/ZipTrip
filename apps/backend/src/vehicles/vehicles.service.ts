@@ -30,7 +30,7 @@ export class VehiclesService {
     if (query.transmission) where.transmission = text(query.transmission, 'Transmission');
     if (query.seats) where.seats = number(query.seats, 'Seats', 2, 12, true);
     if (query.maxPrice) where.pricePerDay = { lte: number(query.maxPrice, 'Price', 1, 1000000) };
-    return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { select: { rating: true } } }, orderBy: { createdAt: 'desc' }, take: 100 });
+    return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { select: { rating: true } } }, orderBy: { createdAt: 'asc' }, take: 100 });
   }
   async findOne(id: string) {
     const vehicle = await this.prisma.vehicle.findFirst({
@@ -458,7 +458,7 @@ export class VehiclesService {
     return {
       registrationNumber, make: text(data.make, 'Make'), model: text(data.model, 'Model'),
       year: number(data.year, 'Year', 1990, new Date().getFullYear() + 1, true),
-      category: choice(data.category, 'Category', ['Hatchback', 'Sedan', 'Compact SUV', 'SUV', 'MUV', 'Luxury']),
+      category: choice(data.category, 'Category', ['Hatchback', 'Sedan', 'Compact SUV', 'SUV', 'MUV', 'Luxury', 'EV']),
       transmission: choice(data.transmission, 'Transmission', ['Manual', 'Automatic']),
       fuelType: choice(data.fuelType, 'Fuel', ['Petrol', 'Diesel', 'Electric', 'CNG', 'Hybrid']),
       seats: number(data.seats, 'Seats', 2, 12, true), pricePerDay,

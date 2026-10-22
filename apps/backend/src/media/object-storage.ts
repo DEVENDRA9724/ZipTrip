@@ -26,7 +26,8 @@ export function s3Settings(env: StorageEnv = process.env) {
     region: env.S3_REGION || env.AWS_REGION || 'ap-south-1',
     endpoint: env.S3_ENDPOINT || undefined,
     forcePathStyle: env.S3_FORCE_PATH_STYLE === 'true',
-    prefix: env.S3_PREFIX ?? 'media/',
+    // Always ends with "/" when set, so S3_PREFIX=safar-media and S3_PREFIX=safar-media/ name the same folder.
+    prefix: (env.S3_PREFIX ?? 'media/').replace(/^\/+/, '').replace(/([^/])$/, '$1/'),
     serverSideEncryption: env.S3_SERVER_SIDE_ENCRYPTION || undefined,
     credentials:
       env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY
@@ -61,8 +62,9 @@ export class S3ObjectStorage implements ObjectStorage {
   ) {
     this.settings = s3Settings(env);
   }
+  // Records written by the earlier storage code already hold the full object key (for example "safar-media/<id>.jpg").
   private objectKey(key: string) {
-    return this.settings.prefix + key;
+    return key.startsWith(this.settings.prefix) ? key : this.settings.prefix + key;
   }
   async put(key: string, body: Buffer, contentType: string) {
     const input: PutObjectCommandInput = {

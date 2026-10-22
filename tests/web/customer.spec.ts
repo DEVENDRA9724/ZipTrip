@@ -36,7 +36,7 @@ test.describe('Customer panel', () => {
 
   test('opens a vehicle detail page with its pickup city', async ({ page }) => {
     await page.goto('/cars.html?id=pw-car-a');
-    await expect(page.getByRole('heading', { name: /Hyundai.*Creta PW/ })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /Hyundai.*Creta PW/ })).toBeVisible();
     await expect(page.getByText('Pickup City:')).toBeVisible();
     await expect(page.getByText('Doorstep')).toHaveCount(0);
   });
@@ -44,14 +44,14 @@ test.describe('Customer panel', () => {
   test('validates booking fields and only enables booking after a server quote', async ({ page }) => {
     await page.goto('/cars.html?id=pw-car-a');
     const form = page.locator('#car-booking-form');
-    const submit = form.getByRole('button', { name: /Reserve This Car/ });
+    const submit = form.getByRole('button', { name: /Proceed to Booking/ });
     await expect(submit).toBeDisabled();
-    await form.getByLabel('Pickup Date & Time').fill(localInput(40));
-    await form.getByLabel('Return Date & Time').fill(localInput(39));
+    await form.getByLabel('Pick-up Date & Time').fill(localInput(40));
+    await form.getByLabel('Drop-off Date & Time').fill(localInput(39));
     await expect(page.locator('#booking-quote-box')).toContainText('Choose a valid pickup and return time');
     await expect(submit).toBeDisabled();
-    await form.getByLabel('Return Date & Time').fill(localInput(42));
-    await expect(page.locator('#booking-quote-box')).toContainText('Total at booking');
+    await form.getByLabel('Drop-off Date & Time').fill(localInput(42));
+    await expect(page.locator('#booking-quote-box')).toContainText('Total Payable');
     await expect(submit).toBeEnabled();
     // The terms checkbox is required: the browser blocks submission and no booking request is sent.
     let bookingRequests = 0;
@@ -65,13 +65,13 @@ test.describe('Customer panel', () => {
     await page.goto('/cars.html?id=pw-car-a');
     const form = page.locator('#car-booking-form');
     const start = localInput(50), end = localInput(52);
-    await form.getByLabel('Pickup Date & Time').fill(start);
-    await form.getByLabel('Return Date & Time').fill(end);
-    await expect(page.locator('#booking-quote-box')).toContainText('Total at booking');
+    await form.getByLabel('Pick-up Date & Time').fill(start);
+    await form.getByLabel('Drop-off Date & Time').fill(end);
+    await expect(page.locator('#booking-quote-box')).toContainText('Total Payable');
     await form.getByRole('checkbox').check();
     const [response] = await Promise.all([
       page.waitForResponse((r) => r.url().endsWith('/api/bookings') && r.request().method() === 'POST'),
-      form.getByRole('button', { name: /Reserve This Car/ }).click(),
+      form.getByRole('button', { name: /Proceed to Booking/ }).click(),
     ]);
     expect(response.status()).toBe(201);
     const sent = response.request().postDataJSON();
@@ -96,12 +96,12 @@ test.describe('Customer panel', () => {
     const start = localInput(60), end = localInput(62);
     await page.goto('/cars.html?id=pw-car-b');
     const form = page.locator('#car-booking-form');
-    await form.getByLabel('Pickup Date & Time').fill(start);
-    await form.getByLabel('Return Date & Time').fill(end);
+    await form.getByLabel('Pick-up Date & Time').fill(start);
+    await form.getByLabel('Drop-off Date & Time').fill(end);
     await form.getByRole('checkbox').check();
     // Any form input re-checks the quote; wait until booking is enabled for these dates.
-    await expect(page.locator('#booking-quote-box')).toContainText('Total at booking');
-    await expect(form.getByRole('button', { name: /Reserve This Car/ })).toBeEnabled();
+    await expect(page.locator('#booking-quote-box')).toContainText('Total Payable');
+    await expect(form.getByRole('button', { name: /Proceed to Booking/ })).toBeEnabled();
 
     // Another customer reserves the same dates after this quote was shown.
     const other = await apiAs('customer');
@@ -111,7 +111,7 @@ test.describe('Customer panel', () => {
 
     const [response] = await Promise.all([
       page.waitForResponse((r) => r.url().endsWith('/api/bookings') && r.request().method() === 'POST'),
-      form.getByRole('button', { name: /Reserve This Car/ }).click(),
+      form.getByRole('button', { name: /Proceed to Booking/ }).click(),
     ]);
     expect(response.status()).toBe(409);
     await expect(form.getByRole('alert')).toContainText(/already reserved/i);
@@ -135,7 +135,7 @@ test.describe('Local preview cars', () => {
     expect(await page.locator('[data-testid="preview-car"] a, a[data-testid="preview-car"]').count()).toBe(0);
     await expect(previews.first().getByText('Not bookable')).toBeVisible();
     // Filters work on the samples.
-    await page.locator('#chip-row .chip-btn', { hasText: /^SUV$/ }).click();
+    await page.locator('#chip-row .chip-btn[data-filter="SUV"]').click();
     await expect(previews).toHaveCount(3);
     // A dated search never shows samples, so they can't look like real availability.
     const start = new Date(Date.now() + 3 * 86400000).toISOString(), end = new Date(Date.now() + 5 * 86400000).toISOString();

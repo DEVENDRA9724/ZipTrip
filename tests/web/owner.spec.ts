@@ -26,9 +26,10 @@ test.describe('Vehicle owner panel (HOST)', () => {
 
   test('the account page keeps only the owner\'s own driving licence; car documents moved to Car Documents', async ({ page }) => {
     await page.goto('/dashboard.html?tab=kyc');
-    await expect(page.locator('#doc-kind option')).toHaveText(['DL']);
-    await expect(page.locator('#doc-vehicle')).toHaveCount(0);
+    // Owners verify their own identity here; there is no RC/Insurance/PUC upload on the account page.
     await expect(page.getByTestId('car-docs-moved')).toBeVisible();
+    await expect(page.locator('#doc-upload-form')).toHaveCount(0);
+    await expect(page.locator('select[name="kind"] option', { hasText: /^(RC|INSURANCE|PUC)$/ })).toHaveCount(0);
     // Old links that opened the account upload form for a car now open Car Documents at that car.
     await page.goto('/kyc.html?vehicle=pw-car-a');
     await expect(page).toHaveURL(/tab=documents&vehicle=pw-car-a/);

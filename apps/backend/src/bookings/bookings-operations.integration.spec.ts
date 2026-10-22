@@ -175,7 +175,7 @@ describe('Booking operations against an isolated database', () => {
         mediaIds: [odometer.id, selfie.id, condition.id],
       },
     );
-    expect(pickup).toEqual({ message: 'Trip started' });
+    expect(pickup).toEqual({ message: expect.stringMatching(/^Trip started/) });
     expect(
       (await prisma.booking.findUniqueOrThrow({ where: { id: trip.id } }))
         .status,
@@ -235,6 +235,8 @@ describe('Booking operations against an isolated database', () => {
       bookingRef: 'live',
       status: 'PENDING',
       expiresAt: new Date(Date.now() + 10 * 60000),
+      // Starts before the other test bookings, so it is within the dashboard's first five upcoming trips.
+      startDate: new Date(Date.now() + 60 * 60000),
     });
     const paid = await booking({
       bookingRef: 'paid-pending',
