@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException, Optional } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException, Optional, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -11,14 +11,25 @@ import { rentalQuote } from './pricing';
 import { rentalPolicy, cancellationRefundPercent } from './rental-policy';
 import { agreementPolicySnapshot, carSharingAgreementTerms, CAR_SHARING_AGREEMENT_VERSION } from './car-sharing-agreement';
 import { NotificationsService } from '../notifications/notifications.service';
+import {
+  vehicleEligibility,
+  eligibilityMessage,
+} from '../vehicles/vehicle-status';
+
+// Each PDF spawns python and LibreOffice; cap concurrent jobs per instance and kill converters that hang.
+const AGREEMENT_PDF_CONCURRENCY = 2;
+const agreementProcessTimeout = () => Number(process.env.AGREEMENT_PROCESS_TIMEOUT_MS) > 0 ? Number(process.env.AGREEMENT_PROCESS_TIMEOUT_MS) : 60000;
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+  private pdfJobs = 0;
   constructor(private prisma: PrismaService, @Optional() private notifications?: NotificationsService) {}
   async create(customerId: string, data: any) {
     const vehicleId = text(data.vehicleId, 'Vehicle');
     const requestKey = customerId + ':' + text(data.requestKey, 'Request key', 80);
     const { start, end } = rentalPeriod(data.startDate, data.endDate);
+    let created = false;
     const booking = await this.prisma.$transaction(async tx => {
       const previous = await tx.booking.findUnique({ where: { requestKey }, include: { vehicle: true, payment: true, invoice: true } });
       if (previous) {
@@ -30,11 +41,11 @@ export class BookingsService {
       // Lock before reading the price and status so admin changes cannot create stale quotes.
       const locked = await tx.vehicle.updateMany({ where: { id: vehicleId }, data: { updatedAt: new Date() } });
       if (!locked.count) throw new NotFoundException('Car is not available');
-      const car = await tx.vehicle.findUnique({ where: { id: vehicleId } });
-      if (!car || car.status !== 'ACTIVE') throw new NotFoundException('Car is not available');
+      const car = await tx.vehicle.findUnique({ where: { id: vehicleId }, include: { documents: true } });
+      if (!car || car.approvalStatus !== 'APPROVED' || car.availability !== 'ACTIVE') throw new NotFoundException('Car is not available');
       if (car.hostId === customerId) throw new BadRequestException('You cannot book your own car');
-      const docs = await tx.document.findMany({ where: { vehicleId, status: 'APPROVED', kind: { in: ['RC', 'INSURANCE', 'PUC'] }, validUntil: { gte: end } } });
-      if (!['RC', 'INSURANCE', 'PUC'].every(k => docs.some(d => d.kind === k))) throw new BadRequestException('Vehicle documents must remain valid through your return date');
+      const eligibility = vehicleEligibility(car, end);
+      if (!eligibility.bookable) throw new BadRequestException(eligibilityMessage(eligibility.reasons));
       // Serialize changes on this car before checking availability. Works with SQLite's write lock
       // and also becomes a row lock when migrated to PostgreSQL.
       await tx.vehicle.update({ where: { id: vehicleId }, data: { updatedAt: new Date() } });
@@ -53,12 +64,15 @@ export class BookingsService {
         cancellation: rentalPolicy.cancellation,
       });
       const termsSnapshot = carSharingAgreementTerms(policySnapshot);
-      return tx.booking.create({ data: { customerId, vehicleId, requestKey, startDate: start, endDate: end, rentalDays, dailyRate: car.pricePerDay, totalAmount, includedKilometres, securityDeposit,
+      const reservation = await tx.booking.create({ data: { customerId, vehicleId, requestKey, startDate: start, endDate: end, rentalDays, dailyRate: car.pricePerDay, totalAmount, includedKilometres, securityDeposit,
         bookingRef: 'SF-' + randomUUID().toUpperCase(), status: 'PENDING', expiresAt: new Date(Math.min(Date.now() + 30 * 60000, +start)),
         agreementVersion: CAR_SHARING_AGREEMENT_VERSION, agreementSnapshot: JSON.stringify({ policy: policySnapshot, terms: termsSnapshot, createdAt: new Date().toISOString() }) },
         include: { vehicle: true, payment: true, invoice: true } });
+      created = true;
+      return reservation;
     }, { timeout: 10000 });
-    await this.notifyBooking(booking, 'BOOKING_CREATED', 'Booking request received', `Booking ${booking.bookingRef} is awaiting payment and host confirmation.`);
+    // Idempotent replays return the original booking without notifying the parties again.
+    if (created) await this.notifyBooking(booking, 'BOOKING_CREATED', 'Booking request received', `Booking ${booking.bookingRef} is awaiting payment and host confirmation.`);
     return booking;
   }
   getMyTrips(customerId: string) {
@@ -166,7 +180,8 @@ export class BookingsService {
     const booking = await this.prisma.booking.findUnique({ where: { id }, include: { vehicle: true } });
     if (!booking) throw new NotFoundException('Booking not found');
     if (booking.customerId !== user.id && booking.vehicle.hostId !== user.id && user.role !== 'ADMIN') throw new ForbiddenException('Agreement access denied');
-    const detail = CAR_SHARING_AGREEMENT_VERSION;
+    // Acknowledge the version snapshotted on this booking (the one agreement() displays and looks up), not the current default.
+    const detail = booking.agreementVersion || CAR_SHARING_AGREEMENT_VERSION;
     const row = await this.prisma.auditLog.create({ data: { actorId: user.id, action: 'BOOKING_AGREEMENT_ACKNOWLEDGED', targetId: id, detail } });
     return { acceptedAt: row.createdAt, version: detail };
   }
@@ -186,47 +201,59 @@ export class BookingsService {
       resolve(root, 'apps/backend/scripts/docx_to_pdf_reportlab.py'),
     ].find(path => require('node:fs').existsSync(path));
     if (!template || !script) throw new BadRequestException('Agreement PDF template is not installed');
-    const work = await fs.mkdtemp(join(tmpdir(), 'safar-agreement-'));
-    const dataPath = join(work, 'agreement.json');
-    const docxPath = join(work, 'agreement.docx');
-    await fs.writeFile(dataPath, JSON.stringify({
-      ...agreement,
-      trip: agreement.scheduleI?.trip,
-      policy: agreement.scheduleIII,
-    }), 'utf8');
-    const python = process.env.AGREEMENT_PYTHON || 'python';
-    await this.runProcess(python, [script, '--template', template, '--data', dataPath, '--output', docxPath], work);
-    const pdfPath = join(work, 'agreement.pdf');
+    if (this.pdfJobs >= AGREEMENT_PDF_CONCURRENCY) throw new ServiceUnavailableException('Agreement PDFs are being generated for other requests. Try again in a minute.');
+    this.pdfJobs++;
+    // The work folder holds party names, emails and phone numbers, so it is removed on every exit path.
+    const work = await fs.mkdtemp(join(tmpdir(), 'safar-agreement-')).catch(error => { this.pdfJobs--; throw error; });
     try {
-      const renderer = process.env.AGREEMENT_DOCX_RENDERER;
-      if (renderer) {
-        await this.runProcess(python, [renderer, docxPath, '--output_dir', work, '--emit_pdf'], work);
-      } else {
-        const soffice = process.env.AGREEMENT_SOFFICE || 'soffice';
-        await this.runProcess(soffice, ['--headless', '--convert-to', 'pdf', '--outdir', work, docxPath], work);
+      const dataPath = join(work, 'agreement.json');
+      const docxPath = join(work, 'agreement.docx');
+      await fs.writeFile(dataPath, JSON.stringify({
+        ...agreement,
+        trip: agreement.scheduleI?.trip,
+        policy: agreement.scheduleIII,
+      }), 'utf8');
+      const python = process.env.AGREEMENT_PYTHON || 'python';
+      await this.runProcess(python, [script, '--template', template, '--data', dataPath, '--output', docxPath], work);
+      const pdfPath = join(work, 'agreement.pdf');
+      try {
+        const renderer = process.env.AGREEMENT_DOCX_RENDERER;
+        if (renderer) {
+          await this.runProcess(python, [renderer, docxPath, '--output_dir', work, '--emit_pdf'], work);
+        } else {
+          const soffice = process.env.AGREEMENT_SOFFICE || 'soffice';
+          await this.runProcess(soffice, ['--headless', '--convert-to', 'pdf', '--outdir', work, docxPath], work);
+        }
+      } catch (error) {
+        if (!fallbackPdfScript) throw error;
+        await this.runProcess(python, [fallbackPdfScript, '--input', docxPath, '--output', pdfPath], work);
       }
-    } catch (error) {
-      if (!fallbackPdfScript) throw error;
-      await this.runProcess(python, [fallbackPdfScript, '--input', docxPath, '--output', pdfPath], work);
+      if (!require('node:fs').existsSync(pdfPath)) throw new BadRequestException('Agreement PDF conversion failed');
+      const buffer = await fs.readFile(pdfPath);
+      return { buffer, fileName: `${agreement.booking.reference || id}-safarcars-agreement.pdf` };
+    } finally {
+      this.pdfJobs--;
+      await fs.rm(work, { recursive: true, force: true }).catch(error => this.logger.warn(`Agreement work folder cleanup failed: ${error?.message}`));
     }
-    if (!require('node:fs').existsSync(pdfPath)) throw new BadRequestException('Agreement PDF conversion failed');
-    const buffer = await fs.readFile(pdfPath);
-    await fs.rm(work, { recursive: true, force: true });
-    return { buffer, fileName: `${agreement.booking.reference || id}-safarcars-agreement.pdf` };
   }
-  private runProcess(command: string, args: string[], cwd: string) {
+  private runProcess(command: string, args: string[], cwd: string, timeoutMs = agreementProcessTimeout()) {
     return new Promise<void>((resolveProcess, reject) => {
+      // Converter output can contain server paths; it is logged here and clients receive a generic message.
+      // Only the last line (typically the exception) is kept, with the work folder redacted: tracebacks can echo
+      // agreement data such as party names, and the folder path is not useful in logs.
+      const fail = (detail: string) => { const line = detail.trim().split(/\r?\n/).pop() || ''; this.logger.warn(`Agreement converter ${command.split(/[\\/]/).pop()} failed: ${line.split(cwd).join('<work>').slice(0, 300)}`); reject(new BadRequestException('Agreement document conversion failed. Try again later or contact support.')); };
       let child;
       try {
         child = spawn(command, args, { cwd, windowsHide: true });
       } catch (error: any) {
-        reject(new BadRequestException(`Agreement document converter is unavailable: ${error?.message || 'process could not start'}`));
+        fail(error?.message || 'process could not start');
         return;
       }
-      let stderr = '';
-      child.stderr.on('data', chunk => { stderr += String(chunk); });
-      child.on('error', error => reject(new BadRequestException(`Agreement document converter is unavailable: ${error.message}`)));
-      child.on('close', code => code === 0 ? resolveProcess() : reject(new BadRequestException(`Agreement document conversion failed${stderr ? `: ${stderr.slice(0, 300)}` : ''}`)));
+      let stderr = '', settled = false;
+      const timer = setTimeout(() => { if (settled) return; settled = true; child.kill('SIGKILL'); fail(`timed out after ${timeoutMs} ms`); }, timeoutMs);
+      child.stderr.on('data', chunk => { if (stderr.length < 4000) stderr += String(chunk); });
+      child.on('error', error => { if (settled) return; settled = true; clearTimeout(timer); fail(error.message); });
+      child.on('close', code => { if (settled) return; settled = true; clearTimeout(timer); if (code === 0) resolveProcess(); else fail(`exit ${code}: ${stderr}`); });
     });
   }
   async cancel(userId: string, id: string) {
@@ -251,7 +278,7 @@ export class BookingsService {
     const damageNote = text(body.damageNote, 'Vehicle condition', 2000);
     const mediaIds = Array.from(new Set([mediaId, ...(Array.isArray(body.mediaIds) ? body.mediaIds : [])].map(item => text(item, 'Inspection photo', 100))));
     if (mediaIds.length > 12) throw new BadRequestException('Upload up to 12 inspection photos');
-    const booking = await this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async tx => {
       const booking = await tx.booking.findUnique({ where: { id }, include: { vehicle: true, inspections: true } });
       if (!booking) throw new NotFoundException('Booking not found');
       const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN';
@@ -268,7 +295,8 @@ export class BookingsService {
       if (stage === 'RETURN' && !media.some(item => item.kind === 'SELFIE_RETURN')) throw new BadRequestException('Upload a return selfie');
       if (stage === 'PICKUP' && !media.some(item => item.kind === 'INSPECTION_PICKUP')) throw new BadRequestException('Upload at least one pickup condition photo');
       if (stage === 'RETURN' && !media.some(item => item.kind === 'INSPECTION_RETURN')) throw new BadRequestException('Upload at least one return condition photo');
-      const alreadyUsed = await tx.inspection.findFirst({ where: { mediaId: { in: mediaIds } } });
+      // A photo may back only one inspection: check the primary column and the JSON list (ids are stored quoted, so the match is exact).
+      const alreadyUsed = await tx.inspection.findFirst({ where: { OR: [{ mediaId: { in: mediaIds } }, ...mediaIds.map(item => ({ mediaIds: { contains: JSON.stringify(item) } }))] } });
       if (alreadyUsed) throw new BadRequestException('One of these inspection photos was already used');
       if (stage === 'DAMAGE') {
         if (!media.some(item => item.kind === 'DAMAGE')) throw new BadRequestException('Upload at least one damage photo');

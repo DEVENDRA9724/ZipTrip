@@ -1,14 +1,26 @@
 import 'dotenv/config';
-import { NestFactory } from '@nestjs/core';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { json } from 'express';
+import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+import { trustProxySetting } from './common/trust-proxy';
+import { CONTENT_SECURITY_POLICY } from './common/security-headers';
+import { assertProductionStorage } from './media/object-storage';
+import { assertDemoVerificationAllowed } from './vehicles/vehicle-status';
 
 async function bootstrap() {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32 || process.env.JWT_SECRET.startsWith('replace-')) throw new Error('Set a random JWT_SECRET of at least 32 characters in apps/backend/.env');
+  // Uploaded photos and documents are stored in S3 only; production refuses to start without it.
+  assertProductionStorage();
+  assertDemoVerificationAllowed();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
+  // Behind nginx/ALB set TRUST_PROXY (for example "loopback" or "1") so req.ip, rate limits and audit context use the client address.
+  const trustProxy = trustProxySetting(process.env.TRUST_PROXY);
+  if (trustProxy !== undefined) app.set('trust proxy', trustProxy);
+  app.useGlobalFilters(new PrismaExceptionFilter(app.get(HttpAdapterHost).httpAdapter));
   app.setGlobalPrefix('api');
   app.use(json({ limit: '100kb' }));
   const origins = (process.env.WEB_ORIGIN || 'http://localhost:3000').split(',').map(v => v.trim());
@@ -20,10 +32,9 @@ async function bootstrap() {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-DNS-Prefetch-Control', 'off');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    if (process.env.NODE_ENV === 'production') {
-      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-      res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
-    }
+    // Applied in every environment so development and tests exercise the same policy as production.
+    res.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+    if (process.env.NODE_ENV === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     if (req.path.startsWith('/api') || req.path.endsWith('.css') || req.path.endsWith('.js') || req.path.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }

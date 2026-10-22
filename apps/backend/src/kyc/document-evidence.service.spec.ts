@@ -101,7 +101,7 @@ describe('Original document evidence', () => {
   it('audits the displayed fallback record rather than the unavailable selected record', async () => {
     prisma.document.findUnique.mockResolvedValue({ ...doc, id: 'old-doc' });
     jest.spyOn(service, 'available').mockResolvedValue({ documentId: 'new-doc', source: 'DIGILOCKER', environment: 'live', files: [{ url: 'https://issuer.example/file.pdf' }] });
-    await new AdminController(prisma, service).evidence({ user: { id: 'admin', role: 'ADMIN' } }, 'old-doc');
+    await new AdminController(prisma, service, {} as any).evidence({ user: { id: 'admin', role: 'ADMIN' } }, 'old-doc');
     expect(prisma.auditLog.create.mock.calls[0][0].data.targetId).toBe('new-doc');
   });
 
@@ -126,7 +126,7 @@ describe('Original document evidence', () => {
     prisma.auditLog.findFirst = jest.fn().mockResolvedValue(viewed);
     prisma.document.update = jest.fn();
     prisma.$transaction = callback => callback(prisma);
-    await expect(new AdminController(prisma, service).review({ user: { id: 'admin', role: 'ADMIN' } }, 'doc', {
+    await expect(new AdminController(prisma, service, {} as any).review({ user: { id: 'admin', role: 'ADMIN' } }, 'doc', {
       status: 'APPROVED', note: 'Inspected identity', identityChecked: true,
     })).rejects.toThrow('Retrieve and inspect');
     expect(prisma.document.update).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('Original document evidence', () => {
   });
 
   it('rejects non-admin access to evidence and legacy certificates', async () => {
-    const controller = new AdminController(prisma, service);
+    const controller = new AdminController(prisma, service, {} as any);
     await expect(controller.evidence({ user: { id: 'owner', role: 'CUSTOMER' } }, 'doc')).rejects.toThrow('Administrator access required');
     await expect(controller.certificate({ user: { id: 'owner', role: 'CUSTOMER' } }, 'doc', {} as any)).rejects.toThrow('Administrator access required');
     expect(prisma.document.findUnique).not.toHaveBeenCalled();
@@ -174,7 +174,7 @@ describe('Original document evidence', () => {
     prisma.document.findUnique.mockResolvedValue(doc);
     sandbox.call.mockResolvedValue({ files: [{ url: 'https://issuer.example/dl.pdf' }] });
     const response: any = { setHeader: jest.fn(), redirect: jest.fn() };
-    await new AdminController(prisma, service).certificate({ user: { id: 'admin', role: 'ADMIN' } }, 'doc', response);
+    await new AdminController(prisma, service, {} as any).certificate({ user: { id: 'admin', role: 'ADMIN' } }, 'doc', response);
     expect(response.redirect).toHaveBeenCalledWith(303, 'https://issuer.example/dl.pdf');
     expect(prisma.auditLog.create).toHaveBeenCalledWith({ data: { actorId: 'admin', action: 'DOCUMENT_VIEWED', targetId: 'doc', detail: 'DL' } });
   });

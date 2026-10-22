@@ -1,5 +1,6 @@
 import { rentalPeriod, overlappingReservations } from './availability';
 import { VehiclesService } from '../vehicles/vehicles.service';
+import { UNVERIFIED_DOCUMENT_SOURCES } from '../vehicles/vehicle-status';
 
 describe('Rental availability', () => {
   const now = new Date('2030-01-01T00:00:00Z');
@@ -28,12 +29,25 @@ describe('Rental availability', () => {
     const findMany = jest.fn().mockResolvedValue([]);
     await new VehiclesService({ vehicle: { findMany } } as any).findAll({ startDate: pickup, endDate: drop, city: 'Ahmedabad' });
     const where = findMany.mock.calls[0][0].where;
-    expect(where.status).toBe('ACTIVE');
+    expect(where).toMatchObject({
+      approvalStatus: 'APPROVED',
+      availability: 'ACTIVE',
+    });
     expect(where.locationCity).toBe('Ahmedabad');
     expect(where.bookings.none).toEqual(overlappingReservations(new Date(pickup), new Date(drop), now));
     expect(where.AND).toHaveLength(3);
     expect(where.AND.map(item => item.documents.some.kind)).toEqual(['RC', 'INSURANCE', 'PUC']);
     expect(where.AND.every(item => +item.documents.some.validUntil.gte === +new Date(drop))).toBe(true);
+    // Only evidenced, genuine documents count: demo and provider-test records never make a car bookable.
+    const genuine = {
+      documents: {
+        some: {
+          mediaId: { not: null },
+          source: { notIn: UNVERIFIED_DOCUMENT_SOURCES },
+        },
+      },
+    };
+    expect(where).toMatchObject({ AND: [genuine, genuine, genuine] });
   });
   it('rejects a one-sided date filter before accessing the database', () => {
     const findMany = jest.fn();

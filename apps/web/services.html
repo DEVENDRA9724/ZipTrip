@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Services &amp; Tariff &bull; Safar Self Drive Gujarat</title>
-  <meta name="description" content="Explore Safar Self Drive's comprehensive services: Premium self-drive car rental and premium luxury chauffeur taxi services across Gujarat." />
+  <meta name="description" content="Explore Safar Self Drive's comprehensive services: Self-drive car rental across Gujarat." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -601,7 +601,7 @@ a { color: inherit; text-decoration: none; }
 <body>
 
   <!-- UNIFIED HAMBURGER MENU DRAWER -->
-  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" data-action="toggle-menu"></div>
   <aside class="site-menu-drawer" id="side-menu-drawer">
     <!-- Populated by safar-auth.js -->
   </aside>
@@ -613,9 +613,9 @@ a { color: inherit; text-decoration: none; }
   ═══════════════════════════════════════════════════════════════ -->
   <header class="site-header">
     <div class="header-inner">
-      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo -->
       <div class="header-left-box">
-        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+        <button class="btn-clay-hamburger" data-action="toggle-menu" title="Open Navigation Menu" aria-label="Menu">
           <span class="hamburger-bar"></span>
           <span class="hamburger-bar"></span>
           <span class="hamburger-bar"></span>
@@ -624,23 +624,18 @@ a { color: inherit; text-decoration: none; }
         <a href="index.html" class="header-logo-link">
           <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
         </a>
-
-        <div class="header-location-badge" title="Active Hubs Across Gujarat">
-          <span class="pulse-dot"></span>
-          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
-        </div>
       </div>
 
       <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
       <div class="header-center-spacer"></div>
 
-      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <!-- Right: Contact (when published) + User Profile / Sign In Pill -->
       <div class="header-right-box">
-        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+        <a class="header-concierge-pill" data-contact="phone-link" title="Call Safar" hidden>
           <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
           </svg>
-          <span class="helpline-num">+91 99999 99999</span>
+          <span class="helpline-num" data-contact="phone" hidden></span>
         </a>
 
         <div id="header-auth-container">
@@ -709,7 +704,7 @@ a { color: inherit; text-decoration: none; }
         </table>
 
         <div style="margin-top: 24px;">
-          <a href="cars.html?service=self-drive" class="btn-header-cars" style="padding: 10px 20px; font-size: 0.88rem;">
+          <a href="cars.html" class="btn-header-cars" style="padding: 10px 20px; font-size: 0.88rem;">
             Book Self Drive Cars &rarr;
           </a>
         </div>
@@ -717,96 +712,21 @@ a { color: inherit; text-decoration: none; }
 
       <img src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=800" alt="Self Drive Thar" style="width: 100%; border-radius: var(--radius-md); height: 300px; object-fit: cover;" />
     </div>
-
-    <!-- Block 2: Taxi & Chauffeur -->
-    <div class="svc-detail-block">
-      <div>
-        <span class="svc-badge-pill" style="background: var(--brand-purple-pale); color: var(--brand-purple);">
-          🚖 Taxi with Driver (Per KM Rate)
-        </span>
-        <h2 style="font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 800; margin-bottom: 12px;">
-          Taxi &amp; Luxury Chauffeur Service
-        </h2>
-        <p style="color: var(--text-secondary); line-height: 1.7; font-size: 0.95rem;">
-          Sit back, relax, and let our verified chauffeurs handle Gujarat's traffic and highways. Ideal for business executive hops, airport pick &amp; drops, weddings, and family pilgrimages to Somnath &amp; Dwarka.
-        </p>
-
-        <table class="rate-table">
-          <thead>
-            <tr>
-              <th>Vehicle Class</th>
-              <th>Models</th>
-              <th>Rate / KM</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><b>Executive Sedan</b></td>
-              <td>Honda City, Ciaz (AC)</td>
-              <td><b>₹12 / km</b></td>
-            </tr>
-            <tr>
-              <td><b>VIP SUV</b></td>
-              <td>Toyota Fortuner Legender</td>
-              <td><b>₹24 / km</b></td>
-            </tr>
-            <tr>
-              <td><b>Luxury Sedan</b></td>
-              <td>Mercedes-Benz E-Class, BMW 5</td>
-              <td><b>₹35 &ndash; ₹38 / km</b></td>
-            </tr>
-            <tr>
-              <td><b>Group Tour (17 Seat)</b></td>
-              <td>Force Tempo Traveller Luxury</td>
-              <td><b>₹22 / km</b></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style="margin-top: 24px;">
-          <a href="cars.html?service=taxi" class="btn-header-cars" style="background: var(--brand-purple); padding: 10px 20px; font-size: 0.88rem;">
-            Book Taxi with Driver &rarr;
-          </a>
-        </div>
-      </div>
-
-      <img src="https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=800" alt="Mercedes Taxi" style="width: 100%; border-radius: var(--radius-md); height: 300px; object-fit: cover;" />
-    </div>
   </div>
 
   <!-- ─── FOOTER ─── -->
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-bottom">
-        <div>&copy; 2026 Safar Self Drive. All Rights Reserved. Safar Self Drive &amp; Taxi Services Across Gujarat.</div>
+        <div>&copy; 2026 Safar Self Drive. All Rights Reserved. Self-drive car rental in Gujarat.</div>
         <div><a href="cars.html" style="color: var(--brand-orange); font-weight: 700;">Find Available Cars &rarr;</a></div>
       </div>
     </div>
   </footer>
 
-  <a href="https://wa.me/919999999999" class="wa-float" title="Chat on WhatsApp">💬</a>
+  <a class="wa-float" data-contact="whatsapp-link" target="_blank" title="Chat on WhatsApp" hidden>💬</a>
 
-  <script>
-    function toggleMenuDrawer() {
-      const drawer = document.getElementById('side-menu-drawer');
-      const backdrop = document.getElementById('drawer-backdrop');
-      if (drawer && backdrop) {
-        drawer.classList.toggle('active');
-        backdrop.classList.toggle('active');
-      }
-    }
-    // Update drawer username if logged in
-    document.addEventListener('DOMContentLoaded', () => {
-      const userStr = localStorage.getItem('safar_user');
-      const statusEl = document.getElementById('drawer-user-status');
-      if (userStr && statusEl) {
-        try {
-          const user = JSON.parse(userStr);
-          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
-        } catch(e) {}
-      }
-    });
-  </script>
+  <script src="contact-info.js"></script>
 
   <script src="safar-auth.js"></script>
 </body>

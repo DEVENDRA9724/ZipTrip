@@ -81,10 +81,20 @@ model Vehicle {
   registrationNumber String? @unique
   odometer       Int @default(0)
   reviewNote     String?
+  // Approval (DRAFT | PENDING_APPROVAL | APPROVED | REJECTED) and availability (ACTIVE | INACTIVE) are separate.
+  // A car is publicly bookable only when APPROVED + ACTIVE + compliant (src/vehicles/vehicle-status.ts). The legacy
+  // `status` column above is kept in sync from these two fields for existing readers.
+  approvalStatus     String    @default("DRAFT")
+  availability       String    @default("INACTIVE")
+  availabilityReason String?
+  approvedById       String?
+  approvedAt         DateTime?
+  rejectedReason     String?
   media          Media[]
   documents      Document[]
 
   @@index([locationCity, status])
+  @@index([approvalStatus, availability])
   availabilityBlocks AvailabilityBlock[]
 }
 
@@ -288,6 +298,15 @@ model PayoutAccount {
   status                 String   @default("PENDING")
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+  // Destination revision: incremented on every change of holder, bank, IFSC or account number. Verification is bound
+  // to one revision (verifiedRevision), so a later change invalidates it. fingerprint is an HMAC of the destination.
+  revision               Int      @default(1)
+  fingerprint            String?
+  changedById            String?
+  changedAt              DateTime?
+  reviewedById           String?
+  reviewedAt             DateTime?
+  verifiedRevision       Int?
   user                   User     @relation(fields: [userId], references: [id])
   payouts                Payout[]
 }
@@ -303,6 +322,19 @@ model Payout {
   note        String?
   createdAt   DateTime @default(now())
   processedAt DateTime?
+  // Immutable destination captured from the verified account when the payout is created. Ordinary status updates
+  // never write these columns. CAPTURED = snapshot present; RECONCILIATION_REQUIRED = destination unknown (legacy,
+  // non-final); LEGACY_UNVERIFIED = legacy payout already PAID/CANCELLED before snapshots existed.
+  destinationState                  String    @default("RECONCILIATION_REQUIRED")
+  destinationAccountHolderName      String?
+  destinationBankName               String?
+  destinationIfscCode               String?
+  destinationAccountNumberLast4     String?
+  destinationEncryptedAccountNumber String?
+  destinationFingerprint            String?
+  destinationAccountRevision        Int?
+  destinationCapturedAt             DateTime?
   account     PayoutAccount @relation(fields: [accountId], references: [id])
   @@index([accountId, status])
+  @@index([destinationState])
 }

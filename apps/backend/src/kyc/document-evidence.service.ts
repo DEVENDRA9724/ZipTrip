@@ -100,6 +100,8 @@ export class DocumentEvidenceService {
       try {
         result = await this.sandbox.call('/kyc/digilocker/sessions/' + encodeURIComponent(session.providerId) + '/documents/' + kind);
       } catch (error) {
+        // Classify on the provider's own text when available; it is not shown to the user.
+        error = { message: (error as any)?.providerMessage ?? (error as any)?.message ?? '' };
         if (/insufficient credits/i.test(error.message)) throw unavailable('Sandbox reports insufficient credits. Ask the administrator to check the live API wallet.');
         if (/data not found|expired|no longer available/i.test(error.message)) throw unavailable('Sandbox no longer has the original file for this expired session. Ask the customer to start a new DigiLocker verification and sync it again.');
         throw unavailable('DigiLocker/Sandbox could not return the file. Retry, or complete verification again if access has expired.');

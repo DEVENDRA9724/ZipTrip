@@ -22,6 +22,9 @@ export class PayoutsController {
   @Post('admin/create')
   create(@Request() req: any, @Body() body: any) { return this.payouts.create(req.user, body); }
 
+  @Post(':id/reconcile')
+  reconcile(@Request() req: any, @Param('id') id: string, @Body() body: any) { return this.payouts.reconcile(req.user, id, body); }
+
   @Post(':id/status')
   status(@Request() req: any, @Param('id') id: string, @Body() body: any) { return this.payouts.updateStatus(req.user, id, body); }
 

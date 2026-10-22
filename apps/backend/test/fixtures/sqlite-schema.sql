@@ -37,6 +37,12 @@ CREATE TABLE "Vehicle" (
     "registrationNumber" TEXT,
     "odometer" INTEGER NOT NULL DEFAULT 0,
     "reviewNote" TEXT,
+    "approvalStatus" TEXT NOT NULL DEFAULT 'DRAFT',
+    "availability" TEXT NOT NULL DEFAULT 'INACTIVE',
+    "availabilityReason" TEXT,
+    "approvedById" TEXT,
+    "approvedAt" DATETIME,
+    "rejectedReason" TEXT,
     CONSTRAINT "Vehicle_hostId_fkey" FOREIGN KEY ("hostId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -232,6 +238,13 @@ CREATE TABLE "PayoutAccount" (
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
+    "revision" INTEGER NOT NULL DEFAULT 1,
+    "fingerprint" TEXT,
+    "changedById" TEXT,
+    "changedAt" DATETIME,
+    "reviewedById" TEXT,
+    "reviewedAt" DATETIME,
+    "verifiedRevision" INTEGER,
     CONSTRAINT "PayoutAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -247,6 +260,15 @@ CREATE TABLE "Payout" (
     "note" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "processedAt" DATETIME,
+    "destinationState" TEXT NOT NULL DEFAULT 'RECONCILIATION_REQUIRED',
+    "destinationAccountHolderName" TEXT,
+    "destinationBankName" TEXT,
+    "destinationIfscCode" TEXT,
+    "destinationAccountNumberLast4" TEXT,
+    "destinationEncryptedAccountNumber" TEXT,
+    "destinationFingerprint" TEXT,
+    "destinationAccountRevision" INTEGER,
+    "destinationCapturedAt" DATETIME,
     CONSTRAINT "Payout_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "PayoutAccount"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
@@ -261,6 +283,9 @@ CREATE UNIQUE INDEX "Vehicle_registrationNumber_key" ON "Vehicle"("registrationN
 
 -- CreateIndex
 CREATE INDEX "Vehicle_locationCity_status_idx" ON "Vehicle"("locationCity", "status");
+
+-- CreateIndex
+CREATE INDEX "Vehicle_approvalStatus_availability_idx" ON "Vehicle"("approvalStatus", "availability");
 
 -- CreateIndex
 CREATE INDEX "AvailabilityBlock_vehicleId_startDate_endDate_idx" ON "AvailabilityBlock"("vehicleId", "startDate", "endDate");
@@ -308,3 +333,6 @@ CREATE INDEX "PartyRating_targetId_createdAt_idx" ON "PartyRating"("targetId", "
 CREATE INDEX "Notification_userId_readAt_createdAt_idx" ON "Notification"("userId", "readAt", "createdAt");
 CREATE UNIQUE INDEX "PayoutAccount_userId_key" ON "PayoutAccount"("userId");
 CREATE INDEX "Payout_accountId_status_idx" ON "Payout"("accountId", "status");
+
+-- CreateIndex
+CREATE INDEX "Payout_destinationState_idx" ON "Payout"("destinationState");

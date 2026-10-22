@@ -26,9 +26,18 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:pg:prepare": "node scripts/prepare-postgres.js",
     "db:pg:generate": "prisma generate --config prisma.postgres.config.ts",
-    "db:pg:deploy": "prisma migrate deploy --config prisma.postgres.config.ts"
+    "db:pg:deploy": "prisma migrate deploy --config prisma.postgres.config.ts",
+    "db:verify-migrations": "node scripts/verify-migrations.mjs",
+    "secrets:scan-history": "node scripts/scan-git-history.cjs",
+    "db:backup": "node scripts/sqlite-backup.cjs",
+    "db:backfill-vehicles": "node scripts/backfill-vehicle-status.cjs",
+    "db:relabel-demo-documents": "node scripts/relabel-legacy-demo-documents.cjs",
+    "media:migrate-to-s3": "node scripts/migrate-media-to-s3.cjs",
+    "media:verify-s3": "node scripts/migrate-media-to-s3.cjs --verify-only",
+    "demo:complete-account": "node scripts/demo-complete-account.cjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1141.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
@@ -86,5 +95,11 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.17",
+    "valibot": "1.4.2",
+    "mysql2": "3.24.5",
+    "deepmerge-ts": "8.0.2"
   }
 }

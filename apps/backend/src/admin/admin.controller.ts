@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Request, Res, Query, UseGuards, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Request, Res, Query, UseGuards, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -6,10 +6,25 @@ import { DocumentEvidenceService } from '../kyc/document-evidence.service';
 import { admin, choice, text, number, PHOTO_KINDS } from '../common/validation';
 import { randomUUID } from 'node:crypto';
 import { rentalPolicy, lateReturnCharge } from '../bookings/rental-policy';
+import { csvCell } from '../common/csv';
+import { externalImageUrl } from '../common/image-url';
+import { VehiclesService } from '../vehicles/vehicles.service';
+import {
+  APPROVAL_STATUSES,
+  AVAILABILITY_STATES,
+  REVOCATION_HOLD,
+  UNVERIFIED_DOCUMENT_SOURCES,
+  isAdministrativeRestriction,
+  flagUpcomingBookings,
+  legacyVehicleStatus,
+  upcomingBookingWhere,
+  vehicleEligibility,
+} from '../vehicles/vehicle-status';
+import { recomputeCustomerVerification } from '../kyc/customer-verification';
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
 export class AdminController {
-  constructor(private prisma: PrismaService, private documents: DocumentEvidenceService) {}
+  constructor(private prisma: PrismaService, private documents: DocumentEvidenceService, private vehicles: VehiclesService) {}
   @Get()
   async overview(@Request() req: any, @Query() query: any = {}) {
     admin(req.user);
@@ -18,24 +33,105 @@ export class AdminController {
     const vehicleStatus = query.vehicleStatus ? choice(query.vehicleStatus, 'Vehicle status', ['ACTIVE', 'PENDING_APPROVAL', 'INACTIVE', 'MAINTENANCE']) : undefined;
     const bookingStatus = query.bookingStatus ? choice(query.bookingStatus, 'Booking status', ['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']) : undefined;
     const documentStatus = query.documentStatus ? choice(query.documentStatus, 'Document status', ['PENDING', 'APPROVED', 'REJECTED']) : undefined;
+    const filters = query as {
+      approvalStatus?: unknown;
+      availability?: unknown;
+    };
+    const approvalStatus = filters.approvalStatus
+      ? choice(filters.approvalStatus, 'Approval status', APPROVAL_STATUSES)
+      : undefined;
+    const availability = filters.availability
+      ? choice(filters.availability, 'Availability', AVAILABILITY_STATES)
+      : undefined;
     const role = query.role ? choice(query.role, 'User role', ['CUSTOMER', 'HOST', 'DEALER', 'ADMIN']) : undefined;
     const [users, vehicles, bookings, documents, audit] = await Promise.all([
       this.prisma.user.findMany({ where: { ...(role ? { role: role as any } : {}), ...(search ? { OR: [{ email: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }] } : {}) }, select: { id: true, firstName: true, lastName: true, email: true, role: true, isVerified: true, isBlocked: true, dlValidUntil: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
-      this.prisma.vehicle.findMany({ where: { ...(vehicleStatus ? { status: vehicleStatus as any } : {}), ...(search ? { OR: [{ make: { contains: search } }, { model: { contains: search } }, { registrationNumber: { contains: search } }, { locationCity: { contains: search } }] } : {}) }, include: { media: { select: { id: true, kind: true } }, documents: true, host: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
+      this.prisma.vehicle.findMany({ where: { ...(vehicleStatus ? { status: vehicleStatus as any } : {}), ...(approvalStatus ? { approvalStatus } : {}), ...(availability ? { availability } : {}), ...(search ? { OR: [{ make: { contains: search } }, { model: { contains: search } }, { registrationNumber: { contains: search } }, { locationCity: { contains: search } }] } : {}) }, include: { media: { select: { id: true, kind: true } }, documents: true, host: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.booking.findMany({ where: { ...(bookingStatus ? { status: bookingStatus as any } : {}), ...(search ? { OR: [{ bookingRef: { contains: search } }, { vehicle: { make: { contains: search } } }, { vehicle: { model: { contains: search } } }, { customer: { email: { contains: search } } }] } : {}) }, include: { vehicle: true, payment: true, invoice: true, customer: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.document.findMany({ where: { ...(documentStatus ? { status: documentStatus } : {}), ...(search ? { OR: [{ kind: { contains: search } }, { user: { email: { contains: search } } }, { user: { firstName: { contains: search } } }, { user: { lastName: { contains: search } } }] } : {}) }, include: { user: { select: { firstName: true, lastName: true, email: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
       this.prisma.auditLog.findMany({ where: search ? { OR: [{ action: { contains: search } }, { targetId: { contains: search } }, { detail: { contains: search } }] } : {}, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: offset, take: 200 }),
     ]);
     const today = new Date(); today.setUTCHours(0, 0, 0, 0);
     const [vehiclePending, documentPending, refunds, activeBookings, todayRevenue, paidRevenue] = await Promise.all([
-      this.prisma.vehicle.count({ where: { status: 'PENDING_APPROVAL' } }),
+      this.prisma.vehicle.count({ where: { approvalStatus: 'PENDING_APPROVAL' } }),
       this.prisma.document.count({ where: { status: 'PENDING' } }),
       this.prisma.payment.count({ where: { status: 'REFUND_PENDING' } }),
       this.prisma.booking.count({ where: { status: { in: ['CONFIRMED', 'ACTIVE'] } } }),
       this.prisma.payment.aggregate({ where: { status: 'SUCCESS', createdAt: { gte: today } }, _sum: { amount: true } }),
       this.prisma.payment.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
     ]);
-    return { users, vehicles, bookings, documents, audit, metrics: { vehiclePending, documentPending, refunds, activeBookings, todayRevenue: Number(todayRevenue._sum.amount || 0), paidRevenue: Number(paidRevenue._sum.amount || 0) }, nextOffset: [users, vehicles, bookings, documents, audit].some(rows => rows.length === 200) ? offset + 200 : null };
+    const reviewFlags = await this.bookingReviewFlags();
+    return {
+      users,
+      vehicles: vehicles.map((v) => ({
+        ...v,
+        eligibility: vehicleEligibility(v),
+      })),
+      bookings,
+      documents,
+      audit,
+      reviewFlags,
+      metrics: {
+        bookingsNeedingReview: reviewFlags.length,
+        vehiclePending,
+        documentPending,
+        refunds,
+        activeBookings,
+        todayRevenue: Number(todayRevenue._sum.amount || 0),
+        paidRevenue: Number(paidRevenue._sum.amount || 0),
+      },
+      nextOffset: [users, vehicles, bookings, documents, audit].some(
+        (rows) => rows.length === 200,
+      )
+        ? offset + 200
+        : null,
+    };
+  }
+  // Upcoming bookings (live holds and confirmed trips not yet started) whose car is no longer approved, active or
+  // compliant through the booking's return date. Computed on every request, so it also covers documents that expire
+  // after booking; recorded flag events (pauses, revocations) are listed alongside. Bookings are never changed here.
+  private async bookingReviewFlags() {
+    const upcoming = await this.prisma.booking.findMany({
+      where: upcomingBookingWhere(),
+      include: {
+        vehicle: { include: { documents: true } },
+        customer: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: { startDate: 'asc' },
+      take: 500,
+    });
+    const events = await this.prisma.auditLog.findMany({
+      where: {
+        action: 'BOOKING_REVIEW_FLAGGED',
+        targetId: { in: upcoming.map((b) => b.id) },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return upcoming.flatMap((b) => {
+      const { reasons } = vehicleEligibility(b.vehicle, b.endDate);
+      const flagged = events
+        .filter((e) => e.targetId === b.id)
+        .map((e) => ({
+          at: e.createdAt,
+          ...(JSON.parse(e.detail) as Record<string, unknown>),
+        }));
+      return reasons.length || flagged.length
+        ? [
+            {
+              bookingId: b.id,
+              bookingRef: b.bookingRef,
+              status: b.status,
+              startDate: b.startDate,
+              endDate: b.endDate,
+              vehicleId: b.vehicleId,
+              vehicle: b.vehicle.make + ' ' + b.vehicle.model,
+              customer: b.customer.firstName + ' ' + b.customer.lastName,
+              reasons,
+              flagged,
+            },
+          ]
+        : [];
+    });
   }
   // Redirect legacy certificate links to the original document after authorization.
   @Get('documents/:id/certificate')
@@ -68,7 +164,15 @@ export class AdminController {
     return this.prisma.$transaction(async tx => {
       const doc = await tx.document.findUnique({ where: { id } });
       if (!doc) throw new NotFoundException();
-      if (doc.source === 'DIGILOCKER_TEST' && status === 'APPROVED') throw new BadRequestException('Trial documents cannot grant rental eligibility');
+      // Documents an administrator submitted (for example for their own fleet car) need a different reviewer.
+      if (doc.userId === req.user.id) throw new ForbiddenException('Another administrator must review documents you submitted');
+      if (
+        UNVERIFIED_DOCUMENT_SOURCES.includes(doc.source) &&
+        status === 'APPROVED'
+      )
+        throw new BadRequestException(
+          'Trial and demo documents cannot grant rental eligibility',
+        );
       if (status === 'APPROVED' && doc.kind !== 'AADHAAR' && !validUntil) throw new BadRequestException('Expiry date is required');
       if (status === 'APPROVED' && body.identityChecked !== true) throw new BadRequestException('Confirm identity, expiry and applicable vehicle class against the source document');
       if (status === 'APPROVED') {
@@ -77,11 +181,39 @@ export class AdminController {
       }
       const result = await tx.document.update({ where: { id }, data: { status, reviewNote: note, validUntil } });
       if (!doc.vehicleId) {
-        const approved = await tx.document.findMany({ where: { userId: doc.userId, status: 'APPROVED', source: { not: 'DIGILOCKER_TEST' } } });
-        const dl = approved.filter(d => d.kind === 'DL' && d.validUntil && d.validUntil > new Date()).sort((a,b) => +b.validUntil! - +a.validUntil!)[0];
-        await tx.user.update({ where: { id: doc.userId }, data: { isVerified: Boolean(dl && approved.some(d => d.kind === 'AADHAAR')), dlValidUntil: dl?.validUntil || null } });
+        await recomputeCustomerVerification(tx, doc.userId);
       } else if (status === 'REJECTED') {
-        await tx.vehicle.update({ where: { id: doc.vehicleId }, data: { status: 'PENDING_APPROVAL' } });
+        // A rejected compliance document revokes an approved listing back to review; existing bookings are kept and
+        // upcoming ones are flagged for an administrator. Availability is left as the owner set it.
+        const car = await tx.vehicle.findUniqueOrThrow({
+          where: { id: doc.vehicleId },
+        });
+        if (car.approvalStatus === 'APPROVED') {
+          await tx.vehicle.update({
+            where: { id: car.id },
+            data: REVOCATION_HOLD,
+          });
+          await tx.auditLog.create({
+            data: {
+              actorId: req.user.id,
+              action: 'VEHICLE_APPROVAL_REVOKED',
+              targetId: car.id,
+              detail: JSON.stringify({
+                reason: 'DOCUMENT_REJECTED',
+                documentKind: doc.kind,
+                documentId: doc.id,
+                previousAvailability: car.availability,
+                previousAvailabilityReason: car.availabilityReason,
+              }),
+            },
+          });
+          await flagUpcomingBookings(
+            tx,
+            car.id,
+            'DOCUMENT_REJECTED',
+            req.user.id,
+          );
+        }
       }
       await tx.auditLog.create({ data: { actorId: req.user.id, action: 'DOCUMENT_' + status, targetId: id, detail: note } });
       return result;
@@ -90,105 +222,174 @@ export class AdminController {
   @Post('vehicles')
   async createVehicle(@Request() req: any, @Body() body: any) {
     admin(req.user);
-    const make = text(body.make, 'Make', 50);
-    const model = text(body.model, 'Model', 50);
-    const year = number(body.year, 'Year', 2000, 2030, true);
-    const registrationNumber = text(body.registrationNumber, 'Registration number', 30).toUpperCase();
-    const locationCity = text(body.city || body.locationCity, 'City', 50);
-    const category = text(body.category || 'SUV', 'Category', 30);
-    const transmission = choice(body.transmission || 'AUTOMATIC', 'Transmission', ['MANUAL', 'AUTOMATIC']);
-    const fuelType = choice(body.fuelType || 'PETROL', 'Fuel type', ['PETROL', 'DIESEL', 'ELECTRIC', 'HYBRID', 'CNG']);
-    const seats = number(body.seats || 5, 'Seats', 1, 50, true);
-    const pricePerDay = number(body.pricePerDay, 'Daily rate', 1, 1000000);
-    const odometer = body.odometer ? number(body.odometer, 'Odometer', 0, 1000000, true) : 5000;
-    const images = typeof body.images === 'string' && body.images.trim()
-      ? body.images.trim()
-      : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80';
-
-    const existing = await this.prisma.vehicle.findUnique({ where: { registrationNumber } });
-    if (existing) throw new BadRequestException('Vehicle with registration number ' + registrationNumber + ' already exists');
-
-    return this.prisma.$transaction(async tx => {
-      const vehicle = await tx.vehicle.create({
-        data: {
-          hostId: req.user.id,
-          make,
-          model,
-          year,
-          category,
-          transmission,
-          fuelType,
-          seats,
-          pricePerDay,
-          status: 'ACTIVE',
-          locationCity,
-          registrationNumber,
-          odometer,
-          images,
-        }
-      });
-
-      for (const kind of PHOTO_KINDS) {
-        await tx.media.create({
-          data: {
-            ownerId: req.user.id,
-            vehicleId: vehicle.id,
-            kind,
-            storageKey: 'fleet-' + vehicle.id + '-' + kind.toLowerCase() + '.jpg',
-            mimeType: 'image/jpeg',
-            size: 102400,
-            sha256: randomUUID().replace(/-/g, ''),
-          }
-        });
-      }
-
-      const threeYearsLater = new Date();
-      threeYearsLater.setFullYear(threeYearsLater.getFullYear() + 3);
-
-      for (const kind of ['RC', 'INSURANCE', 'PUC']) {
-        await tx.document.create({
-          data: {
-            userId: req.user.id,
-            vehicleId: vehicle.id,
-            kind,
-            status: 'APPROVED',
-            source: 'ADMIN_FLEET_UPLOAD',
-            validUntil: threeYearsLater,
-            reviewNote: 'Fleet vehicle compliance verified on creation by admin',
-          }
-        });
-      }
-
-      await tx.auditLog.create({
-        data: {
-          actorId: req.user.id,
-          action: 'VEHICLE_CREATED_BY_ADMIN',
-          targetId: vehicle.id,
-          detail: JSON.stringify({ make, model, registrationNumber, pricePerDay })
-        }
-      });
-
-      return vehicle;
-    });
+    // Created as PENDING_APPROVAL through the shared listing rules. No placeholder photos or pre-approved
+    // compliance documents are generated; another administrator must review real evidence before it can go live.
+    return this.vehicles.createByAdmin(req.user.id, body, externalImageUrl(body.images));
   }
 
+  // Approval decisions: APPROVE | REJECT | REVOKE, by an administrator who is not the car's owner. Availability is a
+  // separate control (POST /vehicles/:id/availability). The legacy { status } body is still accepted and mapped:
+  // ACTIVE → approve (if pending) and activate; PENDING_APPROVAL → revoke; INACTIVE / MAINTENANCE → deactivate.
   @Post('vehicles/:id/review')
-  async vehicle(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async vehicle(
+    @Request() req: { user: { id: string; role: string } },
+    @Param('id') id: string,
+    @Body() body: { decision?: unknown; status?: unknown; note?: unknown },
+  ) {
     admin(req.user);
-    const status = choice(body.status, 'Status', ['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'PENDING_APPROVAL']) as any;
     const reviewNote = text(body.note, 'Review reason', 1000);
-    return this.prisma.$transaction(async tx => {
-      const car = await tx.vehicle.findUnique({ where: { id }, include: { media: true, documents: true } });
-      if (!car) throw new NotFoundException();
-      if (car.hostId === req.user.id) throw new BadRequestException('Another administrator must review your listing');
-      if (status === 'ACTIVE') {
-        if (!car.registrationNumber || !PHOTO_KINDS.every(k => car.media.some(m => m.kind === k))) throw new BadRequestException('All required photos and registration are needed');
-        if (!['RC','INSURANCE','PUC'].every(k => car.documents.some(d => d.kind === k && d.status === 'APPROVED' && d.validUntil && d.validUntil > new Date()))) throw new BadRequestException('Approve valid RC, insurance and PUC first');
-      }
-      const result = await tx.vehicle.update({ where: { id }, data: { status, reviewNote } });
-      await tx.auditLog.create({ data: { actorId: req.user.id, action: 'VEHICLE_' + status, targetId: id, detail: reviewNote } });
-      return result;
+    const legacy =
+      body.decision === undefined
+        ? choice(body.status, 'Status', [
+            'ACTIVE',
+            'INACTIVE',
+            'MAINTENANCE',
+            'PENDING_APPROVAL',
+          ])
+        : null;
+    const decision = legacy
+      ? null
+      : choice(body.decision, 'Decision', ['APPROVE', 'REJECT', 'REVOKE']);
+    const car0 = await this.prisma.vehicle.findUnique({
+      where: { id },
+      select: { hostId: true, approvalStatus: true, availabilityReason: true },
     });
+    if (!car0) throw new NotFoundException();
+    if (car0.hostId === req.user.id)
+      throw new BadRequestException(
+        'Another administrator must review your listing',
+      );
+    // The legacy ACTIVE body approves and lists in one request. A car under a review hold or other administrative
+    // restriction must be approved and then reactivated as two separate actions (Phase 9 decision D1), so the legacy
+    // shortcut is refused before anything changes. On an already approved car it is that separate reactivation.
+    if (
+      legacy === 'ACTIVE' &&
+      car0.approvalStatus !== 'APPROVED' &&
+      isAdministrativeRestriction(car0.availabilityReason)
+    )
+      throw new ConflictException({
+        message:
+          'This listing is under an administrative hold. Approve it first, then reactivate it as a separate action.',
+        reasons: ['RESTRICTED_' + car0.availabilityReason],
+      });
+    if (legacy === 'INACTIVE' || legacy === 'MAINTENANCE')
+      return this.vehicles.setAvailability(req.user.id, id, {
+        availability: 'INACTIVE',
+        reason: legacy === 'MAINTENANCE' ? 'MAINTENANCE' : 'ADMIN_SUSPENDED',
+      });
+    const action =
+      decision ??
+      (legacy === 'PENDING_APPROVAL'
+        ? 'REVOKE'
+        : car0.approvalStatus === 'APPROVED'
+          ? null
+          : 'APPROVE');
+    const result = action
+      ? await this.prisma.$transaction(async (tx) => {
+          const car = await tx.vehicle.findUniqueOrThrow({
+            where: { id },
+            include: { media: true, documents: true },
+          });
+          const allowed: Record<string, string[]> = {
+            APPROVE: ['PENDING_APPROVAL'],
+            REJECT: ['PENDING_APPROVAL'],
+            REVOKE: ['APPROVED'],
+          };
+          // A draft is a listing still missing photos or registration.
+          if (action === 'APPROVE' && car.approvalStatus === 'DRAFT')
+            throw new BadRequestException(
+              'All required photos and registration are needed',
+            );
+          if (!allowed[action].includes(car.approvalStatus))
+            throw new BadRequestException(
+              `A ${car.approvalStatus.replace('_', ' ').toLowerCase()} listing cannot be ${action === 'APPROVE' ? 'approved' : action === 'REJECT' ? 'rejected' : 'revoked'}`,
+            );
+          if (action === 'APPROVE') {
+            if (
+              !car.registrationNumber ||
+              !PHOTO_KINDS.every((k) => car.media.some((m) => m.kind === k))
+            )
+              throw new BadRequestException(
+                'All required photos and registration are needed',
+              );
+            // Approval needs current, evidenced compliance (approved after the document evidence review).
+            const compliance = vehicleEligibility({
+              ...car,
+              approvalStatus: 'APPROVED',
+              availability: 'ACTIVE',
+            });
+            if (!compliance.bookable)
+              throw new BadRequestException({
+                message: 'Approve valid RC, insurance and PUC first',
+                reasons: compliance.reasons,
+              });
+          }
+          const approvalStatus =
+            action === 'APPROVE'
+              ? 'APPROVED'
+              : action === 'REJECT'
+                ? 'REJECTED'
+                : 'PENDING_APPROVAL';
+          const changed = await tx.vehicle.updateMany({
+            where: { id, approvalStatus: car.approvalStatus },
+            data: {
+              approvalStatus,
+              reviewNote,
+              status: legacyVehicleStatus(
+                approvalStatus,
+                car.availability,
+                car.availabilityReason,
+              ),
+              // Revocation also takes the car off the market under a review hold (decision D1, Phase 9).
+              ...(action === 'REVOKE' ? REVOCATION_HOLD : {}),
+              ...(action === 'APPROVE'
+                ? {
+                    approvedById: req.user.id,
+                    approvedAt: new Date(),
+                    rejectedReason: null,
+                  }
+                : action === 'REJECT'
+                  ? { rejectedReason: reviewNote }
+                  : {}),
+            },
+          });
+          if (changed.count !== 1)
+            throw new ConflictException('Vehicle changed. Refresh and retry.');
+          await tx.auditLog.create({
+            data: {
+              actorId: req.user.id,
+              action: (
+                {
+                  APPROVE: 'VEHICLE_APPROVED',
+                  REJECT: 'VEHICLE_REJECTED',
+                  REVOKE: 'VEHICLE_APPROVAL_REVOKED',
+                } as Record<string, string>
+              )[action],
+              targetId: id,
+              detail: JSON.stringify({
+                from: car.approvalStatus,
+                to: approvalStatus,
+                note: reviewNote,
+                ...(action === 'REVOKE'
+                  ? {
+                      previousAvailability: car.availability,
+                      previousAvailabilityReason: car.availabilityReason,
+                    }
+                  : {}),
+              }),
+            },
+          });
+          if (action === 'REVOKE')
+            await flagUpcomingBookings(tx, id, 'APPROVAL_REVOKED', req.user.id);
+          return tx.vehicle.findUniqueOrThrow({ where: { id } });
+        })
+      : null;
+    // Legacy "ACTIVE" also lists the car, through the availability rules (compliance is checked again there).
+    if (legacy === 'ACTIVE')
+      return this.vehicles.setAvailability(req.user.id, id, {
+        availability: 'ACTIVE',
+      });
+    return result;
   }
   @Post('bookings/:id/payment')
   async payment(@Request() req: any, @Param('id') id: string, @Body() body: any) {
@@ -197,12 +398,26 @@ export class AdminController {
     const amount = number(body.amount, 'Amount received', 1, 90000000);
     if (body.received !== true) throw new BadRequestException('Confirm receipt in your bank or payment account');
     return this.prisma.$transaction(async tx => {
-      const booking = await tx.booking.findUnique({ where: { id }, include: { vehicle: true, customer: true, payment: true, invoice: true } });
+      const booking = await tx.booking.findUnique({
+        where: { id },
+        include: {
+          vehicle: { include: { documents: true } },
+          customer: true,
+          payment: true,
+          invoice: true,
+        },
+      });
       if (!booking) throw new NotFoundException();
       if (booking.payment?.transactionId === reference && booking.payment.status === 'SUCCESS' && Number(booking.payment.amount) === amount) return booking.invoice;
       if (booking.status !== 'PENDING' || !booking.expiresAt || booking.expiresAt <= new Date() || booking.startDate <= new Date()) throw new BadRequestException('Reservation expired or is not awaiting payment');
       if (amount !== Number(booking.totalAmount)) throw new BadRequestException('Received amount must match the booking total');
-      if (!booking.customer.isVerified || !booking.customer.dlValidUntil || booking.customer.dlValidUntil < booking.endDate || booking.vehicle.status !== 'ACTIVE') throw new BadRequestException('KYC or vehicle eligibility changed');
+      if (
+        !booking.customer.isVerified ||
+        !booking.customer.dlValidUntil ||
+        booking.customer.dlValidUntil < booking.endDate ||
+        !vehicleEligibility(booking.vehicle, booking.endDate).bookable
+      )
+        throw new BadRequestException('KYC or vehicle eligibility changed');
       const changed = await tx.booking.updateMany({ where: { id, status: 'PENDING', expiresAt: { gt: new Date() } }, data: { status: 'CONFIRMED', expiresAt: null } });
       if (changed.count !== 1) throw new ConflictException('Reservation changed');
       await tx.payment.create({ data: { bookingId: id, transactionId: reference, amount, status: 'SUCCESS' } });
@@ -237,12 +452,13 @@ export class AdminController {
     const to = query.to ? new Date(query.to + 'T23:59:59.999Z') : undefined;
     if ((from && !Number.isFinite(+from)) || (to && !Number.isFinite(+to))) throw new BadRequestException('Invalid export date range');
     const bookings = await this.prisma.booking.findMany({ where: { ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}) }, include: { customer: { select: { firstName: true, lastName: true, email: true } }, vehicle: { include: { host: { select: { firstName: true, lastName: true, email: true } } } }, payment: true, invoice: true }, orderBy: { createdAt: 'desc' }, take: 10000 });
-    const cell = (value: unknown) => '"' + String(value ?? '').replace(/"/g, '""') + '"';
     const rows: Array<Array<string | number>> = [['Booking reference','Created at','Customer','Customer email','Host','Vehicle','Registration','Pickup','Return','Status','Rental amount','Security deposit','Total','Payment status','Payment reference','Invoice']];
     for (const booking of bookings) rows.push([booking.bookingRef, booking.createdAt.toISOString(), booking.customer.firstName + ' ' + booking.customer.lastName, booking.customer.email, booking.vehicle.host.firstName + ' ' + booking.vehicle.host.lastName, booking.vehicle.make + ' ' + booking.vehicle.model, booking.vehicle.registrationNumber || '', booking.startDate.toISOString(), booking.endDate.toISOString(), booking.status, Number(booking.totalAmount) - Number(booking.securityDeposit), Number(booking.securityDeposit), Number(booking.totalAmount), booking.payment?.status || 'NOT_RECORDED', booking.payment?.transactionId || '', booking.invoice?.number || '']);
+    // The export contains customer names and emails in bulk, so every download is audited.
+    await this.prisma.auditLog.create({ data: { actorId: req.user.id, action: 'BOOKINGS_EXPORTED', targetId: 'export.csv', detail: JSON.stringify({ from: query.from || null, to: query.to || null, rows: bookings.length }) } });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="safar-bookings-mis.csv"');
-    res.send(rows.map(row => row.map(cell).join(',')).join('\r\n'));
+    res.send(rows.map(row => row.map(csvCell).join(',')).join('\r\n'));
   }
   @Get('bookings/:id/settlement')
   async settlement(@Request() req: any, @Param('id') id: string) {

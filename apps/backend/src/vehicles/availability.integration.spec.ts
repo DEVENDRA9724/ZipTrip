@@ -23,8 +23,38 @@ describe('Availability against an isolated database', () => {
     service = new VehiclesService(prisma as any);
     await prisma.user.create({ data: { id: 'host', email: 'test@example.invalid', passwordHash: 'test-only', firstName: 'Test', lastName: 'Host', role: 'HOST' } });
     for (const id of ['free', 'confirmed', 'active', 'held', 'expired', 'cancelled', 'boundary', 'invalid-docs']) {
-      await prisma.vehicle.create({ data: { id, hostId: 'host', make: 'Test', model: id, year: 2024, category: 'SUV', transmission: 'Automatic', fuelType: 'Petrol', seats: 5, pricePerDay: 2000, status: 'ACTIVE', locationCity: 'Ahmedabad', images: '[]' } });
-      for (const kind of ['RC', 'INSURANCE', 'PUC']) await prisma.document.create({ data: { userId: 'host', vehicleId: id, kind, status: 'APPROVED', validUntil: new Date(+end + (id === 'invalid-docs' ? -1 : 86400000)) } });
+      await prisma.vehicle.create({
+        data: {
+          id,
+          hostId: 'host',
+          make: 'Test',
+          model: id,
+          year: 2024,
+          category: 'SUV',
+          transmission: 'Automatic',
+          fuelType: 'Petrol',
+          seats: 5,
+          pricePerDay: 2000,
+          status: 'ACTIVE',
+          approvalStatus: 'APPROVED',
+          availability: 'ACTIVE',
+          locationCity: 'Ahmedabad',
+          images: '[]',
+        },
+      });
+      for (const kind of ['RC', 'INSURANCE', 'PUC'])
+        await prisma.document.create({
+          data: {
+            userId: 'host',
+            vehicleId: id,
+            kind,
+            status: 'APPROVED',
+            mediaId: id + '-' + kind,
+            validUntil: new Date(
+              +end + (id === 'invalid-docs' ? -1 : 86400000),
+            ),
+          },
+        });
     }
     for (const [id, status] of [['confirmed', 'CONFIRMED'], ['active', 'ACTIVE'], ['held', 'PENDING'], ['expired', 'PENDING'], ['cancelled', 'CANCELLED'], ['boundary', 'CONFIRMED']] as const) {
       await prisma.booking.create({ data: { bookingRef: id, vehicleId: id, customerId: 'host', startDate: id === 'boundary' ? end : start, endDate: new Date(+end + 86400000), status, totalAmount: 4000, expiresAt: new Date(Date.now() + (id === 'expired' ? -60000 : 600000)) } });
@@ -75,11 +105,12 @@ describe('Availability against an isolated database', () => {
     const car = await service.create('host', input);
     expect(car.category).toBe('Compact SUV');
     expect(car.status).toBe('PENDING_APPROVAL');
+    expect(car).toMatchObject({ approvalStatus: 'PENDING_APPROVAL', availability: 'INACTIVE' });
     await expect(service.create('host', input)).rejects.toThrow('already listed');
   });
   it('audits admin prices and blocks, protects existing quotes, and restricts checkout hold changes', async () => {
     await prisma.user.create({ data: { id: 'admin', email: 'admin@example.invalid', passwordHash: 'test-only', firstName: 'Test', lastName: 'Admin', role: 'ADMIN' } });
-    const controller = new AdminController(prisma as any, {} as any);
+    const controller = new AdminController(prisma as any, {} as any, {} as any);
     const req = { user: { id: 'admin', role: 'ADMIN' } };
     await expect(controller.pricing({ user: { id: 'host', role: 'HOST' } }, 'free', { pricePerDay: 2500, expectedRate: 2000, reason: 'Test' })).rejects.toThrow('Administrator');
     const previous = await prisma.booking.findFirstOrThrow({ where: { vehicleId: 'free' } });

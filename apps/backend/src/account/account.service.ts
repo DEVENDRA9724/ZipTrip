@@ -20,7 +20,8 @@ export class AccountService {
       }),
       this.prisma.booking.groupBy({ by: ['status'], where: { customerId: userId }, _count: { _all: true } }),
       this.prisma.booking.findMany({
-        where: { customerId: userId, endDate: { gte: now }, status: { in: ['PENDING', 'CONFIRMED', 'ACTIVE'] } },
+        // An unpaid hold counts as upcoming only while it still reserves the car; expired holds are released by HoldExpiryService.
+        where: { customerId: userId, endDate: { gte: now }, OR: [{ status: { in: ['CONFIRMED', 'ACTIVE'] } }, { status: 'PENDING', expiresAt: { gt: now } }] },
         include: { vehicle: { select: { id: true, make: true, model: true, year: true, locationCity: true, registrationNumber: true } }, payment: { select: { status: true } } },
         orderBy: { startDate: 'asc' }, take: 5,
       }),
@@ -45,7 +46,7 @@ export class AccountService {
       this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, firstName: true, lastName: true, email: true, phone: true, isVerified: true } }),
       this.prisma.vehicle.findMany({
         where: { hostId: userId },
-        select: { id: true, make: true, model: true, year: true, locationCity: true, registrationNumber: true, pricePerDay: true, status: true, odometer: true, documents: { select: { kind: true, status: true, validUntil: true } }, media: { select: { kind: true } } },
+        select: { id: true, make: true, model: true, year: true, locationCity: true, registrationNumber: true, pricePerDay: true, status: true, approvalStatus: true, availability: true, odometer: true, documents: { select: { kind: true, status: true, validUntil: true } }, media: { select: { kind: true } } },
         orderBy: { createdAt: 'desc' }, take: 100,
       }),
       this.prisma.booking.findMany({
@@ -58,7 +59,7 @@ export class AccountService {
     return {
       role,
       profile,
-      fleet: { total: vehicles.length, active: vehicles.filter(v => v.status === 'ACTIVE').length, pendingApproval: vehicles.filter(v => v.status === 'PENDING_APPROVAL').length, vehicles },
+      fleet: { total: vehicles.length, active: vehicles.filter(v => v.approvalStatus === 'APPROVED' && v.availability === 'ACTIVE').length, pendingApproval: vehicles.filter(v => v.approvalStatus === 'PENDING_APPROVAL').length, vehicles },
       bookings,
       earnings: { grossCollected: Number(revenue._sum.amount || 0), paidBookings: revenue._count._all, payoutStatus: 'MANUAL_RECONCILIATION_PENDING' },
     };

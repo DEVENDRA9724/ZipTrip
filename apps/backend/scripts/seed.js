@@ -5,18 +5,23 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const sharp = require('sharp');
+const { s3Storage } = require('./s3-storage.cjs');
 
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
+// Local demonstration data only. Its "approved" documents have no evidence files and are labelled DEMO_SEED so they
+// are never mistaken for reviewed records. Refuse to run against production or PostgreSQL databases.
+if (process.env.NODE_ENV === 'production' || /^postgres(ql)?:\/\//.test(process.env.DATABASE_URL || '')) {
+  throw new Error('seed.js creates demo accounts and unverified demo documents; it only runs against a local SQLite database.');
+}
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL || 'file:./portal.db' });
 const prisma = new PrismaClient({ adapter });
+// Photos go to S3 (or the local MinIO emulator) only, like every upload made through the portal.
+const storage = s3Storage();
 
 const PHOTO_KINDS = ['FRONT', 'REAR', 'LEFT', 'RIGHT', 'INTERIOR', 'BOOT', 'BONNET', 'ODOMETER'];
 
 async function createMediaFromImage(ownerId, filePath, kind) {
-  const uploadDir = path.resolve(__dirname, '../uploads');
-  fs.mkdirSync(uploadDir, { recursive: true });
-
   const rawBuffer = fs.readFileSync(filePath);
   const buffer = await sharp(rawBuffer)
     .resize({ width: 1200, height: 800, fit: 'cover' })
@@ -24,8 +29,7 @@ async function createMediaFromImage(ownerId, filePath, kind) {
     .toBuffer();
 
   const storageKey = crypto.randomUUID() + '.jpg';
-  const targetPath = path.join(uploadDir, storageKey);
-  fs.writeFileSync(targetPath, buffer);
+  await storage.put(storageKey, buffer, 'image/jpeg');
 
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
 
@@ -79,13 +83,11 @@ async function seed() {
   });
   console.log('Host ready: host@safar.com');
 
-  // 3. Customer (Verified for booking)
+  // 3. Customer. Demo KYC records never grant real verification (Phase 6), so the customer starts unverified.
   const custPasswordHash = await bcrypt.hash('Customer@12345678', 12);
   const customer = await prisma.user.upsert({
     where: { email: 'customer@safar.com' },
     update: {
-      isVerified: true,
-      dlValidUntil: new Date('2029-12-31T23:59:59Z'),
       role: 'CUSTOMER',
     },
     create: {
@@ -94,23 +96,22 @@ async function seed() {
       lastName: 'Shah',
       phone: '+919812345678',
       role: 'CUSTOMER',
-      isVerified: true,
-      dlValidUntil: new Date('2029-12-31T23:59:59Z'),
+      isVerified: false,
       passwordHash: custPasswordHash,
       wallet: { create: { balance: 5000.0 } },
     },
   });
 
-  // Seed Aadhaar and DL documents for customer so verification checks succeed
+  // Demo Aadhaar and DL records for the KYC screens; their DEMO_SEED source keeps them from verifying the customer.
   const existingCustDocs = await prisma.document.findMany({ where: { userId: customer.id } });
   if (!existingCustDocs.some(d => d.kind === 'AADHAAR')) {
     await prisma.document.create({
       data: {
         userId: customer.id,
         kind: 'AADHAAR',
-        source: 'DIGILOCKER_LIVE',
+        source: 'DEMO_SEED',
         status: 'APPROVED',
-        reviewNote: 'Aadhaar eKYC verified via Sandbox DigiLocker',
+        reviewNote: 'Demo seed data - not a verified Aadhaar record',
       },
     });
   }
@@ -119,14 +120,14 @@ async function seed() {
       data: {
         userId: customer.id,
         kind: 'DL',
-        source: 'DIGILOCKER_LIVE',
+        source: 'DEMO_SEED',
         status: 'APPROVED',
         validUntil: new Date('2029-12-31T23:59:59Z'),
-        reviewNote: 'Driving Licence approved for LMV-NT / Transport class',
+        reviewNote: 'Demo seed data - not a verified driving licence',
       },
     });
   }
-  console.log('Customer ready: customer@safar.com (KYC & DL verified)');
+  console.log('Customer ready: customer@safar.com (demo KYC records, not verified)');
 
   // 4. Sample Fleet
   const carsDir = path.resolve(__dirname, '../../web/cars');
@@ -253,8 +254,11 @@ async function seed() {
         odometer: carData.odometer,
         locationCity: carData.locationCity,
         registrationNumber: carData.registrationNumber,
-        status: 'ACTIVE',
-        reviewNote: 'Verified and approved for listing with all 8 photo angles inspected.',
+        // Demo cars wait for admin review and are not bookable: their documents are unverified demo records.
+        status: 'PENDING_APPROVAL',
+        approvalStatus: 'PENDING_APPROVAL',
+        availability: 'INACTIVE',
+        reviewNote: 'Demo seed car - awaiting admin review; compliance documents are unverified demo records.',
         images: JSON.stringify(mediaList.map(m => '/api/media/' + m.id)),
       },
     });
@@ -265,7 +269,7 @@ async function seed() {
       data: { vehicleId: vehicle.id },
     });
 
-    // Create approved RC, Insurance, PUC documents
+    // Demo RC, Insurance and PUC records (DEMO_SEED, no evidence file): they never make the car bookable.
     const docExpiry = new Date('2028-12-31T23:59:59Z');
     for (const docKind of ['RC', 'INSURANCE', 'PUC']) {
       await prisma.document.create({
@@ -274,14 +278,14 @@ async function seed() {
           vehicleId: vehicle.id,
           kind: docKind,
           status: 'APPROVED',
-          source: 'HOST_UPLOAD',
+          source: 'DEMO_SEED',
           validUntil: docExpiry,
-          reviewNote: `${docKind} verified and valid until 2028`,
+          reviewNote: `Demo seed data - ${docKind} not verified against a real document`,
         },
       });
     }
 
-    console.log(`Car seeded & approved: ${carData.make} ${carData.model} (${carData.registrationNumber})`);
+    console.log(`Demo car seeded (pending review): ${carData.make} ${carData.model} (${carData.registrationNumber})`);
   }
 
   console.log('Seeding completed successfully!');

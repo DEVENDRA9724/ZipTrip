@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, UseGuards, Request, Res } from '@nestjs/co
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { demoVerificationEnabled } from '../vehicles/vehicle-status';
 
 @Controller('auth')
 export class AuthController {
@@ -27,6 +28,10 @@ export class AuthController {
   }
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  profile(@Request() req: any) { return this.auth.validateUser(req.user.id); }
+  async profile(@Request() req: any) {
+    const user = await this.auth.validateUser(req.user.id);
+    // Lets the portal label demo records honestly while local demo mode is on.
+    return user && demoVerificationEnabled() ? { ...user, demoVerification: true } : user;
+  }
 }
 

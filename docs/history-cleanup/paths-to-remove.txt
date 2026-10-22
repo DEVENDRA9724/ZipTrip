@@ -1,0 +1,7 @@
+scripts/test-fetch-files.js
+scripts/test-sandbox-session.js
+scripts/test-approval.js
+scripts/test-doc-evidence.js
+scripts/promote-admin.js
+scripts/check-devendra-docs.js
+scripts/test-direct-call.js

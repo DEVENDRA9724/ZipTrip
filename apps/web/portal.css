@@ -1057,7 +1057,8 @@ textarea { resize: vertical; min-height: 100px; }
 
 /* ══ DASHBOARD / TABLES ═════════════════════════════════════════════ */
 .admin-workspace { padding-bottom: 32px; }
-.admin-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; margin: 24px 0 28px; }
+.admin-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin: 24px 0 28px; }
+@media (max-width: 1000px) { .admin-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .admin-metric { padding: 22px 24px; background: var(--bg-card); border: 1px solid var(--border-main); border-radius: var(--r-lg); box-shadow: var(--card-shadow); }
 .admin-metric > span { color: var(--text-body); font-size: 13px; font-weight: 600; }
 .admin-metric > strong { display: block; margin: 10px 0 6px; color: var(--text-main); font-size: 32px; line-height: 1; letter-spacing: -.04em; }
@@ -1077,10 +1078,12 @@ textarea { resize: vertical; min-height: 100px; }
 /* Individual Vehicle Tile Grid Layout */
 .admin-vehicle-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   width: 100%;
+  align-items: stretch;
 }
+.admin-vehicle-grid > .admin-vehicle-tile { min-width: 0; }
 
 .car-folder-workspace {
   display: flex;
@@ -1089,31 +1092,44 @@ textarea { resize: vertical; min-height: 100px; }
   width: 100%;
 }
 
+/* Car folder tabs: a segmented control in the same style as the main admin tabs. */
 .folder-tabs {
   display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--border-main);
-  padding-bottom: 10px;
-  margin-bottom: 14px;
   flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border-main);
+  border-radius: var(--r-lg);
+  background: var(--bg-subtle);
 }
 
 .folder-tabs button {
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid var(--border-main);
-  background: var(--bg-subtle, #f5f5f7);
+  flex: 1 1 auto;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-body);
   font-weight: 600;
   font-size: 13px;
+  white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.15s, color 0.15s;
 }
 
+.folder-tabs button:hover { background: var(--bg-card); color: var(--text-main); transform: none; }
+
 .folder-tabs button.active {
-  background: var(--purple, #3B1259);
-  color: #fff;
-  border-color: var(--purple, #3B1259);
+  background: var(--bg-card);
+  color: var(--orange-dark);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
+
+/* Folder header: title on its own line, status chips wrap beneath it. */
+.folder-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.folder-title h3 { flex: 1 1 100%; }
 
 .admin-vehicle-tile {
   display: flex;
@@ -1207,6 +1223,29 @@ textarea { resize: vertical; min-height: 100px; }
   font-size: 11px;
 }
 
+.vehicle-state {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.admin-tile-state {
+  margin: 0;
+}
+
+.eligibility-reasons {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.booking-review-flag {
+  margin-top: 6px;
+  max-width: 260px;
+}
+
 .admin-tile-photos-toggle {
   margin-top: 2px;
   border: 1px solid var(--border-main);
@@ -1234,8 +1273,9 @@ textarea { resize: vertical; min-height: 100px; }
 }
 
 .admin-tile-actions {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  align-items: stretch;
   gap: 8px;
   margin-top: auto;
   padding-top: 12px;
@@ -1244,12 +1284,26 @@ textarea { resize: vertical; min-height: 100px; }
 
 .admin-tile-actions button,
 .admin-tile-actions a {
-  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  justify-content: center;
   text-align: center;
   padding: 7px 8px;
   font-size: 12px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.admin-tile-actions:not(.admin-tile-actions-3) button,
+.admin-tile-actions:not(.admin-tile-actions-3) a { white-space: normal; line-height: 1.3; }
+
+/* Admin tiles always show exactly three actions in one even row. */
+.admin-tile-actions.admin-tile-actions-3 { grid-template-columns: 1.4fr 1fr 1fr; }
+
+/* Long eligibility lists stay compact inside a tile. */
+.admin-vehicle-tile .eligibility-reasons { margin: 0; line-height: 1.5; }
 .admin-vehicle-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
 .admin-vehicle-heading h3 { font-size: 18px; margin-bottom: 6px; }
 .admin-vehicle-heading p { font-size: 13px; margin: 0; }
@@ -1330,7 +1384,7 @@ dialog {
   margin: auto;
   border: 1px solid var(--border-main); border-radius: var(--r-xl);
   width: min(560px, 94vw); max-height: 88vh; overflow-y: auto;
-  padding: 26px; box-shadow: 0 20px 50px rgba(0,0,0,0.18); background: #FFFFFF;
+  padding: 26px; box-shadow: 0 20px 50px rgba(0,0,0,0.18); background: var(--bg-card); color: var(--text-main);
 }
 dialog::backdrop { background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); }
 .review-guidance { font-size: 12px; line-height: 1.6; padding: 12px 14px; background: var(--orange-soft); border: 1px solid var(--orange-border); border-radius: var(--r); }
@@ -1633,3 +1687,204 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
   .auth-journey-art { max-height: 180px; object-fit: cover; object-position: center 65%; }
   .auth-banner { gap: 16px; }
 }
+
+/* Vehicle photo unavailable or rejected by the image URL allow-list: show the logo, not another car. */
+img.vehicle-image-fallback, img[data-vehicle-image][src="safar-logo.png"] { object-fit: contain !important; padding: 12%; background: var(--bg-subtle); }
+
+/* Host dashboard: breathing room between the tab buttons and the content below. */
+.fleet-tabs { margin: 28px 0 20px; }
+
+/* Owner fleet tiles: labelled reviewer note and an administrative-restriction callout. */
+.tile-review-note { margin: 0; font-size: 13px; color: var(--text-body); }
+.tile-review-note > span { display: block; margin-bottom: 2px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
+.tile-restriction { margin: 0; padding: 8px 12px; border: 1px solid var(--amber-border); border-radius: var(--r); background: var(--amber-bg); color: var(--amber); font-size: 12px; font-weight: 600; }
+
+/* Compact vehicle status chips (approval and availability). */
+.vehicle-state { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.state-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: var(--r-pill);
+  font-size: 12px; font-weight: 600; line-height: 1.4; white-space: nowrap;
+  border: 1px solid var(--border-main); background: var(--bg-subtle); color: var(--text-body);
+}
+.state-chip > i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.state-chip.state-good  { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+.state-chip.state-warn  { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
+.state-chip.state-bad   { background: var(--red-bg);   border-color: var(--red-border);   color: var(--red); }
+.state-chip.state-muted > i { background: var(--text-muted); }
+
+/* Compliance documents as icon chips; the full status is in the tooltip and accessible label. */
+.admin-tile-compliance { gap: 6px; align-items: center; }
+.doc-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px 3px 6px; border-radius: var(--r-pill);
+  font-size: 12px; font-weight: 600; line-height: 1.4; cursor: help;
+  border: 1px solid var(--border-main); background: var(--bg-subtle); color: var(--text-body);
+}
+.doc-chip svg { width: 14px; height: 14px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.doc-chip.doc-ok      { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+.doc-chip.doc-warn    { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
+.doc-chip.doc-bad     { background: var(--red-bg);   border-color: var(--red-border);   color: var(--red); }
+.doc-chip.doc-pending { color: var(--text-body); }
+
+/* Status chip over a photo: opaque so it stays legible on any image. */
+.admin-tile-badge .state-chip { background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+
+/* Audit log: readable events, actors, records and labelled details. */
+.audit-table { min-width: 900px; }
+.audit-table th { white-space: nowrap; }
+.audit-table td { vertical-align: top; padding-top: 14px; padding-bottom: 14px; }
+.audit-when { white-space: nowrap; font-size: 13px; color: var(--text-body); width: 1%; }
+.audit-event { width: 22%; }
+.audit-event-label { display: inline-flex; align-items: flex-start; gap: 6px; font-weight: 700; font-size: 13px; color: var(--text-main); }
+.audit-event-label::before { content: ''; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.audit-good::before { background: var(--green); }
+.audit-bad::before  { background: var(--red); }
+.audit-warn::before { background: var(--amber); }
+.audit-info::before { background: var(--orange); }
+.audit-code { display: block; margin-top: 4px; font-size: 11px; color: var(--text-muted); background: none; padding: 0; overflow-wrap: anywhere; }
+.audit-actor, .audit-target { width: 14%; font-size: 13px; }
+.audit-actor strong, .audit-target strong { display: block; color: var(--text-main); }
+.audit-actor small, .audit-target small { display: block; color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.audit-system { display: inline-block; padding: 2px 10px; border-radius: var(--r-pill); background: var(--bg-subtle); border: 1px solid var(--border-main); font-size: 12px; font-weight: 700; color: var(--text-body); white-space: nowrap; }
+.audit-table code { font-size: 12px; }
+.audit-fields { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 13px; }
+.audit-fields dt { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+.audit-fields dd { margin: 0; color: var(--text-main); overflow-wrap: anywhere; }
+@media (max-width: 700px) { .audit-fields { grid-template-columns: 1fr; gap: 0; } .audit-fields dd { margin-bottom: 6px; } }
+/* Phones: each audit entry becomes a stacked card instead of a wide scrolling table. */
+@media (max-width: 700px) {
+  .admin-workspace .audit-table, .audit-table { min-width: 0; }
+  .audit-table thead { display: none; }
+  .audit-table, .audit-table tbody, .audit-table tr, .audit-table td { display: block; width: auto; }
+  .audit-table tr { padding: 14px 0; border-bottom: 1px solid var(--border-main); }
+  .audit-table td { padding: 4px 0; border: 0; }
+  .audit-table td::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
+  .audit-when { white-space: normal; }
+}
+
+/* The car folder holds tables, photo grids and forms: give its dialog more room than the default 560px. */
+dialog:has(.car-folder-workspace) { width: min(880px, 94vw); }
+/* Folder tabs stay on one row; on narrow screens the row scrolls instead of wrapping. */
+.folder-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.folder-tabs::-webkit-scrollbar { display: none; }
+
+/* Multi-line form errors (one blocking reason per line). */
+.form-error { white-space: pre-line; line-height: 1.55; }
+/* Guidance shown when compliance documents block a listing approval. */
+.approval-blocked { font-size: 13px; line-height: 1.55; }
+.approval-blocked ol { margin: 8px 0 8px 18px; padding: 0; }
+.approval-blocked li { margin: 2px 0; }
+.approval-blocked small { color: var(--text-muted); }
+.toast { white-space: pre-line; }
+.approval-blocked { padding: 12px 14px; border: 1px solid var(--amber-border); border-radius: var(--r); background: var(--amber-bg); color: var(--text-main); }
+
+/* Empty states inside a card grid span the whole row and sit in the middle of the results area. */
+:is(.car-grid, .admin-vehicle-grid) > .empty {
+  grid-column: 1 / -1;
+  justify-self: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 100%; max-width: 520px; min-height: 340px;
+}
+
+/* Local preview cars: visibly samples, never interactive. */
+.preview-banner {
+  grid-column: 1 / -1;
+  padding: 12px 16px; border-radius: var(--r);
+  border: 1px dashed var(--amber-border); background: var(--amber-bg); color: var(--text-main);
+  font-size: 13px; line-height: 1.5;
+}
+.car-card.is-preview { cursor: default; }
+.car-card.is-preview:hover { transform: none; }
+.car-card .preview-badge { background: var(--amber); color: #fff; }
+.btn-book.btn-book-disabled { background: var(--bg-subtle); color: var(--text-muted); border: 1px solid var(--border-main); box-shadow: none; cursor: not-allowed; }
+
+/* Admin sections in the site header (administrators only). */
+.admin-nav a { display: inline-flex; align-items: center; gap: 7px; }
+.admin-nav .nav-count:empty { display: none; }
+.admin-nav .nav-count {
+  min-width: 20px; padding: 1px 7px; border-radius: var(--r-pill);
+  background: var(--bg-subtle); color: var(--text-body);
+  font-size: 11px; font-weight: 700; line-height: 1.5; text-align: center;
+}
+.admin-nav a.active .nav-count { background: var(--orange); color: #fff; }
+
+/* Admin dashboard cards are links to the section they summarise. */
+a.admin-metric { display: block; color: inherit; text-decoration: none; transition: transform .15s, box-shadow .15s, border-color .15s; }
+a.admin-metric:hover { transform: translateY(-2px); border-color: var(--orange-border); box-shadow: 0 8px 22px rgba(0,0,0,.08); }
+.admin-metric-go { display: block; margin-top: 12px; font-style: normal; font-size: 12px; font-weight: 700; color: var(--orange-dark); text-transform: capitalize; opacity: .85; }
+a.admin-metric:hover .admin-metric-go { opacity: 1; }
+
+/* Header: the logo never shrinks; the admin menu uses tighter spacing so seven sections fit comfortably. */
+#header > div:first-child { flex-shrink: 0; }
+.header .nav { min-width: 0; }
+.admin-nav { gap: 0; }
+.admin-nav a { padding: 7px 10px; gap: 5px; }
+.admin-nav .nav-count { min-width: 18px; padding: 0 6px; font-size: 10.5px; }
+
+/* Refresh sits in the admin toolbar beside Export. */
+.admin-toolbar .admin-refresh { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.admin-toolbar > button { flex-shrink: 0; }
+/* Toolbar: search keeps a usable width; controls wrap to a second row instead of squeezing it. */
+.admin-toolbar { flex-wrap: wrap; row-gap: 12px; }
+.admin-toolbar .admin-search { flex: 1 1 240px; min-width: 220px; }
+.admin-toolbar .admin-search input { width: 100%; }
+/* Admin toolbar on one row: search flexes, other controls keep compact fixed widths; wraps only on narrow screens. */
+.admin-toolbar { flex-wrap: nowrap; gap: 12px; }
+.admin-toolbar .admin-search { flex: 1 1 auto; min-width: 160px; }
+.admin-toolbar label:not(.admin-search) { flex: 0 0 auto; }
+.admin-toolbar #admin-status { width: 160px; }
+.admin-toolbar input[type="date"] { width: 150px; }
+.admin-toolbar #admin-export { white-space: nowrap; padding-inline: 16px; }
+.admin-toolbar .admin-refresh { width: 44px; height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
+.admin-toolbar > span { flex: 0 0 auto; }
+@media (max-width: 1100px) { .admin-toolbar { flex-wrap: wrap; } }
+.availability-locked { margin: 0; padding: 10px 14px; border: 1px solid var(--amber-border); border-radius: var(--r); background: var(--amber-bg); color: var(--text-main); font-size: 13px; }
+
+/* Owner panel: Car Documents — one card per car with its RC, Insurance and PUC. */
+.car-docs-intro { margin-bottom: 18px; }
+.car-docs-card { margin-bottom: 18px; scroll-margin-top: 90px; }
+.car-docs-card.is-focused { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-glow); }
+.car-docs-head { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: center; margin-bottom: 12px; }
+.car-docs-head img { width: 72px; height: 54px; object-fit: cover; border-radius: var(--r); border: 1px solid var(--border-main); }
+.car-docs-head h3 { margin: 0 0 2px; font-size: 16px; }
+.car-docs-head p { margin: 0; font-size: 13px; }
+.car-docs-summary { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12px; font-weight: 700; }
+.docs-complete { color: var(--green); }
+.docs-incomplete { color: var(--amber); }
+.car-docs-table { min-width: 620px; }
+.car-docs-table td { vertical-align: middle; }
+.car-docs-table td.text-muted { font-size: 13px; max-width: 320px; }
+.car-doc-actions { white-space: nowrap; text-align: right; }
+.car-doc-actions .button + .button { margin-left: 6px; }
+@media (max-width: 700px) {
+  .car-docs-head { grid-template-columns: 56px 1fr; }
+  .car-docs-head img { width: 56px; height: 44px; }
+  .car-docs-summary { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: flex-start; }
+}
+.doc-pending-newer { color: var(--amber); font-weight: 700; }
+/* Phones: each document row stacks (name + status, validity, note, full-width actions) so Upload is always visible. */
+@media (max-width: 700px) {
+  .car-docs-card .table-wrap { overflow: visible; }
+  .car-docs-table { min-width: 0; }
+  .car-docs-table thead { display: none; }
+  .car-docs-table, .car-docs-table tbody { display: block; }
+  .car-docs-table tr { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; padding: 12px 0; border-bottom: 1px solid var(--border-main); }
+  .car-docs-table td { padding: 0; border: 0; }
+  .car-docs-table td:nth-child(3) { grid-column: 1 / -1; font-size: 12px; color: var(--text-muted); }
+  .car-docs-table td:nth-child(3)::before { content: 'Valid until: '; }
+  .car-docs-table td.text-muted { grid-column: 1 / -1; max-width: none; }
+  .car-docs-table td.car-doc-actions { grid-column: 1 / -1; display: flex; gap: 8px; text-align: left; }
+  .car-doc-actions .button { flex: 1; }
+  .car-doc-actions .button + .button { margin-left: 0; }
+}
+
+/* Document evidence: inline image preview above the Open / Download actions. */
+.evidence-preview { display: block; margin: 10px 0 12px; border: 1px solid var(--border-main); border-radius: var(--r); background: var(--bg-subtle); overflow: hidden; cursor: zoom-in; }
+.evidence-preview img { display: block; width: 100%; max-height: 420px; object-fit: contain; }
+.evidence-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* The evidence preview scales to the screen so the document popup fits without scrolling. */
+.evidence-preview img { max-height: max(160px, calc(100vh - 430px)); }
+#own-doc-view-box { margin-top: 8px !important; padding: 12px 14px !important; }
+#own-doc-view-box > p.text-muted { margin: 0 0 4px; font-size: 13px; }
+#own-doc-view-box > div { margin: 8px 0 0 !important; padding: 12px !important; }

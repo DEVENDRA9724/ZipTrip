@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>About Us &bull; Safar Self Drive Gujarat</title>
-  <meta name="description" content="Learn about Safar Self Drive, Gujarat's premier self-drive and luxury taxi platform. Our mission, rental policies, and transparent billing." />
+  <meta name="description" content="Learn about Safar Self Drive, a self-drive car rental platform in Gujarat. Our mission, rental policies, and transparent billing." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -603,7 +603,7 @@ a { color: inherit; text-decoration: none; }
 <body>
 
   <!-- UNIFIED HAMBURGER MENU DRAWER -->
-  <div class="menu-drawer-backdrop" id="drawer-backdrop" onclick="toggleMenuDrawer()"></div>
+  <div class="menu-drawer-backdrop" id="drawer-backdrop" data-action="toggle-menu"></div>
   <aside class="site-menu-drawer" id="side-menu-drawer">
     <!-- Populated by safar-auth.js -->
   </aside>
@@ -615,9 +615,9 @@ a { color: inherit; text-decoration: none; }
   ═══════════════════════════════════════════════════════════════ -->
   <header class="site-header">
     <div class="header-inner">
-      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo + Hubs Badge -->
+      <!-- Left: Tactile Claymorphic Hamburger + Brand Logo -->
       <div class="header-left-box">
-        <button class="btn-clay-hamburger" onclick="toggleMenuDrawer()" title="Open Navigation Menu" aria-label="Menu">
+        <button class="btn-clay-hamburger" data-action="toggle-menu" title="Open Navigation Menu" aria-label="Menu">
           <span class="hamburger-bar"></span>
           <span class="hamburger-bar"></span>
           <span class="hamburger-bar"></span>
@@ -626,23 +626,18 @@ a { color: inherit; text-decoration: none; }
         <a href="index.html" class="header-logo-link">
           <img src="./logo_clean.png" alt="Safar Self Drive" class="header-logo-img" />
         </a>
-
-        <div class="header-location-badge" title="Active Hubs Across Gujarat">
-          <span class="pulse-dot"></span>
-          <span class="loc-text">Gujarat &bull; 5 Hubs Live</span>
-        </div>
       </div>
 
       <!-- Center: Clean Breathing Space (Keeps header uncluttered) -->
       <div class="header-center-spacer"></div>
 
-      <!-- Right: 24/7 Concierge Hotline + User Profile / Sign In Pill -->
+      <!-- Right: Contact (when published) + User Profile / Sign In Pill -->
       <div class="header-right-box">
-        <a href="tel:+919999999999" class="header-concierge-pill" title="24/7 Safar Gujarat Concierge">
+        <a class="header-concierge-pill" data-contact="phone-link" title="Call Safar" hidden>
           <svg class="phone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
           </svg>
-          <span class="helpline-num">+91 99999 99999</span>
+          <span class="helpline-num" data-contact="phone" hidden></span>
         </a>
 
         <div id="header-auth-container">
@@ -671,7 +666,7 @@ a { color: inherit; text-decoration: none; }
         Founded in Ahmedabad, <strong>Safar Self Drive</strong> was established to solve the biggest frustration in the car rental industry: awkward yellow-plate commercial taxis, complicated security deposit deductions, and opaque pricing.
       </p>
       <p>
-        Our core motto is <strong>"Your Journey. Your Rules."</strong> We believe every road trip should be private, comfortable, and dignified. Whether you want to drive a Mahindra Thar 4x4 with your friends to Gir Forest or hire a chauffeured Mercedes-Benz E-Class to pick up high-profile clients at Ahmedabad Airport, we guarantee spotless execution.
+        Our core motto is <strong>"Your Journey. Your Rules."</strong> We believe every road trip should be private, comfortable, and dignified. Pick a verified self-drive car, see the full price and deposit before you book, and drive on your own schedule.
       </p>
 
       <h3>The Safar Self-Drive Experience</h3>
@@ -679,38 +674,26 @@ a { color: inherit; text-decoration: none; }
         We believe in providing pristine, sanitized, and top-tier vehicles so you feel completely at home behind the wheel. Drive with complete dignity, peace of mind, and freedom wherever you travel across Gujarat.
       </p>
 
-      <h3>Transparent Kilometer Rates for Taxi &amp; Chauffeur</h3>
-      <p>
-        Unlike app-based aggregators with surging peak multipliers and hidden driver allowances, our <strong>Taxi and Chauffeur service</strong> operates on transparent, pre-agreed per-kilometer rates. Starting from ₹12/km for sedans to ₹35/km for luxury sedans (Mercedes, BMW, Audi) &mdash; you only pay for what you travel.
-      </p>
-
       <h3>Frequently Asked Questions (FAQs)</h3>
 
       <div class="faq-item">
         <div class="faq-q">1. What documents are required to book a self-drive car?</div>
         <div class="faq-a">
-          You only need: (1) A valid Original Driving License (min. 1 year old) and (2) Aadhaar Card or Passport for identity and address verification. Upload via WhatsApp or during delivery.
+          A valid driving licence and Aadhaar verification. Complete verification through DigiLocker or upload your driving licence in your Safar account; an officer reviews it before your first booking.
         </div>
       </div>
 
       <div class="faq-item">
         <div class="faq-q">2. Is there a security deposit?</div>
         <div class="faq-a">
-          We offer a <strong>Zero Security Deposit Scheme</strong> for verified Gujarat residents. For outstation travelers, a nominal refundable deposit of ₹2,000 to ₹5,000 is processed back to your UPI within 2 hours of vehicle return.
+          Yes. A refundable security deposit is shown in your quote before you book and is set out in your rental agreement, together with how it is settled after the trip.
         </div>
       </div>
 
       <div class="faq-item">
         <div class="faq-q">3. Can I take the car anywhere in Gujarat?</div>
         <div class="faq-a">
-          Yes! All our cars are registered for statewide travel across Gujarat including Somnath, Dwarka, Diu, Kutch, Statue of Unity, and Gir. Out-of-state permits (Rajasthan/Maharashtra) are also available upon request.
-        </div>
-      </div>
-
-      <div class="faq-item">
-        <div class="faq-q">4. How does the per-kilometer taxi billing work?</div>
-        <div class="faq-a">
-          Our chauffeur tracks the opening and closing odometer readings in front of you. You pay the exact agreed per-km rate plus toll &amp; parking. Zero surge pricing, zero night surcharges.
+          Travel conditions for each booking, including any area or permit limits, are set out in your rental agreement. Check them before you plan your route.
         </div>
       </div>
     </div>
@@ -718,27 +701,11 @@ a { color: inherit; text-decoration: none; }
     <!-- Sidebar Cards -->
     <aside>
       <div class="sidebar-info-card">
-        <h4>Need Immediate Help?</h4>
-        <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
-          Our Gujarat dispatch team is available 24 hours a day, 7 days a week.
-        </p>
-        <a href="tel:+919999999999" style="font-size: 1.1rem; font-weight: 800; color: var(--brand-purple); display: block; margin-bottom: 10px;">
-          📞 +91 99999 99999
-        </a>
-        <a href="https://wa.me/919999999999" target="_blank" style="font-size: 0.9rem; font-weight: 700; color: #25D366;">
-          💬 Chat on WhatsApp &rarr;
-        </a>
-      </div>
-
-      <div class="sidebar-info-card">
-        <h4>Our Gujarat Hubs</h4>
-        <ul style="list-style: none; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px;">
-          <li>📍 <strong>Ahmedabad:</strong> Ellis Bridge &amp; SG Highway</li>
-          <li>📍 <strong>Surat:</strong> Vesu &amp; Ring Road</li>
-          <li>📍 <strong>Vadodara:</strong> Alkapuri Hub</li>
-          <li>📍 <strong>Rajkot:</strong> Kalawad Road</li>
-          <li>📍 <strong>Gandhinagar:</strong> GIFT City Area</li>
-        </ul>
+        <h4>Need Help?</h4>
+        <p data-contact="any" hidden style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">Reach the Safar team using the details below.</p>
+        <p data-contact="unavailable" hidden style="font-size: 0.88rem; color: var(--text-secondary);">Phone and WhatsApp support details have not been published yet. Signed-in customers can manage bookings from their account.</p>
+        <a data-contact="phone-link" hidden style="font-size: 1.1rem; font-weight: 800; color: var(--brand-purple); display: block; margin-bottom: 10px;">📞 <span data-contact="phone" hidden></span></a>
+        <a data-contact="whatsapp-link" target="_blank" hidden style="font-size: 0.9rem; font-weight: 700; color: #25D366;">💬 Chat on WhatsApp &rarr;</a>
       </div>
     </aside>
   </div>
@@ -747,35 +714,15 @@ a { color: inherit; text-decoration: none; }
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-bottom">
-        <div>&copy; 2026 Safar Self Drive. All Rights Reserved. Safar Self Drive &amp; Taxi Services Across Gujarat.</div>
+        <div>&copy; 2026 Safar Self Drive. All Rights Reserved. Self-drive car rental in Gujarat.</div>
         <div><a href="cars.html" style="color: var(--brand-orange); font-weight: 700;">Find Available Cars &rarr;</a></div>
       </div>
     </div>
   </footer>
 
-  <a href="https://wa.me/919999999999" class="wa-float" title="Chat on WhatsApp">💬</a>
+  <a class="wa-float" data-contact="whatsapp-link" target="_blank" title="Chat on WhatsApp" hidden>💬</a>
 
-  <script>
-    function toggleMenuDrawer() {
-      const drawer = document.getElementById('side-menu-drawer');
-      const backdrop = document.getElementById('drawer-backdrop');
-      if (drawer && backdrop) {
-        drawer.classList.toggle('active');
-        backdrop.classList.toggle('active');
-      }
-    }
-    // Update drawer username if logged in
-    document.addEventListener('DOMContentLoaded', () => {
-      const userStr = localStorage.getItem('safar_user');
-      const statusEl = document.getElementById('drawer-user-status');
-      if (userStr && statusEl) {
-        try {
-          const user = JSON.parse(userStr);
-          statusEl.innerHTML = `👋 Logged in as <b>${user.name || user.email}</b> (${user.role || 'customer'}) &bull; <a href="#" onclick="localStorage.removeItem('safar_user'); location.reload();" style="color:#FFA14A;text-decoration:underline;">Logout</a>`;
-        } catch(e) {}
-      }
-    });
-  </script>
+  <script src="contact-info.js"></script>
 
   <script src="safar-auth.js"></script>
 </body>

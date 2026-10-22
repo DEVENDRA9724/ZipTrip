@@ -7,6 +7,13 @@
     "start": "node start-portal.js",
     "portal": "node start-portal.js",
     "web": "node start-portal.js",
-    "stop": "node stop-portal.js"
+    "stop": "node stop-portal.js",
+    "test:web": "node tests/web/support/build-backend.js && playwright test",
+    "test:web:install": "playwright install chromium",
+    "test:web:install-deps": "playwright install --with-deps chromium",
+    "test:web:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
   }
 }

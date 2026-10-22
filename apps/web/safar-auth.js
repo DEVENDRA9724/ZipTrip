@@ -12,4 +12,6 @@ const SafarAuth = {
 };
 function toggleMenuDrawer() { document.getElementById('side-menu-drawer')?.classList.toggle('open'); document.getElementById('drawer-backdrop')?.classList.toggle('open'); }
 document.addEventListener('DOMContentLoaded', () => SafarAuth.renderDrawer());
+// Menu buttons use data-action instead of inline onclick handlers (CSP without 'unsafe-inline').
+document.addEventListener('click', (event) => { if (event.target.closest('[data-action="toggle-menu"]')) toggleMenuDrawer(); });
 

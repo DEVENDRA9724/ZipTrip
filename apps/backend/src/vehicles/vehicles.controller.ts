@@ -43,6 +43,26 @@ export class VehiclesController {
   @UseGuards(JwtAuthGuard)
   releaseBlock(@Request() req: any, @Param('id') id: string, @Param('blockId') blockId: string) { return this.vehiclesService.releaseBlock(req.user.id, id, blockId); }
 
+  @Post(':id/submit')
+  @UseGuards(JwtAuthGuard)
+  submit(@Request() req: { user: { id: string } }, @Param('id') id: string) {
+    return this.vehiclesService.submit(req.user.id, id);
+  }
+
+  @Post(':id/availability')
+  @UseGuards(JwtAuthGuard)
+  setAvailability(
+    @Request() req: { user: { id: string } },
+    @Param('id') id: string,
+    @Body() body: { availability?: unknown; reason?: unknown },
+  ) {
+    return this.vehiclesService.setAvailability(req.user.id, id, body);
+  }
+
+  @Post(':id/photos')
+  @UseGuards(JwtAuthGuard)
+  addPhotos(@Request() req: any, @Param('id') id: string, @Body() body: any) { return this.vehiclesService.addPhotos(req.user.id, id, body); }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Request() req: any, @Body() body: any) {
