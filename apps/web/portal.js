@@ -777,16 +777,6 @@ function auth(forceRegister, loginMode = 'password') {
         <p class="text-muted">${isReg ? 'Register as a customer or vehicle host.' : (isOtpLogin ? 'Enter your mobile number and we will send a one-time password.' : 'Enter your email and password to continue.')}</p>
 
         <form id="auth-form" class="form-stack">
-          ${!isReg && !isOtpLogin ? `
-            <div style="margin-bottom:14px;padding:12px;background:rgba(240,120,24,0.06);border:1px solid rgba(240,120,24,0.22);border-radius:10px">
-              <div style="font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Quick Demo Logins (1-Click Fill)</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="admin@safar.com" data-pass="Admin@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">👑 Admin</button>
-                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="host@safar.com" data-pass="Host@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">🚗 Host</button>
-                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="customer@safar.com" data-pass="Customer@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">👤 Customer</button>
-              </div>
-            </div>` : ''}
-
           ${isReg ? `
             <div class="form-grid">
               ${inp('firstName', 'First name', 'text', 'autocomplete="given-name" maxlength="60" placeholder="e.g. Rahul"')}
@@ -824,17 +814,6 @@ function auth(forceRegister, loginMode = 'password') {
   $('#link-login')?.addEventListener('click', e => { e.preventDefault(); auth(false); });
   $('#link-reg')?.addEventListener('click', e => { e.preventDefault(); auth(true); });
   $('#toggle-login-mode')?.addEventListener('click', e => { e.preventDefault(); auth(false, isOtpLogin ? 'password' : 'otp'); });
-
-  $$('.fill-demo-btn').forEach(btn => {
-    btn.onclick = () => {
-      const emailInput = $('input[name="email"]', $('#auth-form'));
-      const passInput = $('input[name="password"]', $('#auth-form'));
-      if (emailInput && passInput) {
-        emailInput.value = btn.dataset.email;
-        passInput.value = btn.dataset.pass;
-      }
-    };
-  });
 
   bindForm('#auth-form', async data => {
     if (isOtpLogin) {
