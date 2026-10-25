@@ -43,10 +43,12 @@
   --amber-border: #FDE68A;
 
   /* ── Purple (kept for backward compat with admin/kyc) ── */
-  --purple:        #3B1259;
-  --purple-hover:  #50187A;
-  --purple-soft:   #F4ECFA;
-  --purple-border: #E4D4F2;
+  --purple:        #240733;
+  --purple-hover:  #3B0E50;
+  --purple-dark:   #15031F;
+  --purple-soft:   #F5ECF7;
+  --purple-border: #DECDE3;
+  --purple-gradient: linear-gradient(135deg, #15031F 0%, #240733 52%, #3E1055 100%);
 
   /* ── Radii ── */
   --r-xs:   4px;

@@ -8,6 +8,29 @@ export declare class AdminController {
     overview(req: any, query?: any): Promise<{
         users: {
             id: string;
+            profile: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                firstName: string;
+                lastName: string;
+                userId: string;
+                aadhaarNumberHash: string | null;
+                panNumberHash: string | null;
+                drivingLicenseHash: string | null;
+                city: string;
+                state: string;
+                postalCode: string | null;
+                aadhaarNumberMasked: string | null;
+                panNumberMasked: string | null;
+                drivingLicenseMasked: string | null;
+                dlExpiryDate: Date | null;
+                profileImageUrl: string | null;
+                selfieMediaId: string | null;
+                faceMatchScore: number | null;
+                faceMatchStatus: string | null;
+                isKycVerified: boolean;
+            } | null;
             email: string;
             phone: string | null;
             phoneVerifiedAt: Date | null;
@@ -18,43 +41,36 @@ export declare class AdminController {
             isBlocked: boolean;
             profileImage: string | null;
             dlValidUntil: Date | null;
-            profile: {
-                id: string;
-                firstName: string;
-                lastName: string;
-                createdAt: Date;
-                updatedAt: Date;
-                city: string;
-                state: string;
-                postalCode: string | null;
-                aadhaarNumberHash: string | null;
-                aadhaarNumberMasked: string | null;
-                panNumberHash: string | null;
-                panNumberMasked: string | null;
-                drivingLicenseHash: string | null;
-                drivingLicenseMasked: string | null;
-                dlExpiryDate: Date | null;
-                profileImageUrl: string | null;
-                selfieMediaId: string | null;
-                faceMatchScore: number | null;
-                faceMatchStatus: string | null;
-                isKycVerified: boolean;
-                userId: string;
-            } | null;
         }[];
         vehicles: ({
             media: {
                 id: string;
                 kind: string;
             }[];
-            documents: {
+            host: {
+                email: string;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+            };
+            currentHub: {
                 id: string;
                 createdAt: Date;
-                updatedAt: Date;
-                status: string;
-                reviewNote: string | null;
-                vehicleId: string | null;
+                latitude: number;
+                longitude: number;
+                city: string;
+                hubName: string;
+                address: string;
+                isActive: boolean;
+            } | null;
+            documents: {
+                id: string;
                 kind: string;
+                createdAt: Date;
+                vehicleId: string | null;
+                status: string;
+                updatedAt: Date;
+                reviewNote: string | null;
                 userId: string;
                 documentNumberMasked: string | null;
                 documentFrontUrl: string | null;
@@ -66,32 +82,15 @@ export declare class AdminController {
                 verifiedById: string | null;
                 verifiedAt: Date | null;
             }[];
-            host: {
-                email: string;
-                phone: string | null;
-                firstName: string;
-                lastName: string;
-            };
-            currentHub: {
-                id: string;
-                createdAt: Date;
-                city: string;
-                latitude: number;
-                longitude: number;
-                hubName: string;
-                address: string;
-                isActive: boolean;
-            } | null;
         } & {
             id: string;
             createdAt: Date;
-            updatedAt: Date;
-            year: number;
-            make: string;
-            model: string;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -112,6 +111,7 @@ export declare class AdminController {
             vinNumber: string | null;
             gpsDeviceImei: string | null;
             fuelLevelPercent: number;
+            updatedAt: Date;
             registrationNumber: string | null;
             odometer: number;
             reviewNote: string | null;
@@ -127,9 +127,9 @@ export declare class AdminController {
                 currentHub: {
                     id: string;
                     createdAt: Date;
-                    city: string;
                     latitude: number;
                     longitude: number;
+                    city: string;
                     hubName: string;
                     address: string;
                     isActive: boolean;
@@ -137,13 +137,12 @@ export declare class AdminController {
             } & {
                 id: string;
                 createdAt: Date;
-                updatedAt: Date;
-                year: number;
-                make: string;
-                model: string;
                 hostId: string;
                 modelSpecId: string | null;
                 currentHubId: string | null;
+                make: string;
+                model: string;
+                year: number;
                 category: string;
                 transmission: string;
                 fuelType: string;
@@ -164,6 +163,7 @@ export declare class AdminController {
                 vinNumber: string | null;
                 gpsDeviceImei: string | null;
                 fuelLevelPercent: number;
+                updatedAt: Date;
                 registrationNumber: string | null;
                 odometer: number;
                 reviewNote: string | null;
@@ -210,24 +210,21 @@ export declare class AdminController {
                 paymentType: string;
             } | null;
             customer: {
-                email: string;
-                phone: string | null;
-                firstName: string;
-                lastName: string;
                 profile: {
                     id: string;
-                    firstName: string;
-                    lastName: string;
                     createdAt: Date;
                     updatedAt: Date;
+                    firstName: string;
+                    lastName: string;
+                    userId: string;
+                    aadhaarNumberHash: string | null;
+                    panNumberHash: string | null;
+                    drivingLicenseHash: string | null;
                     city: string;
                     state: string;
                     postalCode: string | null;
-                    aadhaarNumberHash: string | null;
                     aadhaarNumberMasked: string | null;
-                    panNumberHash: string | null;
                     panNumberMasked: string | null;
-                    drivingLicenseHash: string | null;
                     drivingLicenseMasked: string | null;
                     dlExpiryDate: Date | null;
                     profileImageUrl: string | null;
@@ -235,15 +232,18 @@ export declare class AdminController {
                     faceMatchScore: number | null;
                     faceMatchStatus: string | null;
                     isKycVerified: boolean;
-                    userId: string;
                 } | null;
+                email: string;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
             };
             inspections: {
                 id: string;
                 createdAt: Date;
-                selfieMediaId: string | null;
                 odometer: number;
                 mediaId: string;
+                selfieMediaId: string | null;
                 bookingId: string;
                 stage: string;
                 mediaIds: string | null;
@@ -254,8 +254,8 @@ export declare class AdminController {
             settlement: {
                 id: string;
                 createdAt: Date;
-                updatedAt: Date;
                 status: string;
+                updatedAt: Date;
                 bookingId: string;
                 note: string | null;
                 depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -274,12 +274,12 @@ export declare class AdminController {
         } & {
             id: string;
             createdAt: Date;
-            updatedAt: Date;
-            expiresAt: Date | null;
+            vehicleId: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
             status: import("@prisma/client").$Enums.BookingStatus;
             serviceType: string;
-            vehicleId: string;
+            updatedAt: Date;
+            expiresAt: Date | null;
             bookingRef: string;
             customerId: string;
             driverId: string | null;
@@ -305,24 +305,21 @@ export declare class AdminController {
         })[];
         documents: ({
             user: {
-                email: string;
-                phone: string | null;
-                firstName: string;
-                lastName: string;
                 profile: {
                     id: string;
-                    firstName: string;
-                    lastName: string;
                     createdAt: Date;
                     updatedAt: Date;
+                    firstName: string;
+                    lastName: string;
+                    userId: string;
+                    aadhaarNumberHash: string | null;
+                    panNumberHash: string | null;
+                    drivingLicenseHash: string | null;
                     city: string;
                     state: string;
                     postalCode: string | null;
-                    aadhaarNumberHash: string | null;
                     aadhaarNumberMasked: string | null;
-                    panNumberHash: string | null;
                     panNumberMasked: string | null;
-                    drivingLicenseHash: string | null;
                     drivingLicenseMasked: string | null;
                     dlExpiryDate: Date | null;
                     profileImageUrl: string | null;
@@ -330,17 +327,20 @@ export declare class AdminController {
                     faceMatchScore: number | null;
                     faceMatchStatus: string | null;
                     isKycVerified: boolean;
-                    userId: string;
                 } | null;
+                email: string;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
             };
         } & {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: string;
-            reviewNote: string | null;
-            vehicleId: string | null;
             kind: string;
+            createdAt: Date;
+            vehicleId: string | null;
+            status: string;
+            updatedAt: Date;
+            reviewNote: string | null;
             userId: string;
             documentNumberMasked: string | null;
             documentFrontUrl: string | null;
@@ -413,12 +413,12 @@ export declare class AdminController {
     }>;
     review(req: any, id: string, body: any): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        reviewNote: string | null;
-        vehicleId: string | null;
         kind: string;
+        createdAt: Date;
+        vehicleId: string | null;
+        status: string;
+        updatedAt: Date;
+        reviewNote: string | null;
         userId: string;
         documentNumberMasked: string | null;
         documentFrontUrl: string | null;
@@ -433,13 +433,12 @@ export declare class AdminController {
     createVehicle(req: any, body: any): Promise<{
         id: string;
         createdAt: Date;
-        updatedAt: Date;
-        year: number;
-        make: string;
-        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -460,6 +459,7 @@ export declare class AdminController {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
+        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
@@ -467,13 +467,12 @@ export declare class AdminController {
     vehicle(req: any, id: string, body: any): Promise<{
         id: string;
         createdAt: Date;
-        updatedAt: Date;
-        year: number;
-        make: string;
-        model: string;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -494,6 +493,7 @@ export declare class AdminController {
         vinNumber: string | null;
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
+        updatedAt: Date;
         registrationNumber: string | null;
         odometer: number;
         reviewNote: string | null;
@@ -531,8 +531,8 @@ export declare class AdminController {
         settlement: {
             id: string;
             createdAt: Date;
-            updatedAt: Date;
             status: string;
+            updatedAt: Date;
             bookingId: string;
             note: string | null;
             depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -582,12 +582,12 @@ export declare class AdminController {
         }[];
         documents: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: string;
-            reviewNote: string | null;
-            vehicleId: string | null;
             kind: string;
+            createdAt: Date;
+            vehicleId: string | null;
+            status: string;
+            updatedAt: Date;
+            reviewNote: string | null;
             userId: string;
             documentNumberMasked: string | null;
             documentFrontUrl: string | null;
@@ -603,8 +603,8 @@ export declare class AdminController {
     settleBooking(req: any, id: string, body: any): Promise<{
         id: string;
         createdAt: Date;
-        updatedAt: Date;
         status: string;
+        updatedAt: Date;
         bookingId: string;
         note: string | null;
         depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -638,13 +638,12 @@ export declare class AdminController {
             vehicle: {
                 id: string;
                 createdAt: Date;
-                updatedAt: Date;
-                year: number;
-                make: string;
-                model: string;
                 hostId: string;
                 modelSpecId: string | null;
                 currentHubId: string | null;
+                make: string;
+                model: string;
+                year: number;
                 category: string;
                 transmission: string;
                 fuelType: string;
@@ -665,6 +664,7 @@ export declare class AdminController {
                 vinNumber: string | null;
                 gpsDeviceImei: string | null;
                 fuelLevelPercent: number;
+                updatedAt: Date;
                 registrationNumber: string | null;
                 odometer: number;
                 reviewNote: string | null;
@@ -672,12 +672,12 @@ export declare class AdminController {
         } & {
             id: string;
             createdAt: Date;
-            updatedAt: Date;
-            expiresAt: Date | null;
+            vehicleId: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
             status: import("@prisma/client").$Enums.BookingStatus;
             serviceType: string;
-            vehicleId: string;
+            updatedAt: Date;
+            expiresAt: Date | null;
             bookingRef: string;
             customerId: string;
             driverId: string | null;
@@ -728,12 +728,12 @@ export declare class AdminController {
     }>;
     quickReviewDocument(req: any, id: string, body: any): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        reviewNote: string | null;
-        vehicleId: string | null;
         kind: string;
+        createdAt: Date;
+        vehicleId: string | null;
+        status: string;
+        updatedAt: Date;
+        reviewNote: string | null;
         userId: string;
         documentNumberMasked: string | null;
         documentFrontUrl: string | null;

@@ -23,7 +23,7 @@ export declare class MediaService {
         id: string;
         role: string;
     }): Promise<{
-        buffer: NonSharedBuffer;
+        buffer: Buffer<ArrayBuffer>;
         mimeType: string;
     }>;
 }

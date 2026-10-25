@@ -4,12 +4,12 @@ export declare class AuthController {
     private readonly auth;
     constructor(auth: AuthService);
     private session;
-    register(body: any, res: Response): Promise<{
+    register(req: any, body: any, res: Response): Promise<{
         user: any;
         token: any;
         devOtp: any;
     }>;
-    login(body: any, res: Response): Promise<{
+    login(req: any, body: any, res: Response): Promise<{
         user: any;
         token: any;
         devOtp: any;
@@ -25,7 +25,7 @@ export declare class AuthController {
         expiresInSeconds: number;
         devOtp?: undefined;
     }>;
-    verifyLoginOtp(body: any, res: Response): Promise<{
+    verifyLoginOtp(req: any, body: any, res: Response): Promise<{
         user: any;
         token: any;
         devOtp: any;

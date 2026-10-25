@@ -13,11 +13,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Brand */
-  --brand:          #4B1F52;
-  --brand-2:        #6B2D69;
-  --brand-soft:     #F7F0F8;
-  --brand-border:   #E3D2E7;
+  /* Brand - Deep Rich Royal Midnight Purple & Gradients */
+  --brand:          #240733;
+  --brand-2:        #3B0E50;
+  --brand-3:        #15031F;
+  --brand-soft:     #F5ECF7;
+  --brand-border:   #DECDE3;
+  --brand-gradient: linear-gradient(135deg, #15031F 0%, #240733 52%, #3E1055 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #1B0427 0%, #2F0A42 52%, #4D1569 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(36, 7, 51, 0.05) 0%, rgba(62, 16, 85, 0.08) 100%);
   --cta:            #F58220;
   --cta-hover:      #D9680D;
   --cta-soft:       #FFF4EA;
@@ -25,9 +29,9 @@
   /* Neutrals */
   --bg:             #FFFFFF;
   --bg-alt:         #FAF8FA;
-  --ink:            #211B24;
-  --ink-2:          #68616B;
-  --ink-3:          #938C96;
+  --ink:            #18121B;
+  --ink-2:          #57505C;
+  --ink-3:          #857E8A;
   --line:           #E9E3EA;
   --line-strong:    #D8D0D9;
 
@@ -38,8 +42,8 @@
   --err-bg:         #FDF0EF;
   --warn:           #A15C07;
   --warn-bg:        #FEF6E7;
-  --info:           #3B123F;
-  --info-bg:        #F5EFF5;
+  --info:           #240733;
+  --info-bg:        #F5ECF7;
 
   /* Shape */
   --radius-sm: 6px;

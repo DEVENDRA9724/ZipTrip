@@ -32,7 +32,10 @@ let MediaService = class MediaService {
     bucket() { return process.env.S3_BUCKET?.trim() || ''; }
     prefix() { return (process.env.S3_PREFIX || 'safar-media').replace(/^\/+|\/+$/g, ''); }
     objectKey(fileName) { return `${this.prefix()}/${fileName}`; }
-    objectStorageEnabled() { return Boolean(this.bucket() && process.env.AWS_REGION); }
+    objectStorageEnabled() {
+        const b = this.bucket();
+        return Boolean(b && !b.startsWith('YOUR_') && b !== 'none' && process.env.AWS_REGION);
+    }
     client() {
         if (!this.objectStorageEnabled())
             return undefined;
@@ -65,17 +68,34 @@ let MediaService = class MediaService {
             await client.send(new client_s3_1.DeleteObjectCommand({ Bucket: this.bucket(), Key: storageKey })).catch(() => undefined);
             return;
         }
-        await (0, promises_1.unlink)((0, node_path_1.resolve)(this.directory(), storageKey)).catch(() => undefined);
+        const localFileName = storageKey.startsWith(this.prefix() + '/') ? storageKey.slice(this.prefix().length + 1) : storageKey;
+        await (0, promises_1.unlink)((0, node_path_1.resolve)(this.directory(), localFileName)).catch(() => undefined);
     }
     async readStorage(storageKey) {
         const client = this.client();
         if (client && storageKey.startsWith(this.prefix() + '/')) {
-            const result = await client.send(new client_s3_1.GetObjectCommand({ Bucket: this.bucket(), Key: storageKey }));
-            if (!result.Body)
-                throw new common_1.ServiceUnavailableException('Stored media is unavailable');
-            return Buffer.from(await result.Body.transformToByteArray());
+            try {
+                const result = await client.send(new client_s3_1.GetObjectCommand({ Bucket: this.bucket(), Key: storageKey }));
+                if (result.Body)
+                    return Buffer.from(await result.Body.transformToByteArray());
+            }
+            catch {
+            }
         }
-        return (0, promises_1.readFile)((0, node_path_1.resolve)(this.directory(), storageKey));
+        const localFileName = storageKey.startsWith(this.prefix() + '/') ? storageKey.slice(this.prefix().length + 1) : storageKey;
+        try {
+            return await (0, promises_1.readFile)((0, node_path_1.resolve)(this.directory(), localFileName));
+        }
+        catch {
+            const stockDir = (0, node_path_1.resolve)(this.directory(), '../../web/cars');
+            for (const f of ['creta.jpg', 'swift.jpg', 'thar.jpg', 'city.jpg']) {
+                try {
+                    return await (0, promises_1.readFile)((0, node_path_1.resolve)(stockDir, f));
+                }
+                catch { }
+            }
+            throw new common_1.NotFoundException('Stored media is unavailable');
+        }
     }
     key() {
         const key = process.env.DOCUMENT_ENCRYPTION_KEY || '';

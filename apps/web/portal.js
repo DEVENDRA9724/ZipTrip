@@ -132,6 +132,8 @@ const CAR_IMAGE_MAP = {
   fortuner: 'cars/fortuner.jpg',
   innova: 'cars/innova.jpg',
   swift: 'cars/swift.jpg',
+  fronx: 'cars/swift.jpg',
+  baleno: 'cars/swift.jpg',
   bmw: 'cars/bmw.jpg',
   city: 'cars/city.jpg',
   scorpio: 'cars/scorpio.jpg',
@@ -147,16 +149,19 @@ function getCarStockPhoto(car) {
   for (const [key, path] of Object.entries(CAR_IMAGE_MAP)) {
     if (text.includes(key)) return path;
   }
+  if (text.includes('suv')) return 'cars/scorpio.jpg';
+  if (text.includes('sedan')) return 'cars/city.jpg';
+  if (text.includes('luxury')) return 'cars/bmw.jpg';
   return 'cars/creta.jpg';
 }
 
 function getVehicleCover(v) {
-  const front = v.media?.find(m => m.kind === 'FRONT');
-  if (front?.id) return `/api/media/${front.id}`;
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
     if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
+  const front = v.media?.find(m => m.kind === 'FRONT');
+  if (front?.id && front.storageKey && !front.storageKey.startsWith('safar-media/')) return `/api/media/${front.id}`;
   return getCarStockPhoto(v);
 }
 
@@ -223,8 +228,8 @@ function icon(name, cls = '') {
 }
 /* Vector brand mark: a road curve forming an "S" inside a rounded tile */
 function brandMark(size = 34, light = false) {
-  const tile = light ? '#FFFFFF' : '#3B123F';
-  const road = light ? '#3B123F' : '#FFFFFF';
+  const tile = light ? '#FFFFFF' : '#240733';
+  const road = light ? '#240733' : '#FFFFFF';
   return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
 }
 function brandLockup(light = false) {
@@ -306,12 +311,17 @@ async function uploadFile(file, kind) {
   return api('/media?kind=' + kind, {method:'POST', body: fd});
 }
 function photoUrl(car) {
+  if (car.images) {
+    try {
+      const p = JSON.parse(car.images);
+      if (Array.isArray(p) && p[0] && (p[0].startsWith('http') || p[0].startsWith('/'))) return p[0];
+    } catch {
+      const u = car.images.split(',').map(s => s.trim()).filter(Boolean)[0];
+      if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
+    }
+  }
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
-  if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
-  try {
-    const p = JSON.parse(car.images || '[]');
-    if (p[0] && (p[0].startsWith('http') || p[0].startsWith('/'))) return p[0];
-  } catch {}
+  if (m?.id && m.storageKey && !m.storageKey.startsWith('safar-media/')) return '/api/media/' + encodeURIComponent(m.id);
   return getCarStockPhoto(car);
 }
 function requireUser(roles) {
@@ -339,8 +349,12 @@ const initials = u => ((u?.firstName || '?')[0] + (u?.lastName || '')[0] || '').
 
 /* ─── HEADER / SHELL ─────────────────────────────────────────────────── */
 function shell() {
+  const isAdmin = page === 'admin.html';
   const isPartner = ['HOST', 'DEALER'].includes(user?.role);
-  const links = [
+  const links = isAdmin ? [
+    ['admin.html', 'Admin Console'],
+    ['cars.html', 'Live Customer View ↗'],
+  ] : [
     ['cars.html', 'Explore Cars'],
     ['index.html#how-it-works', 'How It Works'],
     ['host-onboarding.html', isPartner ? 'Host Console' : 'Become a Host'],
@@ -352,12 +366,15 @@ function shell() {
   const isActive = href => page === href.split('#')[0] && !href.includes('#');
 
   $('#header').innerHTML = `
-    <a href="index.html" aria-label="Safar Self Drive Home" style="text-decoration:none">${brandLockup()}</a>
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="index.html" aria-label="Safar Self Drive Home" style="text-decoration:none">${brandLockup()}</a>
+      ${isAdmin ? '<span class="badge ok" style="font-size:11px;font-weight:700;letter-spacing:0.04em">OPERATIONS ADMIN</span>' : ''}
+    </div>
     <nav class="ds-nav" aria-label="Main navigation">
       ${links.map(([href, label]) => `<a href="${href}" class="${isActive(href) ? 'active' : ''}">${label}</a>`).join('')}
     </nav>
     <div class="ds-head-right">
-      <div class="ds-city" title="Select pickup city">${icon('pin', 'ic-sm')}<select id="ds-city-select" aria-label="Select pickup city">${cityOptions}</select></div>
+      ${isAdmin ? '' : `<div class="ds-city" title="Select pickup city">${icon('pin', 'ic-sm')}<select id="ds-city-select" aria-label="Select pickup city">${cityOptions}</select></div>`}
       ${user ? `
         <details class="ds-user-menu">
           <summary aria-label="Account menu"><span class="ds-avatar">${esc(initials(user))}</span><span class="ds-hide-m">${esc(user.firstName)}</span></summary>
@@ -484,7 +501,7 @@ function carCard(car) {
        data-rating="${hasRating ? numRating : 4.5}"
        data-year="${Number(car.year) || 2024}">
       <div class="vcard-media">
-        <img src="${photoUrl(car)}" alt="${esc(title)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=900&q=70'">
+        <img src="${photoUrl(car)}" alt="${esc(title)}" loading="lazy" onerror="this.onerror=null;this.src='${getCarStockPhoto(car)}';">
         ${verified ? `<span class="vcard-tag">${icon('shield', 'ic-sm')} Verified Listing</span>` : ''}
       </div>
       <div class="vcard-body">
@@ -1291,8 +1308,8 @@ async function carDetails(id) {
         <div class="details-gallery" id="sec-gallery">
           <div class="details-main-img-box">
             ${mainMedia
-              ? `<img id="car-hero-img" src="/api/media/${encodeURIComponent(mainMedia.id)}" alt="${esc(car.make)} ${esc(car.model)}">`
-              : `<img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}">`}
+              ? `<img id="car-hero-img" src="/api/media/${encodeURIComponent(mainMedia.id)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='${getCarStockPhoto(car)}';">`
+              : `<img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='${getCarStockPhoto(car)}';">`}
             ${mediaList.length > 1 ? `<span class="gallery-counter" id="gallery-counter-lbl">1 / ${mediaList.length}</span>` : ''}
           </div>
 
@@ -1300,7 +1317,7 @@ async function carDetails(id) {
           <div class="gallery-thumb-row" id="gallery-thumbs">
             ${mediaList.map((m, idx) => `
               <button type="button" class="thumb-card ${idx === 0 ? 'active' : ''}" data-idx="${idx}" data-url="/api/media/${encodeURIComponent(m.id)}">
-                <img src="/api/media/${encodeURIComponent(m.id)}" alt="${esc(m.kind)}" loading="lazy">
+                <img src="/api/media/${encodeURIComponent(m.id)}" alt="${esc(m.kind)}" loading="lazy" onerror="this.onerror=null;this.src='${getCarStockPhoto(car)}';">
                 <span>${esc(m.kind)}</span>
               </button>`).join('')}
           </div>` : ''}
@@ -2425,12 +2442,11 @@ async function host(activeTab = 'overview') {
 
         <section id="host-tab-fleet" ${activeTab === 'fleet' ? '' : 'hidden'}>
           ${vehicles.length ? `<div class="admin-vehicle-grid">` + vehicles.map(v => {
-            const front = v.media?.find(m => m.kind === 'FRONT');
-            const cover = front ? `/api/media/${front.id}` : (v.images ? v.images.split(',')[0].trim() : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80');
+            const cover = getVehicleCover(v);
             return `
             <article class="panel admin-vehicle-tile">
               <div class="admin-tile-media">
-                <img loading="lazy" src="${cover}" alt="${esc(v.make + ' ' + v.model)}">
+                <img loading="lazy" src="${cover}" alt="${esc(v.make + ' ' + v.model)}" onerror="this.onerror=null;this.src='${getCarStockPhoto(v)}';">
                 <div class="admin-tile-badge">${badge(v.status)}</div>
                 <div class="admin-tile-photo-count">${v.media?.length || 0} S3 Photos</div>
               </div>
@@ -4043,10 +4059,15 @@ async function adminPage(tab = 'dashboard') {
 }
 
 function renderAdminView(tab) {
-  $$('[data-tab]').forEach(b => { b.classList.toggle('active', b.dataset.tab === tab); b.setAttribute('aria-pressed', String(b.dataset.tab === tab)); });
+  $$('.pro-nav [data-tab]').forEach(b => {
+    const isActive = b.dataset.tab === tab;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-pressed', String(isActive));
+  });
+
   const toolbar = $('#admin-filter-toolbar');
-  const listTabs = ['vehicles', 'bookings', 'users', 'documents', 'disputes', 'audit'];
-  if (toolbar) toolbar.style.display = listTabs.includes(tab) ? '' : 'none';
+  const filterableTabs = ['vehicles', 'bookings', 'users', 'documents', 'audit'];
+  if (toolbar) toolbar.style.display = filterableTabs.includes(tab) ? '' : 'none';
 
   const statusSelect = $('#admin-status');
   const selectedStatus = statusSelect.value;
@@ -4056,16 +4077,19 @@ function renderAdminView(tab) {
   statusSelect.value = statuses.includes(selectedStatus) ? selectedStatus : '';
   const query = $('#admin-search').value.trim().toLowerCase();
   const data = sourceList.filter(item => (!statusSelect.value || (tab === 'bookings' ? formatBookingStatus(item) : item.status || item.role || item.action) === statusSelect.value) && (!query || JSON.stringify(item).toLowerCase().includes(query)));
+  
   if ($('#admin-record-count')) {
-    $('#admin-record-count').textContent = listTabs.includes(tab) ? `${data.length} of ${sourceList.length} records` : '';
+    $('#admin-record-count').textContent = filterableTabs.includes(tab) ? `${data.length} of ${sourceList.length} records` : '';
   }
 
+  // 1. DASHBOARD
   if (tab === 'dashboard') {
     const activeVehicles = adminData.vehicles.filter(v => v.status === 'ACTIVE').length;
     const pendingVehicles = adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL');
     const pendingDocs = adminData.documents.filter(d => d.status === 'PENDING');
     const openDisputes = adminData.disputes.filter(d => d.status !== 'RESOLVED' && d.status !== 'REJECTED');
     const recentBookings = adminData.bookings.slice(0, 5);
+
     $('#admin-panel-content').innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:18px;">
         <section class="panel" style="padding:20px;">
@@ -4083,7 +4107,7 @@ function renderAdminView(tab) {
               <span style="font-size:12px;color:#68616B;">Pending Approval</span>
             </div>
             <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
-              <strong style="font-size:20px;color:#3B123F;display:block;">${adminData.vehicles.length - activeVehicles - pendingVehicles.length}</strong>
+              <strong style="font-size:20px;color:var(--brand,#240733);display:block;">${adminData.vehicles.length - activeVehicles - pendingVehicles.length}</strong>
               <span style="font-size:12px;color:#68616B;">Maintenance / Hold</span>
             </div>
           </div>
@@ -4096,7 +4120,7 @@ function renderAdminView(tab) {
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
             <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
-              <strong style="font-size:20px;color:#3B123F;display:block;">${pendingDocs.length}</strong>
+              <strong style="font-size:20px;color:var(--brand,#240733);display:block;">${pendingDocs.length}</strong>
               <span style="font-size:12px;color:#68616B;">Pending KYC Docs</span>
             </div>
             <div style="padding:12px;background:#FAF8FA;border-radius:10px;border:1px solid #E9E3EA;">
@@ -4138,11 +4162,13 @@ function renderAdminView(tab) {
     return;
   }
 
+  // 2. APPROVALS QUEUE
   if (tab === 'approvals') {
     const pendingVehicles = adminData.vehicles.filter(v => v.status === 'PENDING_APPROVAL');
     const pendingDocs = adminData.documents.filter(d => d.status === 'PENDING');
     const pendingBanks = adminData.payoutAccounts.filter(a => a.status === 'PENDING');
     const openDisputes = adminData.disputes.filter(d => d.status !== 'RESOLVED' && d.status !== 'REJECTED');
+
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap" style="margin-bottom:18px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -4169,7 +4195,7 @@ function renderAdminView(tab) {
                   </td>
                 </tr>`).join('')}
             </tbody>
-          </table>` : '<p class="text-muted" style="margin:0;">All fleet vehicles have been reviewed.</p>'}
+          </table>` : '<div class="notice" style="margin:0;background:#ECF7F0;border-color:#A3D9B5;color:#16804A">✓ All fleet vehicles have been reviewed and approved.</div>'}
       </section>
 
       <section class="panel table-wrap" style="margin-bottom:18px;">
@@ -4191,7 +4217,7 @@ function renderAdminView(tab) {
                   </td>
                 </tr>`).join('')}
             </tbody>
-          </table>` : '<p class="text-muted" style="margin:0;">Zero pending KYC documents in the queue.</p>'}
+          </table>` : '<div class="notice" style="margin:0;background:#ECF7F0;border-color:#A3D9B5;color:#16804A">✓ Zero pending KYC documents in the queue.</div>'}
       </section>
 
       <section class="panel table-wrap">
@@ -4202,8 +4228,11 @@ function renderAdminView(tab) {
         </div>
       </section>`;
     $$('.admin-jump-tab').forEach(btn => btn.onclick = () => renderAdminView(btn.dataset.target));
+    bindAdminActions();
+    return;
   }
 
+  // 3. PRICING & COMMERCIALS
   if (tab === 'pricing') {
     $('#admin-panel-content').innerHTML = `
       <section class="panel" style="margin-bottom:18px;">
@@ -4216,7 +4245,7 @@ function renderAdminView(tab) {
           </div>
           <div style="padding:14px;border:1px solid #E9E3EA;border-radius:10px;background:#FAF8FA;">
             <span class="text-muted" style="font-size:12px;">Platform Commission</span>
-            <strong style="display:block;font-size:20px;color:#3B123F;margin-top:4px;">20% Marketplace Fee</strong>
+            <strong style="display:block;font-size:20px;color:var(--brand,#240733);margin-top:4px;">20% Marketplace Fee</strong>
           </div>
           <div style="padding:14px;border:1px solid #E9E3EA;border-radius:10px;background:#FAF8FA;">
             <span class="text-muted" style="font-size:12px;">Minimum Booking Duration</span>
@@ -4244,8 +4273,11 @@ function renderAdminView(tab) {
           </tbody>
         </table>
       </section>`;
+    bindAdminActions();
+    return;
   }
 
+  // 4. REPORTS & ANALYTICS
   if (tab === 'reports') {
     const cityCounts = {};
     adminData.vehicles.forEach(v => { const c = v.locationCity || 'Other'; cityCounts[c] = (cityCounts[c] || 0) + 1; });
@@ -4282,11 +4314,98 @@ function renderAdminView(tab) {
     return;
   }
 
-  if (listTabs.includes(tab) && !data.length && !(tab === 'payouts' && adminData.payoutAccounts.length)) {
+  // 5. PAYMENTS & PAYOUTS
+  if (tab === 'payouts') {
+    $('#admin-panel-content').innerHTML = `
+      <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 24px;margin-bottom:18px">
+        <div>
+          <strong style="font-size:16px;color:var(--text-main)">Host Settlements &amp; Partner Bank Verifications</strong>
+          <p class="text-muted" style="margin:4px 0 0;font-size:13px">Host payouts are automated at 80% net booking fare upon trip completion. Direct bank transfers (IMPS/NEFT) can be recorded with UTR numbers.</p>
+        </div>
+        <div class="actions">
+          <button id="admin-add-bank-btn" class="btn-outline btn-sm">+ Link Partner Bank</button>
+          <button id="admin-create-payout-btn" class="button btn-orange btn-sm">+ Record Settlement (UTR)</button>
+        </div>
+      </div>
+
+      <section class="panel table-wrap" style="margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="margin:0;">Host &amp; Dealer Bank Accounts (${adminData.payoutAccounts.length})</h3>
+        </div>
+        <table>
+          <thead><tr><th>Partner</th><th>Bank &amp; IFSC</th><th>Status</th><th>Payouts</th><th>Action</th></tr></thead>
+          <tbody>
+            ${adminData.payoutAccounts.map(account => `
+              <tr>
+                <td><strong>${esc((account.user?.firstName || '') + ' ' + (account.user?.lastName || ''))}</strong><p class="text-muted">${esc(account.user?.email || '')} · ${esc(account.user?.role || '')}</p></td>
+                <td>${esc(account.bankName)} · •••• ${esc(account.accountNumberLast4)}<br><span class="text-muted">IFSC ${esc(account.ifscCode)}</span></td>
+                <td>${badge(account.status)}</td>
+                <td>${account.payouts?.length || 0} settlements</td>
+                <td><button class="btn-outline btn-sm payout-account-status-action" data-id="${esc(account.id)}">Verify Bank</button></td>
+              </tr>`).join('') || '<tr><td colspan="5" class="text-muted" style="text-align:center;padding:24px;">No partner bank accounts registered yet. Click &ldquo;+ Link Partner Bank&rdquo; above to add one.</td></tr>'}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel table-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="margin:0;">Partner Settlement Ledger (${adminData.payouts.length})</h3>
+        </div>
+        <table>
+          <thead><tr><th>Host / Partner</th><th>Net Settlement</th><th>Period / Trip</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${adminData.payouts.map(payout => `
+              <tr>
+                <td><strong>${esc((payout.account?.user?.firstName || '') + ' ' + (payout.account?.user?.lastName || ''))}</strong><p class="text-muted">${esc(payout.account?.user?.email || '')}</p></td>
+                <td><strong style="color:#059669;font-size:15px;">${money(payout.amount)}</strong></td>
+                <td>${payout.periodStart ? d(payout.periodStart) : 'Trip'} → ${payout.periodEnd ? d(payout.periodEnd) : 'Completed'}<br><small class="text-muted">${esc(payout.note || '')}</small></td>
+                <td>${badge(payout.status)}${payout.reference ? `<br><span class="text-muted">${esc(payout.reference)}</span>` : ''}</td>
+                <td><button class="btn-outline btn-sm payout-status-action" data-id="${esc(payout.id)}">Mark Paid / UTR</button></td>
+              </tr>`).join('') || '<tr><td colspan="5" class="text-muted" style="text-align:center;padding:24px;">No payouts recorded yet. Completed trips automatically generate settlements, or click &ldquo;+ Record Settlement (UTR)&rdquo; to record one manually.</td></tr>'}
+          </tbody>
+        </table>
+      </section>`;
+    bindAdminActions();
+    return;
+  }
+
+  // 6. DISPUTES & RESOLUTION
+  if (tab === 'disputes') {
+    $('#admin-panel-content').innerHTML = `
+      <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 24px;margin-bottom:18px">
+        <div>
+          <strong style="font-size:16px;color:var(--text-main)">Booking Disputes &amp; Resolution Queue</strong>
+          <p class="text-muted" style="margin:4px 0 0;font-size:13px">Handle billing inquiries, security deposit refunds, odometer/fuel discrepancies, and damage claims. All decisions are immutably logged.</p>
+        </div>
+        <button id="admin-file-sample-dispute-btn" class="btn-outline btn-sm">+ File Sample Dispute Ticket</button>
+      </div>
+
+      <section class="panel table-wrap">
+        <table>
+          <thead><tr><th>Reference / Customer</th><th>Booking &amp; Vehicle</th><th>Issue</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${adminData.disputes.map(dispute => `
+              <tr>
+                <td><strong>${esc(dispute.reference)}</strong><br>${esc((dispute.customer?.firstName || '') + ' ' + (dispute.customer?.lastName || ''))}<br><small class="text-muted">${esc(dispute.customer?.email || '')}</small></td>
+                <td><strong>${esc(dispute.bookingRef || dispute.bookingId || '—')}</strong><br><small>${esc(dispute.vehicleTitle)}</small></td>
+                <td><strong>${esc((dispute.category || '').replaceAll('_', ' '))}</strong><p style="margin:4px 0 0">${esc(dispute.description)}</p>${dispute.amountClaimed ? `<small class="text-muted">Claimed: ${money(dispute.amountClaimed)}</small>` : ''}</td>
+                <td>${badge(dispute.status)}${dispute.adminResponse ? `<p class="text-muted" style="margin:5px 0 0;font-size:12px">${esc(dispute.adminResponse)}</p>` : ''}</td>
+                <td><button type="button" class="button btn-orange btn-sm resolve-dispute-action" data-id="${esc(dispute.id)}" data-reference="${esc(dispute.reference)}">Review &amp; Settle</button></td>
+              </tr>`).join('') || '<tr><td colspan="5" class="text-muted" style="text-align:center;padding:28px;">Zero open disputes in the queue! All customer bookings and deposits are in good standing.<br><small>Click &ldquo;+ File Sample Dispute Ticket&rdquo; to test resolution workflows.</small></td></tr>'}
+          </tbody>
+        </table>
+      </section>`;
+    bindAdminActions();
+    return;
+  }
+
+  // 7. EMPTY STATE CHECK FOR FILTERABLE TABS (when filtered search returns 0)
+  if (filterableTabs.includes(tab) && !data.length) {
     $('#admin-panel-content').innerHTML = empty('No matching records', query || statusSelect.value ? 'Try another search or choose all statuses.' : 'New submissions will appear here when they are received.');
     return;
   }
 
+  // 8. FLEET & VEHICLES
   if (tab === 'vehicles') {
     $('#admin-panel-content').innerHTML = `
       <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 24px;margin-bottom:14px">
@@ -4300,7 +4419,7 @@ function renderAdminView(tab) {
         ${data.map(v => `
           <article class="panel admin-vehicle-tile open-car-folder-tile" data-id="${v.id}" style="cursor:pointer">
             <div class="admin-tile-media">
-              <img loading="lazy" src="${getVehicleCover(v)}" alt="${esc(v.make + ' ' + v.model)}">
+              <img loading="lazy" src="${getVehicleCover(v)}" alt="${esc(v.make + ' ' + v.model)}" onerror="this.onerror=null;this.src='${getCarStockPhoto(v)}';">
               <div class="admin-tile-badge">${badge(v.status)}</div>
               <div class="admin-tile-photo-count">${v.media?.length || 0} S3 Photos</div>
             </div>
@@ -4323,6 +4442,7 @@ function renderAdminView(tab) {
       </div>`;
   }
 
+  // 9. DOCUMENTS
   if (tab === 'documents') {
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap">
@@ -4357,6 +4477,7 @@ function renderAdminView(tab) {
       </section>`;
   }
 
+  // 10. BOOKINGS
   if (tab === 'bookings') {
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap">
@@ -4376,8 +4497,8 @@ function renderAdminView(tab) {
               <tr>
                 <td>
                   <strong>${esc(b.customer.firstName + ' ' + b.customer.lastName)}</strong>
-                  ${b.customer.phone ? `<br><small><a href="tel:${esc(b.customer.phone)}" style="color:var(--purple);font-weight:600">📞 ${esc(b.customer.phone)}</a></small>` : ''}
-                  <p style="margin:4px 0 0;font-size:12.5px;color:var(--orange);font-weight:700">${esc(b.vehicle.make + ' ' + b.vehicle.model)} (${esc(b.vehicle.registrationNumber || 'No Reg')})</p>
+                  ${b.customer.phone ? `<br><small><a href="tel:${esc(b.customer.phone)}" style="color:var(--brand,#240733);font-weight:600">📞 ${esc(b.customer.phone)}</a></small>` : ''}
+                  <p style="margin:4px 0 0;font-size:12.5px;color:var(--cta,#F58220);font-weight:700">${esc(b.vehicle.make + ' ' + b.vehicle.model)} (${esc(b.vehicle.registrationNumber || 'No Reg')})</p>
                   ${b.vehicle.host ? `<small class="text-muted">Host: ${esc(b.vehicle.host.firstName + ' ' + b.vehicle.host.lastName)}</small>` : ''}
                 </td>
                 <td>
@@ -4387,7 +4508,7 @@ function renderAdminView(tab) {
                 <td>
                   <strong style="font-size:15px;">Total: ${money(b.totalAmount)}</strong>
                   <p class="text-muted" style="margin:2px 0;font-size:11.5px;">Base Fare: ${money(b.baseFare)} · Deposit: ${money(b.securityDeposit)}</p>
-                  <p style="margin:2px 0;font-size:11.5px;font-weight:700;">${platFee == null ? '<span class="text-muted">Settlement pending reconciliation</span>' : `<span style="color:var(--purple);">Platform fee: ${money(platFee)}</span> · <span style="color:#059669;">Partner settlement: ${money(hostRev)}</span>`}</p>
+                  <p style="margin:2px 0;font-size:11.5px;font-weight:700;">${platFee == null ? '<span class="text-muted">Settlement pending reconciliation</span>' : `<span style="color:var(--brand,#240733);">Platform fee: ${money(platFee)}</span> · <span style="color:#059669;">Partner settlement: ${money(hostRev)}</span>`}</p>
                 </td>
                 <td>
                   ${badge(st)}
@@ -4412,41 +4533,7 @@ function renderAdminView(tab) {
       </section>`;
   }
 
-  if (tab === 'payouts') {
-    $('#admin-panel-content').innerHTML = `
-      <section class="panel table-wrap" style="margin-bottom:20px;">
-        <h3>Host &amp; Dealer Bank Accounts</h3>
-        <table>
-          <thead><tr><th>Partner</th><th>Bank &amp; IFSC</th><th>Status</th><th>Payouts</th></tr></thead>
-          <tbody>
-            ${adminData.payoutAccounts.map(account => `
-              <tr>
-                <td><strong>${esc((account.user?.firstName || '') + ' ' + (account.user?.lastName || ''))}</strong><p class="text-muted">${esc(account.user?.email || '')} · ${esc(account.user?.role || '')}</p></td>
-                <td>${esc(account.bankName)} · •••• ${esc(account.accountNumberLast4)}<br><span class="text-muted">IFSC ${esc(account.ifscCode)}</span></td>
-                <td>${badge(account.status)}<br><button class="btn-outline btn-sm payout-account-status-action" data-id="${esc(account.id)}" style="margin-top:4px;">Verify Bank</button></td>
-                <td>${account.payouts?.length || 0} settlements</td>
-              </tr>`).join('') || '<tr><td colspan="4">No payout accounts submitted yet.</td></tr>'}
-          </tbody>
-        </table>
-      </section>
-      <section class="panel table-wrap">
-        <h3>Partner settlement ledger</h3>
-        <table>
-          <thead><tr><th>Host / Partner</th><th>Net settlement</th><th>Period / Trip</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            ${adminData.payouts.map(payout => `
-              <tr>
-                <td><strong>${esc((payout.account?.user?.firstName || '') + ' ' + (payout.account?.user?.lastName || ''))}</strong><p class="text-muted">${esc(payout.account?.user?.email || '')}</p></td>
-                <td><strong style="color:#059669;font-size:15px;">${money(payout.amount)}</strong></td>
-                <td>${payout.periodStart ? d(payout.periodStart) : 'Trip'} → ${payout.periodEnd ? d(payout.periodEnd) : 'Completed'}<br><small class="text-muted">${esc(payout.note || '')}</small></td>
-                <td>${badge(payout.status)}${payout.reference ? `<br><span class="text-muted">${esc(payout.reference)}</span>` : ''}</td>
-                <td><button class="btn-outline btn-sm payout-status-action" data-id="${esc(payout.id)}">Mark Paid / UTR</button></td>
-              </tr>`).join('') || '<tr><td colspan="5">No payouts created yet.</td></tr>'}
-          </tbody>
-        </table>
-      </section>`;
-  }
-
+  // 11. USERS
   if (tab === 'users') {
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap">
@@ -4465,13 +4552,13 @@ function renderAdminView(tab) {
                 </td>
                 <td>
                   ${esc(u.email)}
-                  ${u.phone ? `<br><small><a href="tel:${esc(u.phone)}" style="color:var(--purple);font-weight:600">📞 ${esc(u.phone)}</a> ${u.phoneVerified ? '<span style="color:#059669;font-weight:700;">✓ OTP</span>' : ''}</small>` : ''}
+                  ${u.phone ? `<br><small><a href="tel:${esc(u.phone)}" style="color:var(--brand,#240733);font-weight:600">📞 ${esc(u.phone)}</a> ${u.phoneVerified ? '<span style="color:#059669;font-weight:700;">✓ OTP</span>' : ''}</small>` : ''}
                 </td>
                 <td>${badge(u.role)}</td>
                 <td>
                   ${badge(u.isVerified ? 'APPROVED' : 'PENDING')}
                   ${u.faceMatchScore ? `<br><small style="color:#059669;font-weight:700;">Face Score: ${Number(u.faceMatchScore).toFixed(1)}%</small>` : ''}
-                  ${u.selfieMediaId ? `<br><a href="/api/media/${esc(u.selfieMediaId)}" target="_blank" style="font-size:11.5px;color:var(--purple);font-weight:700;">👁️ View S3 Live Selfie</a>` : ''}
+                  ${u.selfieMediaId ? `<br><a href="/api/media/${esc(u.selfieMediaId)}" target="_blank" style="font-size:11.5px;color:var(--brand,#240733);font-weight:700;">👁️ View S3 Live Selfie</a>` : ''}
                 </td>
                 <td>
                   <div class="actions" style="flex-wrap:wrap;gap:6px;">
@@ -4486,9 +4573,14 @@ function renderAdminView(tab) {
       </section>`;
   }
 
+  // 12. AUDIT LOGS
   if (tab === 'audit') {
     $('#admin-panel-content').innerHTML = `
       <section class="panel table-wrap">
+        <div style="margin-bottom:14px;">
+          <h3 style="margin:0;">System Audit Trail &amp; Regulatory Activity Log</h3>
+          <p class="text-muted" style="margin:4px 0 0;">Cryptographic compliance records of all vehicle state transitions, KYC approvals, pricing updates, and booking handovers.</p>
+        </div>
         <table>
           <thead><tr><th>Timestamp</th><th>Action</th><th>Actor</th><th>Detail</th></tr></thead>
           <tbody>
@@ -4504,23 +4596,10 @@ function renderAdminView(tab) {
       </section>`;
   }
 
-  if (tab === 'disputes') {
-    $('#admin-panel-content').innerHTML = `
-      <section class="panel table-wrap">
-        <div style="margin-bottom:14px;"><h3 style="margin:0">Booking disputes &amp; resolution queue</h3><p class="text-muted" style="margin:4px 0 0">Review booking-linked billing, deposit, handover and damage claims. Every response is appended to the audit trail.</p></div>
-        <table>
-          <thead><tr><th>Reference / Customer</th><th>Booking &amp; Vehicle</th><th>Issue</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>${data.map(dispute => `<tr>
-            <td><strong>${esc(dispute.reference)}</strong><br>${esc((dispute.customer?.firstName || '') + ' ' + (dispute.customer?.lastName || ''))}<br><small class="text-muted">${esc(dispute.customer?.email || '')}</small></td>
-            <td><strong>${esc(dispute.bookingRef || dispute.bookingId || '—')}</strong><br><small>${esc(dispute.vehicleTitle)}</small></td>
-            <td><strong>${esc(dispute.category.replaceAll('_', ' '))}</strong><p style="margin:4px 0 0">${esc(dispute.description)}</p>${dispute.amountClaimed ? `<small class="text-muted">Claimed: ${money(dispute.amountClaimed)}</small>` : ''}</td>
-            <td>${badge(dispute.status)}${dispute.adminResponse ? `<p class="text-muted" style="margin:5px 0 0;font-size:12px">${esc(dispute.adminResponse)}</p>` : ''}</td>
-            <td><button type="button" class="button btn-orange btn-sm resolve-dispute-action" data-id="${esc(dispute.id)}" data-reference="${esc(dispute.reference)}">Review</button></td>
-          </tr>`).join('') || '<tr><td colspan="5">No booking disputes have been submitted.</td></tr>'}</tbody>
-        </table>
-      </section>`;
-  }
+  bindAdminActions();
+}
 
+function bindAdminActions() {
   if ($('#admin-add-vehicle-btn')) {
     $('#admin-add-vehicle-btn').onclick = () => {
       showDialog(`
@@ -4582,11 +4661,104 @@ function renderAdminView(tab) {
       $('#admin-cam-snap-input')?.addEventListener('change', (e) => handleAdminPhoto(e.target.files?.[0]));
       $('#admin-file-upload-input')?.addEventListener('change', (e) => handleAdminPhoto(e.target.files?.[0]));
 
-      bindForm('#admin-add-vehicle-form', async data => {
-        await post('/admin/vehicles', data);
+      bindForm('#admin-add-vehicle-form', async formData => {
+        await post('/admin/vehicles', formData);
         $('dialog').close();
         await adminPage('vehicles');
         toast('New vehicle added to fleet and activated.');
+      });
+    };
+  }
+
+  // Add Partner Bank Account Dialog
+  if ($('#admin-add-bank-btn')) {
+    $('#admin-add-bank-btn').onclick = () => {
+      showDialog(`
+        <h3>Link Partner Bank Account</h3>
+        <p class="text-muted">Register bank details for automated host settlements.</p>
+        <form id="admin-add-bank-form" class="form-stack">
+          ${inp('bankName', 'Bank Name (e.g. HDFC Bank, State Bank of India)', 'text', 'required maxlength="100" value="HDFC Bank"')}
+          ${inp('accountHolderName', 'Account Holder Name', 'text', 'required maxlength="100" value="Safar Host Partner"')}
+          ${inp('accountNumber', 'Bank Account Number (9 to 18 digits)', 'text', 'required pattern="^[0-9]{9,18}$" maxlength="18" value="123456789012"')}
+          ${inp('ifscCode', 'IFSC Code (e.g. HDFC0001234)', 'text', 'required pattern="^[A-Za-z]{4}0[A-Za-z0-9]{6}$" maxlength="11" value="HDFC0001234" style="text-transform:uppercase"')}
+          <button type="submit" class="button btn-orange">Register &amp; Verify Bank Account</button>
+        </form>
+      `);
+      bindForm('#admin-add-bank-form', async formData => {
+        await post('/payouts/account', formData);
+        $('dialog').close();
+        await adminPage('payouts');
+        toast('Partner bank account registered successfully!');
+      });
+    };
+  }
+
+  // Create Partner Payout Dialog
+  if ($('#admin-create-payout-btn')) {
+    $('#admin-create-payout-btn').onclick = () => {
+      if (!adminData.payoutAccounts?.length) {
+        toast('Please register a Partner Bank Account first before recording payouts.', true);
+        $('#admin-add-bank-btn')?.click();
+        return;
+      }
+      showDialog(`
+        <h3>Record Partner Settlement / Payout</h3>
+        <p class="text-muted">Record an IMPS/NEFT transfer against a partner bank account.</p>
+        <form id="admin-create-payout-form" class="form-stack">
+          <label>Select Partner Bank Account
+            <select name="accountId" required>
+              ${adminData.payoutAccounts.map(a => `<option value="${a.id}">${esc(a.bankName)} (•••• ${esc(a.accountNumberLast4)}) - ${esc((a.user?.firstName || '') + ' ' + (a.user?.lastName || ''))}</option>`).join('')}
+            </select>
+          </label>
+          ${inp('amount', 'Payout Amount (₹)', 'number', 'required min="1" step="1" value="3200"')}
+          ${inp('note', 'Settlement Reference / Booking Note', 'text', 'required maxlength="200" value="Trip settlement (80% net fare split)"')}
+          <button type="submit" class="button btn-orange">Confirm &amp; Record Payout</button>
+        </form>
+      `);
+      bindForm('#admin-create-payout-form', async formData => {
+        await post('/payouts/admin/create', formData);
+        $('dialog').close();
+        await adminPage('payouts');
+        toast('Partner settlement created.');
+      });
+    };
+  }
+
+  // File Sample Dispute Ticket Dialog
+  if ($('#admin-file-sample-dispute-btn')) {
+    $('#admin-file-sample-dispute-btn').onclick = () => {
+      const activeBookings = adminData.bookings.slice(0, 10);
+      if (!activeBookings.length) {
+        toast('No active bookings available to attach a dispute.', true);
+        return;
+      }
+      showDialog(`
+        <h3>File Dispute Ticket</h3>
+        <p class="text-muted">Initiate a dispute ticket against an active self-drive reservation.</p>
+        <form id="admin-sample-dispute-form" class="form-stack">
+          <label>Select Reservation
+            <select name="bookingId" required>
+              ${activeBookings.map(b => `<option value="${b.id}">${esc(b.bookingRef)} · ${esc(b.vehicle.make + ' ' + b.vehicle.model)} (${esc(b.customer.firstName + ' ' + b.customer.lastName)})</option>`).join('')}
+            </select>
+          </label>
+          <label>Dispute Category
+            <select name="category" required>
+              <option value="SECURITY_DEPOSIT">Security Deposit Adjustment</option>
+              <option value="BILLING">Billing &amp; Fare Discrepancy</option>
+              <option value="HANDOVER">Handover Fuel / Odometer Difference</option>
+              <option value="DAMAGE">Vehicle Damage Claim</option>
+            </select>
+          </label>
+          ${inp('description', 'Dispute Description', 'text', 'required maxlength="500" value="Customer reported fast-tag toll discrepancy during Ahmedabad highway transit."')}
+          ${inp('amountClaimed', 'Amount Claimed (₹, optional)', 'number', 'min="0" step="1" value="350"')}
+          <button type="submit" class="button btn-orange">Submit Dispute Ticket</button>
+        </form>
+      `);
+      bindForm('#admin-sample-dispute-form', async formData => {
+        await post('/account/disputes', formData);
+        $('dialog').close();
+        await adminPage('disputes');
+        toast('Dispute ticket submitted to resolution queue.');
       });
     };
   }
@@ -4598,11 +4770,13 @@ function renderAdminView(tab) {
       if (vehicle) openCarFolder(vehicle);
     };
   });
+
   $$('.vehicle-folder-btn').forEach(btn => btn.onclick = (e) => {
     e.stopPropagation();
     const vehicle = adminData.vehicles.find(v => v.id === btn.dataset.id);
     if (vehicle) openCarFolder(vehicle);
   });
+
   $$('.vehicle-quick-approve-action').forEach(btn => btn.onclick = async (e) => {
     e.stopPropagation();
     btn.disabled = true;
@@ -4619,16 +4793,19 @@ function renderAdminView(tab) {
       btn.disabled = false;
     }
   });
+
   $$('.vehicle-schedule-action').forEach(btn => btn.onclick = () => openVehicleSchedule(adminData.vehicles.find(v => v.id === btn.dataset.id)));
+
   $$('.vehicle-pricing-action').forEach(btn => btn.onclick = () => {
     const vehicle = adminData.vehicles.find(v => v.id === btn.dataset.id);
-    showDialog(`<h3>Edit daily rental price</h3><p>${esc(vehicle.make + ' ' + vehicle.model)} · ${esc(vehicle.registrationNumber)}</p>
+    if (!vehicle) return;
+    showDialog(`<h3>Edit daily rental price</h3><p>${esc(vehicle.make + ' ' + vehicle.model)} · ${esc(vehicle.registrationNumber || 'No Reg')}</p>
       <form id="vehicle-pricing-form" class="form-stack">
       ${inp('pricePerDay','Daily rate (₹)','number',`min="1" max="1000000" step="0.01" value="${Number(vehicle.pricePerDay)}"`)}
       ${inp('reason','Reason for price change','text','maxlength="1000" value="Market rate adjustment"')}
       <button type="submit" class="button btn-orange">Save daily rate</button></form>`);
-    bindForm('#vehicle-pricing-form', async data => {
-      await post('/admin/vehicles/' + vehicle.id + '/pricing', {...data, expectedRate: Number(vehicle.pricePerDay)});
+    bindForm('#vehicle-pricing-form', async formData => {
+      await post('/admin/vehicles/' + vehicle.id + '/pricing', {...formData, expectedRate: Number(vehicle.pricePerDay)});
       $('dialog').close();
       const activeTab = $('.pro-nav .active')?.dataset?.tab || 'vehicles';
       await adminPage(activeTab);
@@ -4664,7 +4841,7 @@ function renderAdminView(tab) {
                 `).join('') || `<figure><a href="/api/media/${esc(ins.mediaId)}" target="_blank"><img src="/api/media/${esc(ins.mediaId)}" alt="Primary"></a><figcaption>PRIMARY</figcaption></figure>`}
               </div>
             </div>
-          `).join('')}
+          `).join('') || '<p class="text-muted">No handover photos submitted yet.</p>'}
         </div>
       `);
     };
@@ -4711,8 +4888,8 @@ function renderAdminView(tab) {
         <button type="submit" class="button btn-orange">Update Password</button>
       </form>
     `);
-    bindForm('#admin-user-password-form', async data => {
-      await post('/admin/users/' + encodeURIComponent(btn.dataset.id) + '/password', data);
+    bindForm('#admin-user-password-form', async formData => {
+      await post('/admin/users/' + encodeURIComponent(btn.dataset.id) + '/password', formData);
       $('dialog').close();
       toast('Password updated successfully for ' + email);
     });
@@ -4834,8 +5011,8 @@ function renderAdminView(tab) {
         <button type="submit" class="button btn-orange">Save Decision</button>
       </form>`);
 
-    bindForm('#doc-decision-form', async data => {
-      await post('/admin/documents/' + encodeURIComponent(btn.dataset.id) + '/quick-review', data);
+    bindForm('#doc-decision-form', async formData => {
+      await post('/admin/documents/' + encodeURIComponent(btn.dataset.id) + '/quick-review', formData);
       $('dialog').close();
       await adminPage('documents');
       toast('Document decision saved.');
@@ -4854,9 +5031,9 @@ function renderAdminView(tab) {
         <button type="submit" class="button btn-orange">Confirm Transaction</button>
       </form>`);
 
-    bindForm('#admin-pmt-form', async data => {
+    bindForm('#admin-pmt-form', async formData => {
       await post('/admin/bookings/' + btn.dataset.id + (isRefund ? '/refund' : '/payment'), {
-        ...data,
+        ...formData,
         received: !isRefund,
         refunded: isRefund,
       });
@@ -4954,7 +5131,7 @@ function openCarFolder(v) {
   const contentHtml = `
     <div class="car-folder-workspace">
       <div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border-main)">
-        <img src="${getVehicleCover(v)}" alt="${esc(v.make + ' ' + v.model)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border-main)">
+        <img src="${getVehicleCover(v)}" alt="${esc(v.make + ' ' + v.model)}" onerror="this.onerror=null;this.src='${getCarStockPhoto(v)}';" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border-main)">
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:8px">
             <h3 style="margin:0">${esc(v.make + ' ' + v.model + ' ' + v.year)}</h3>

@@ -13,12 +13,12 @@ export declare class KycController {
         environment: string;
         documents: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: string;
-            reviewNote: string | null;
-            vehicleId: string | null;
             kind: string;
+            createdAt: Date;
+            vehicleId: string | null;
+            status: string;
+            updatedAt: Date;
+            reviewNote: string | null;
             userId: string;
             documentNumberMasked: string | null;
             documentFrontUrl: string | null;
@@ -32,25 +32,26 @@ export declare class KycController {
         }[];
         sessions: {
             id: string;
-            expiresAt: Date;
             status: string;
             environment: string;
             consentAt: Date;
+            expiresAt: Date;
         }[];
         profile: {
             id: string;
-            firstName: string;
-            lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            firstName: string;
+            lastName: string;
+            userId: string;
+            aadhaarNumberHash: string | null;
+            panNumberHash: string | null;
+            drivingLicenseHash: string | null;
             city: string;
             state: string;
             postalCode: string | null;
-            aadhaarNumberHash: string | null;
             aadhaarNumberMasked: string | null;
-            panNumberHash: string | null;
             panNumberMasked: string | null;
-            drivingLicenseHash: string | null;
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
@@ -58,7 +59,6 @@ export declare class KycController {
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
-            userId: string;
         } | null;
         user: {
             id: string;
@@ -70,12 +70,12 @@ export declare class KycController {
     }>;
     document(req: any, body: any): Promise<{
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        reviewNote: string | null;
-        vehicleId: string | null;
         kind: string;
+        createdAt: Date;
+        vehicleId: string | null;
+        status: string;
+        updatedAt: Date;
+        reviewNote: string | null;
         userId: string;
         documentNumberMasked: string | null;
         documentFrontUrl: string | null;
@@ -96,18 +96,19 @@ export declare class KycController {
         status: string;
         profile: {
             id: string;
-            firstName: string;
-            lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            firstName: string;
+            lastName: string;
+            userId: string;
+            aadhaarNumberHash: string | null;
+            panNumberHash: string | null;
+            drivingLicenseHash: string | null;
             city: string;
             state: string;
             postalCode: string | null;
-            aadhaarNumberHash: string | null;
             aadhaarNumberMasked: string | null;
-            panNumberHash: string | null;
             panNumberMasked: string | null;
-            drivingLicenseHash: string | null;
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
@@ -115,7 +116,6 @@ export declare class KycController {
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
-            userId: string;
         };
     }>;
     start(req: any, body: any): Promise<{
@@ -133,12 +133,12 @@ export declare class KycController {
         environment: string;
         documents: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: string;
-            reviewNote: string | null;
-            vehicleId: string | null;
             kind: string;
+            createdAt: Date;
+            vehicleId: string | null;
+            status: string;
+            updatedAt: Date;
+            reviewNote: string | null;
             userId: string;
             documentNumberMasked: string | null;
             documentFrontUrl: string | null;
@@ -152,25 +152,26 @@ export declare class KycController {
         }[];
         sessions: {
             id: string;
-            expiresAt: Date;
             status: string;
             environment: string;
             consentAt: Date;
+            expiresAt: Date;
         }[];
         profile: {
             id: string;
-            firstName: string;
-            lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            firstName: string;
+            lastName: string;
+            userId: string;
+            aadhaarNumberHash: string | null;
+            panNumberHash: string | null;
+            drivingLicenseHash: string | null;
             city: string;
             state: string;
             postalCode: string | null;
-            aadhaarNumberHash: string | null;
             aadhaarNumberMasked: string | null;
-            panNumberHash: string | null;
             panNumberMasked: string | null;
-            drivingLicenseHash: string | null;
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
@@ -178,7 +179,6 @@ export declare class KycController {
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
-            userId: string;
         } | null;
         user: {
             id: string;
@@ -197,12 +197,12 @@ export declare class KycController {
         environment: string;
         documents: {
             id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            status: string;
-            reviewNote: string | null;
-            vehicleId: string | null;
             kind: string;
+            createdAt: Date;
+            vehicleId: string | null;
+            status: string;
+            updatedAt: Date;
+            reviewNote: string | null;
             userId: string;
             documentNumberMasked: string | null;
             documentFrontUrl: string | null;
@@ -216,25 +216,26 @@ export declare class KycController {
         }[];
         sessions: {
             id: string;
-            expiresAt: Date;
             status: string;
             environment: string;
             consentAt: Date;
+            expiresAt: Date;
         }[];
         profile: {
             id: string;
-            firstName: string;
-            lastName: string;
             createdAt: Date;
             updatedAt: Date;
+            firstName: string;
+            lastName: string;
+            userId: string;
+            aadhaarNumberHash: string | null;
+            panNumberHash: string | null;
+            drivingLicenseHash: string | null;
             city: string;
             state: string;
             postalCode: string | null;
-            aadhaarNumberHash: string | null;
             aadhaarNumberMasked: string | null;
-            panNumberHash: string | null;
             panNumberMasked: string | null;
-            drivingLicenseHash: string | null;
             drivingLicenseMasked: string | null;
             dlExpiryDate: Date | null;
             profileImageUrl: string | null;
@@ -242,7 +243,6 @@ export declare class KycController {
             faceMatchScore: number | null;
             faceMatchStatus: string | null;
             isKycVerified: boolean;
-            userId: string;
         } | null;
         user: {
             id: string;

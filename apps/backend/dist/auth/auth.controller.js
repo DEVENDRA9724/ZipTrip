@@ -21,8 +21,10 @@ let AuthController = class AuthController {
     constructor(auth) {
         this.auth = auth;
     }
-    session(res, result) {
-        const isHttps = (process.env.WEB_ORIGIN || '').startsWith('https://');
+    session(req, res, result) {
+        const isForwardedHttps = req?.headers?.['x-forwarded-proto'] === 'https';
+        const isDirectHttps = req?.secure === true;
+        const isHttps = isForwardedHttps || isDirectHttps;
         res.cookie('safar_session', result.token, {
             httpOnly: true,
             secure: isHttps,
@@ -32,17 +34,17 @@ let AuthController = class AuthController {
         });
         return { user: result.user, token: result.token, devOtp: result.devOtp };
     }
-    async register(body, res) {
-        return this.session(res, await this.auth.register(body));
+    async register(req, body, res) {
+        return this.session(req, res, await this.auth.register(body));
     }
-    async login(body, res) {
-        return this.session(res, await this.auth.login(body));
+    async login(req, body, res) {
+        return this.session(req, res, await this.auth.login(body));
     }
     requestLoginOtp(body) {
         return this.auth.requestLoginOtp(body?.phone);
     }
-    async verifyLoginOtp(body, res) {
-        return this.session(res, await this.auth.loginWithOtp(body?.phone, body?.otp));
+    async verifyLoginOtp(req, body, res) {
+        return this.session(req, res, await this.auth.loginWithOtp(body?.phone, body?.otp));
     }
     logout(res) {
         res.clearCookie('safar_session', { path: '/' });
@@ -61,18 +63,20 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('register'),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)('login'),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
@@ -84,10 +88,11 @@ __decorate([
 ], AuthController.prototype, "requestLoginOtp", null);
 __decorate([
     (0, common_1.Post)('login/otp/verify'),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "verifyLoginOtp", null);
 __decorate([
