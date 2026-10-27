@@ -6,19 +6,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  /* ── Brand Colors ── */
+  /* ── Brand Colors ──
+     --orange is the accent (icons, borders, focus rings). White text on it
+     measures 2.96:1, so filled buttons use --cta-fill / --cta-fill-hover
+     instead (5.33:1 and 6.18:1 against white). */
   --orange:        #E87722;
   --orange-hover:  #D06A18;
   --orange-dark:   #B85E14;
   --orange-soft:   #FFF4EC;
   --orange-border: #FFD4A8;
   --orange-glow:   rgba(232,119,34,0.25);
+  --cta-fill:       #A85410;
+  --cta-fill-hover: #9C4A06;
 
   /* ── Text ── */
   --text-main:    #1A1A1A;
   --text-body:    #4A4A4A;
-  --text-muted:   #888888;
-  --text-subtle:  #BBBBBB;
+  --text-muted:   #6B6B6B;
+  --text-subtle:  #68616B;
 
   /* ── Backgrounds ── */
   --bg-page:    #F5F5F7;
@@ -49,6 +54,14 @@
   --purple-soft:   #F5ECF7;
   --purple-border: #DECDE3;
   --purple-gradient: linear-gradient(135deg, #15031F 0%, #240733 52%, #3E1055 100%);
+
+  /* ── Radii ── */
+  /* ── Anchor offsets ──
+     In-page jumps must clear the sticky header (64px) plus the sticky
+     jump-nav (~56px) on the vehicle detail page. */
+  --anchor-offset:   132px;
+  --anchor-offset-m: 108px;
+  --header-h:         64px;
 
   /* ── Radii ── */
   --r-xs:   4px;
@@ -110,13 +123,13 @@ button:active, .button:active { transform: translateY(1px) scale(0.98); }
 button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
 .btn-orange {
-  background: var(--orange);
+  background: var(--cta-fill);
   color: #fff;
   box-shadow: var(--btn-shadow);
 }
 .btn-orange:hover {
-  background: var(--orange-hover);
-  box-shadow: 0 8px 22px rgba(232,119,34,0.45);
+  background: var(--cta-fill-hover);
+  box-shadow: 0 8px 22px rgba(168,84,16,0.42);
   color: #fff;
 }
 
@@ -143,13 +156,31 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
 /* ══ HEADER ═════════════════════════════════════════════════════════ */
 .header {
-  height: 64px;
+  height: var(--header-h);
   background: #FFFFFF;
   border-bottom: 1px solid var(--border-main);
   display: flex; align-items: center;
   padding: 0 32px; gap: 24px;
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: 0; z-index: 1000;
   box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+}
+
+/* In-page anchor targets must clear the sticky header (and the sticky
+   jump-nav on the vehicle detail page) or the heading lands underneath. */
+[id^="sec-"],
+.details-block[id],
+.lp-section[id],
+#how-it-works, #faq, #support, #policies, #policies-wrap {
+  scroll-margin-top: var(--anchor-offset);
+}
+@media (max-width: 768px) {
+  :root { --header-h: 58px; }
+  [id^="sec-"],
+  .details-block[id],
+  .lp-section[id],
+  #how-it-works, #faq, #support, #policies, #policies-wrap {
+    scroll-margin-top: var(--anchor-offset-m);
+  }
 }
 
 .brand {
@@ -1603,6 +1634,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px soli
   .header .account .button, .header .account button:not(.dark-toggle) { padding-inline: 9px; }
   .highlights-bar, .stats { grid-template-columns: 1fr; }
   .bw-dates-row { grid-template-columns: 1fr; }
+  /* Two 8-angle buttons side by side do not fit at this width. */
+  .digital-twin-grid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
@@ -2455,6 +2488,14 @@ html {
   .sim-metrics-grid {
     grid-template-columns: 1fr;
   }
+  /* The 2-up cancellation timeline stays unreadable below 600px. */
+  .cancellation-timeline-bar {
+    grid-template-columns: 1fr;
+  }
+  .cancel-stage-free {
+    border-right: 0;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+  }
   .cockpit-telemetry-strip {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -2950,7 +2991,7 @@ html {
   border-radius: 14px;
   margin-bottom: 18px;
   position: sticky;
-  top: 72px;
+  top: var(--header-h);
   z-index: 25;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
 }
@@ -3144,7 +3185,7 @@ textarea:focus-visible, summary:focus-visible {
 .vcard-foot { gap: 10px; }
 .vcard-foot .button { flex: 0 0 auto; }
 .booking-steps {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 18px; padding: 4px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 18px; padding: 4px;
   border: 1px solid var(--border-main); border-radius: 14px; background: var(--bg-subtle);
 }
 .booking-step { position: relative; min-width: 0; padding: 8px 5px; text-align: center; color: var(--text-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
@@ -3177,8 +3218,8 @@ textarea:focus-visible, summary:focus-visible {
   .header, .ds-header { position: sticky; }
   .ds-head-right { min-width: 0; }
   .ds-city { display: none !important; }
-  .booking-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
-  .booking-step { font-size: 8px; letter-spacing: 0; }
+  .booking-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+  .booking-step { font-size: 9px; letter-spacing: 0; }
   .booking-step::before { width: 20px; height: 20px; }
   .trip-checklist { grid-template-columns: 1fr; }
   .trip-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

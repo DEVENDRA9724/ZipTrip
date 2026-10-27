@@ -22,8 +22,12 @@
   --brand-gradient: linear-gradient(135deg, #15031F 0%, #240733 52%, #3E1055 100%);
   --brand-gradient-hover: linear-gradient(135deg, #1B0427 0%, #2F0A42 52%, #4D1569 100%);
   --brand-gradient-subtle: linear-gradient(135deg, rgba(36, 7, 51, 0.05) 0%, rgba(62, 16, 85, 0.08) 100%);
+  /* --cta is the accent (stars, icons, borders). White text on it is only
+     2.59:1, so filled CTAs use --cta-fill / --cta-fill-hover (5.33:1). */
   --cta:            #F58220;
   --cta-hover:      #D9680D;
+  --cta-fill:       #A85410;
+  --cta-fill-hover: #9C4A06;
   --cta-soft:       #FFF4EA;
 
   /* Neutrals */
@@ -31,7 +35,7 @@
   --bg-alt:         #FAF8FA;
   --ink:            #18121B;
   --ink-2:          #57505C;
-  --ink-3:          #857E8A;
+  --ink-3:          #68616B;
   --line:           #E9E3EA;
   --line-strong:    #D8D0D9;
 
@@ -153,9 +157,9 @@ button:focus-visible, .button:focus-visible, a:focus-visible, input:focus-visibl
   outline: 2px solid var(--brand); outline-offset: 2px;
 }
 .btn-orange, .btn-primary, .button.btn-orange {
-  background: var(--cta) !important; border-color: var(--cta) !important; color: #fff !important; box-shadow: none !important;
+  background: var(--cta-fill) !important; border-color: var(--cta-fill) !important; color: #fff !important; box-shadow: none !important;
 }
-.btn-orange:hover, .btn-primary:hover { background: var(--cta-hover) !important; border-color: var(--cta-hover) !important; color: #fff !important; }
+.btn-orange:hover, .btn-primary:hover { background: var(--cta-fill-hover) !important; border-color: var(--cta-fill-hover) !important; color: #fff !important; }
 .btn-brand { background: var(--brand) !important; border-color: var(--brand) !important; color: #fff !important; }
 .btn-brand:hover { background: var(--brand-2) !important; }
 .btn-outline, .btn-ghost { background: #fff; color: var(--ink); border-color: var(--line-strong); }

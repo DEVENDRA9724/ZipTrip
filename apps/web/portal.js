@@ -112,6 +112,44 @@ function ratingSummary(car) {
   const average = reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length;
   return { value: average.toFixed(1), count: reviews.length };
 }
+/* `features` is a JSON string column that may be absent or malformed. */
+function carFeatures(car) {
+  const raw = car?.features;
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw !== 'string' || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return raw.split(',').map(s => s.trim()).filter(Boolean);
+  }
+}
+function hasFeature(car, name) {
+  const needle = name.toLowerCase();
+  return carFeatures(car).some(feature => feature.toLowerCase() === needle);
+}
+/* A vehicle counts as "8-angle pre-inspected" only when every stored
+   inspection angle is present, not merely when it has some photos. */
+function hasAllAngles(car) {
+  const kinds = new Set((car?.media || []).map(m => m.kind));
+  return PHOTO_ANGLES.every(angle => kinds.has(angle));
+}
+function offersDoorstepDrop(car) {
+  const drop = (car?.dropAddress || '').trim();
+  const pickup = (car?.pickupAddress || '').trim();
+  return Boolean(drop) && drop.toLowerCase() !== pickup.toLowerCase();
+}
+/* Rental terms live on the vehicle row; Prisma Decimal arrives as a string. */
+function vehicleTerms(car) {
+  const km = Number(car?.includedKilometresPerDay);
+  const excess = Number(car?.extraKmCharge);
+  const deposit = Number(car?.securityDeposit);
+  return {
+    kmPerDay: Number.isFinite(km) && km > 0 ? km : 300,
+    excessKmRate: Number.isFinite(excess) ? excess : 12,
+    securityDeposit: Number.isFinite(deposit) ? deposit : 2000,
+  };
+}
 const dt = v => v ? new Date(v).toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
 const d = v => v ? new Date(v).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '—';
 const localDateTime = value => {
@@ -1231,6 +1269,15 @@ function applyCarFilters() {
   list = list.filter(c => getDist(c) <= maxDist);
   list = list.filter(c => Number(c.year || 2024) >= minYear);
   if (minRating > 0) list = list.filter(c => getRating(c) >= minRating);
+
+  const wantFastag = Boolean($('#addon-fastag')?.checked);
+  const wantAngles = Boolean($('#addon-s3')?.checked);
+  const wantSuperhost = Boolean($('#addon-superhost')?.checked);
+  const wantDrop = Boolean($('#filter-home-delivery')?.checked);
+  if (wantFastag) list = list.filter(c => hasFeature(c, 'fastag'));
+  if (wantAngles) list = list.filter(hasAllAngles);
+  if (wantSuperhost) list = list.filter(c => getRating(c) >= 4.5);
+  if (wantDrop) list = list.filter(offersDoorstepDrop);
 
   const sort = $('#car-sort')?.value || '';
   if (sort === 'price_asc')  list.sort((a, b) => Number(a.pricePerDay) - Number(b.pricePerDay));
