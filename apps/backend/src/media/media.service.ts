@@ -1,8 +1,9 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PHOTO_KINDS, INSPECTION_KINDS, DOCUMENT_KINDS, choice } from '../common/validation';
-import { createHash, randomUUID, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 import { objectStorage } from './object-storage';
+import { mediaStorageKey } from './storage-key';
 import sharp from 'sharp';
 
 const PRIVATE_DOCUMENT_KINDS = new Set(['AADHAAR', ...DOCUMENT_KINDS]);
@@ -35,7 +36,7 @@ export class MediaService {
       const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
       buffer = Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
     }
-    const storageKey = randomUUID() + (isPrivate ? '.enc' : '.jpg');
+    const storageKey = mediaStorageKey(kind, userId, isPrivate ? '.enc' : '.jpg');
     await this.storage.put(storageKey, buffer, isPrivate ? 'application/octet-stream' : 'image/jpeg');
     try {
       const result = await this.prisma.media.create({ data: { ownerId: userId, kind, storageKey, mimeType: 'image/jpeg', size: buffer.length, sha256: createHash('sha256').update(buffer).digest('hex') } });
@@ -50,7 +51,7 @@ export class MediaService {
     const cipher = createCipheriv('aes-256-gcm', this.key(), iv);
     const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
     const stored = Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
-    const storageKey = randomUUID() + '.enc';
+    const storageKey = mediaStorageKey(kind, ownerId, '.enc');
     await this.storage.put(storageKey, stored, 'application/octet-stream');
     try {
       const result = await this.prisma.media.create({ data: { ownerId, kind, storageKey, mimeType: mimeType.toLowerCase(), size: stored.length, sha256: createHash('sha256').update(stored).digest('hex') } });

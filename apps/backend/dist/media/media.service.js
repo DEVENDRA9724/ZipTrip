@@ -19,6 +19,7 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const validation_1 = require("../common/validation");
 const node_crypto_1 = require("node:crypto");
 const object_storage_1 = require("./object-storage");
+const storage_key_1 = require("./storage-key");
 const sharp_1 = __importDefault(require("sharp"));
 const PRIVATE_DOCUMENT_KINDS = new Set(['AADHAAR', ...validation_1.DOCUMENT_KINDS]);
 let MediaService = MediaService_1 = class MediaService {
@@ -56,7 +57,7 @@ let MediaService = MediaService_1 = class MediaService {
             const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
             buffer = Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
         }
-        const storageKey = (0, node_crypto_1.randomUUID)() + (isPrivate ? '.enc' : '.jpg');
+        const storageKey = (0, storage_key_1.mediaStorageKey)(kind, userId, isPrivate ? '.enc' : '.jpg');
         await this.storage.put(storageKey, buffer, isPrivate ? 'application/octet-stream' : 'image/jpeg');
         try {
             const result = await this.prisma.media.create({ data: { ownerId: userId, kind, storageKey, mimeType: 'image/jpeg', size: buffer.length, sha256: (0, node_crypto_1.createHash)('sha256').update(buffer).digest('hex') } });
@@ -77,7 +78,7 @@ let MediaService = MediaService_1 = class MediaService {
         const cipher = (0, node_crypto_1.createCipheriv)('aes-256-gcm', this.key(), iv);
         const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
         const stored = Buffer.concat([iv, cipher.getAuthTag(), encrypted]);
-        const storageKey = (0, node_crypto_1.randomUUID)() + '.enc';
+        const storageKey = (0, storage_key_1.mediaStorageKey)(kind, ownerId, '.enc');
         await this.storage.put(storageKey, stored, 'application/octet-stream');
         try {
             const result = await this.prisma.media.create({ data: { ownerId, kind, storageKey, mimeType: mimeType.toLowerCase(), size: stored.length, sha256: (0, node_crypto_1.createHash)('sha256').update(stored).digest('hex') } });

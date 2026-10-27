@@ -29,6 +29,16 @@ function s3Storage(env = process.env) {
         ...(env.S3_SERVER_SIDE_ENCRYPTION ? { ServerSideEncryption: env.S3_SERVER_SIDE_ENCRYPTION } : {}),
       }));
     },
+    /** Bytes stored under an exact bucket key (no prefix applied), or null. Used to find files from older layouts. */
+    async getRaw(fullKey) {
+      try {
+        const result = await client.send(new GetObjectCommand({ Bucket: bucket, Key: fullKey }));
+        return Buffer.from(await result.Body.transformToByteArray());
+      } catch (error) {
+        if (error?.name === 'NoSuchKey' || error?.name === 'NotFound') return null;
+        throw error;
+      }
+    },
     /** The object's bytes, or null when it does not exist. */
     async get(key) {
       try {

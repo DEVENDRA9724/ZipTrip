@@ -34,6 +34,7 @@
     "db:relabel-demo-documents": "node scripts/relabel-legacy-demo-documents.cjs",
     "media:migrate-to-s3": "node scripts/migrate-media-to-s3.cjs",
     "media:verify-s3": "node scripts/migrate-media-to-s3.cjs --verify-only",
+    "media:organize-folders": "node scripts/organize-media-folders.cjs",
     "demo:complete-account": "node scripts/demo-complete-account.cjs"
   },
   "dependencies": {

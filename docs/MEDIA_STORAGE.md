@@ -82,3 +82,22 @@ is git-ignored. The app no longer reads it, so it can be archived or removed by 
    - Set `S3_BUCKET` and `S3_REGION`.
    - Remove `S3_ENDPOINT`, `S3_FORCE_PATH_STYLE` and the access keys.
 4. Run `npm run media:migrate-to-s3` against the old storage. If the files are already in the emulator, copy them across with `rclone copy`. Then run `npm run media:verify-s3`.
+
+## Folder layout (from 2026-10-27)
+
+All files sit below `S3_PREFIX` (default `media/`). Each file has its own folder by type and owner:
+
+| Folder | Contents |
+| --- | --- |
+| `vehicles/<owner-id>/<FRONT\|REAR\|LEFT\|RIGHT\|INTERIOR\|BOOT\|BONNET\|ODOMETER>/<id>.jpg` | Car listing photos |
+| `documents/<rc\|insurance\|puc\|dl\|aadhaar>/<owner-id>/<id>.enc` | Private documents (encrypted by the app) |
+| `kyc/<owner-id>/selfie/<id>.jpg` | e-KYC selfies |
+| `inspections/<owner-id>/<KIND>/<id>.jpg` | Handover, damage and odometer photos |
+
+**New uploads** use this layout automatically (`src/media/storage-key.ts`).
+
+**Existing files** are moved with `npm run media:organize-folders`:
+- **Preview first:** add `-- --dry-run` to see what would move without changing anything.
+- **Older keys from main:** add `-- --legacy-prefix safar-media` to also find main's earlier `safar-media/<id>.jpg` records.
+- **Files on the server's disk:** files in `apps/backend/uploads/` are picked up too.
+- **Safety:** each file is copied and verified by SHA-256 before the database record changes. Originals are never deleted, and running it again is safe.
