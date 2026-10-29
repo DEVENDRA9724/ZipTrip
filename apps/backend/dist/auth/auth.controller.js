@@ -25,7 +25,7 @@ let AuthController = class AuthController {
     session(req, res, result) {
         const forwarded = String(req?.headers?.['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
         const httpsOrigin = (process.env.WEB_ORIGIN || '').split(',').some(origin => origin.trim().startsWith('https://'));
-        const isHttps = forwarded === 'https' || req?.secure === true || httpsOrigin;
+        const isHttps = forwarded === 'https' || req?.secure === true;
         res.cookie('safar_session', result.token, {
             httpOnly: true,
             secure: isHttps,

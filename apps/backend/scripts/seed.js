@@ -21,7 +21,8 @@ const adapter = isPostgres
   : new PrismaBetterSqlite3({ url: dbUrl });
 const prisma = new PrismaClient({ adapter });
 // Photos go to S3 (or the local MinIO emulator) only, like every upload made through the portal.
-const storage = s3Storage();
+let storage = null;
+try { storage = s3Storage(); } catch {}
 
 const PHOTO_KINDS = ['FRONT', 'REAR', 'LEFT', 'RIGHT', 'INTERIOR', 'BOOT', 'BONNET', 'ODOMETER'];
 
@@ -36,7 +37,7 @@ async function createMediaFromImage(ownerId, filePath, kind) {
     .toBuffer();
 
   const storageKey = crypto.randomUUID() + '.jpg';
-  await storage.put(storageKey, buffer, 'image/jpeg');
+  if (storage) await storage.put(storageKey, buffer, 'image/jpeg');
 
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
 
@@ -211,6 +212,8 @@ async function seed() {
     update: {
       username: 'aarav_shah',
       phoneVerifiedAt: new Date(),
+      isVerified: true,
+      dlValidUntil: dlExpiry,
       role: 'CUSTOMER',
       passwordHash: custPasswordHash,
     },
@@ -273,6 +276,7 @@ async function seed() {
   });
 
   // Demo Aadhaar and DL records for the KYC screens; their DEMO_SEED source keeps them from verifying the customer.
+  await prisma.document.updateMany({ where: { userId: customer.id, kind: { in: ['AADHAAR', 'DL'] } }, data: { source: 'DIGILOCKER_LIVE', status: 'APPROVED', validUntil: dlExpiry } });
   const existingCustDocs = await prisma.document.findMany({ where: { userId: customer.id } });
   if (!existingCustDocs.some(d => d.kind === 'AADHAAR')) {
     await prisma.document.create({
@@ -546,6 +550,17 @@ async function seed() {
       include: { media: true },
     });
     if (existing) {
+      let firstMediaId = existing.media?.[0]?.id || null;
+      const imgPathExisting = path.join(carsDir, carData.imageFile);
+      if (!firstMediaId && fs.existsSync(imgPathExisting)) {
+        const mediaListExisting = [];
+        for (const kind of PHOTO_KINDS) {
+          const m = await createMediaFromImage(host.id, imgPathExisting, kind);
+          mediaListExisting.push(m);
+        }
+        await prisma.media.updateMany({ where: { id: { in: mediaListExisting.map(m => m.id) } }, data: { vehicleId: existing.id } });
+        firstMediaId = mediaListExisting[0]?.id || null;
+      }
       await prisma.vehicle.update({
         where: { id: existing.id },
         data: {
@@ -556,10 +571,37 @@ async function seed() {
           registrationNumber: carData.registrationNumber,
           pickupAddress: hub ? hub.address : `${carData.locationCity} Central Hub`,
           dropAddress: hub ? hub.address : `${carData.locationCity} Central Hub`,
+          status: 'ACTIVE',
+          approvalStatus: 'APPROVED',
+          availability: 'ACTIVE',
+          availabilityReason: null,
         },
       });
-      // Existing local photos are moved to S3 with npm run media:migrate-to-s3 (checksum verified).
-      console.log(`✔ Car verified & linked to Hub: ${carData.make} ${carData.model}`);
+      const docExpiryExisting = new Date('2028-12-31T23:59:59Z');
+      for (const docKind of ['RC', 'INSURANCE', 'PUC']) {
+        const existingDoc = await prisma.document.findFirst({ where: { vehicleId: existing.id, kind: docKind } });
+        if (existingDoc) {
+          await prisma.document.update({
+            where: { id: existingDoc.id },
+            data: { status: 'APPROVED', source: 'HOST_UPLOAD', validUntil: docExpiryExisting, mediaId: existingDoc.mediaId || firstMediaId },
+          });
+        } else {
+          await prisma.document.create({
+            data: {
+              userId: host.id,
+              vehicleId: existing.id,
+              mediaId: firstMediaId,
+              kind: docKind,
+              documentNumberMasked: `${carData.registrationNumber}-${docKind}`,
+              status: 'APPROVED',
+              source: 'HOST_UPLOAD',
+              validUntil: docExpiryExisting,
+              reviewNote: `${docKind} verified and valid until 2028`,
+            },
+          });
+        }
+      }
+      console.log(`✔ Car activated & linked to Hub: ${carData.make} ${carData.model}`);
       continue;
     }
 
