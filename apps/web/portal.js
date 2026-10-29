@@ -442,10 +442,6 @@ function renderClockPicker(prefix, selected24 = '10:00', ariaPrefix = 'Time') {
           </select>
           <span class="safar-dropdown-arrow" aria-hidden="true">▾</span>
         </div>
-        <div class="safar-step-btns" role="group" aria-label="Step time by 30 minutes">
-          <button type="button" class="safar-step-btn" data-step="-1" aria-label="Minus 30 minutes" title="Minus 30 min">−</button>
-          <button type="button" class="safar-step-btn" data-step="1" aria-label="Plus 30 minutes" title="Plus 30 min">+</button>
-        </div>
         <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
           <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active is-active' : ''}" data-period="AM">AM</button>
           <button type="button" class="ampm-btn ${p.period === 'PM' ? 'active is-active' : ''}" data-period="PM">PM</button>
@@ -475,7 +471,6 @@ function bindClockPickers(root = document) {
     const trackEl = group.querySelector('.safar-time-slider-track');
     const hiddenEl = group.querySelector(`#${prefix}`);
     const btns = group.querySelectorAll('.ampm-btn');
-    const stepBtns = group.querySelectorAll('.safar-step-btn');
     if (!selectEl || !hiddenEl) return;
 
     const apply24Value = (val24, emitEvents = true) => {
@@ -515,15 +510,6 @@ function bindClockPickers(root = document) {
           const new24 = `${String(h24Num).padStart(2, '0')}:${curP.min}`;
           apply24Value(new24, true);
         }
-      });
-    });
-
-    stepBtns.forEach(sBtn => {
-      sBtn.addEventListener('click', () => {
-        const delta = parseInt(sBtn.dataset.step, 10) || 1;
-        const curIdx = parseInt(sliderEl?.value || '20', 10);
-        const nextIdx = (curIdx + delta + 48) % 48;
-        apply24Value(slotIndexTo24Time(nextIdx), true);
       });
     });
 
