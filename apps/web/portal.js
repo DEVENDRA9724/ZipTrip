@@ -371,6 +371,90 @@ const getCity = () => localStorage.getItem('safar-city') || '';
 const setCity = c => localStorage.setItem('safar-city', c || '');
 const initials = u => ((u?.firstName || '?')[0] + (u?.lastName || '')[0] || '').toUpperCase();
 
+const REQUIRED_CATEGORIES = [
+  { id: 'Hatchback', label: 'Hatchback' },
+  { id: 'Sedan', label: 'Sedan' },
+  { id: 'SUV', label: 'SUV' },
+  { id: 'MUV', label: 'MUV / 7-Seater' },
+  { id: 'Luxury', label: 'Luxury' },
+];
+
+function normalizeCarCategory(car) {
+  const raw = String(car?.category || '').trim().toLowerCase();
+  if (raw.includes('hatchback')) return 'Hatchback';
+  if (raw.includes('sedan')) return 'Sedan';
+  if (raw.includes('muv') || raw.includes('mpv') || raw.includes('7-seater')) return 'MUV';
+  if (raw.includes('luxury') || raw.includes('executive')) return 'Luxury';
+  if (raw.includes('suv')) return 'SUV';
+  if (Number(car?.seats) >= 6) return 'MUV';
+  return 'SUV';
+}
+
+const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? '00' : '30';
+  const value = `${String(h).padStart(2, '0')}:${m}`;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return { value, label: `${String(h12).padStart(2, '0')}:${m} ${period}` };
+});
+
+function renderTimeOptions(selected = '10:00') {
+  return TIME_SLOTS.map(s => `<option value="${s.value}" ${s.value === selected ? 'selected' : ''}>${s.label}</option>`).join('');
+}
+
+function toLocalDateStr(dObj) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${dObj.getFullYear()}-${pad(dObj.getMonth() + 1)}-${pad(dObj.getDate())}`;
+}
+
+function splitDateTimeParts(val, fallbackDaysAhead = 1, fallbackTime = '10:00') {
+  const parsed = val ? new Date(val) : null;
+  if (parsed && Number.isFinite(+parsed)) {
+    const date = toLocalDateStr(parsed);
+    const totalMins = parsed.getHours() * 60 + parsed.getMinutes();
+    const snappedMins = Math.round(totalMins / 30) * 30;
+    const h = Math.floor((snappedMins % 1440) / 60);
+    const m = (snappedMins % 60) === 0 ? '00' : '30';
+    return { date, time: `${String(h).padStart(2, '0')}:${m}` };
+  }
+  const dObj = new Date();
+  dObj.setDate(dObj.getDate() + fallbackDaysAhead);
+  return { date: toLocalDateStr(dObj), time: fallbackTime };
+}
+
+function combineDateTimeParts(dateStr, timeStr = '10:00') {
+  if (!dateStr) return new Date(NaN);
+  const [y, mo, da] = String(dateStr).split('-').map(Number);
+  const [hh, mm] = String(timeStr || '10:00').split(':').map(Number);
+  return new Date(y, (mo || 1) - 1, da || 1, hh || 0, mm || 0, 0, 0);
+}
+
+function resolveTripSchedule(startDateStr, startTimeStr, endDateStr, endTimeStr) {
+  let start = combineDateTimeParts(startDateStr, startTimeStr);
+  let end = combineDateTimeParts(endDateStr, endTimeStr);
+  if (!Number.isFinite(+start) || !Number.isFinite(+end)) {
+    return { error: 'Please select both pick-up and drop-off dates and times.' };
+  }
+  const now = new Date();
+  const todayStr = toLocalDateStr(now);
+  if (startDateStr < todayStr) {
+    return { error: 'Pick-up date cannot be in the past.' };
+  }
+  // If user chose today's date and the default time slot is earlier today, bump start to next upcoming 30-min slot
+  if (start < new Date(now.getTime() - 5 * 60000)) {
+    const bumped = new Date(now.getTime() + 30 * 60000);
+    bumped.setMinutes(bumped.getMinutes() <= 30 ? 30 : 60, 0, 0);
+    start = bumped;
+  }
+  if (end <= start) {
+    end = new Date(start.getTime() + 24 * 3600000);
+  } else if (end - start < 2 * 3600000) {
+    return { error: 'Drop-off time must be at least 2 hours after pick-up.' };
+  }
+  return { start, end, error: '' };
+}
+
 /* ─── HEADER / SHELL ─────────────────────────────────────────────────── */
 /* ─── Merged from new-change: compliance, image safety, role menus, owner panel helpers ─── */
 const VEHICLE_IMAGE_FALLBACK = 'safar-logo.png';
@@ -822,14 +906,14 @@ function shell() {
   const isPartner = ['HOST', 'DEALER'].includes(user?.role);
   const isAdmin = user?.role === 'ADMIN';
   const links = !user ? [
-      ['cars.html', 'Explore Cars'],
+      ['cars.html', 'Browse Fleet'],
       ['index.html#how-it-works', 'How It Works'],
       ['host-onboarding.html', 'Become a Host'],
       ['index.html#support', 'Help & Support'],
     ]
     : isAdmin ? ADMIN_SECTIONS.map(t => ['admin.html?tab=' + t, t[0].toUpperCase() + t.slice(1), t])
     : isPartner ? [...HOST_SECTIONS.map(([t, label]) => ['host-onboarding.html?tab=' + t, label, null, t]), ['dashboard.html', 'Account']]
-    : [['cars.html', 'Explore Cars'], ...CUSTOMER_SECTIONS.map(([t, label]) => ['dashboard.html?tab=' + t, label, null, null, t])];
+    : [['cars.html', 'Browse Fleet'], ...CUSTOMER_SECTIONS.map(([t, label]) => ['dashboard.html?tab=' + t, label, null, null, t])];
   const city = getCity();
   const cityOptions = ['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === city ? 'selected' : ''}>${c ? esc(c) : 'All Cities'}</option>`).join('');
   const isActive = ([href, , section, hostTab, accountTab]) => accountTab ? customerSectionFromPage() === accountTab
@@ -901,11 +985,16 @@ function shell() {
 
   document.documentElement.dataset.theme = '';
   $('#ds-city-select')?.addEventListener('change', e => {
-    setCity(e.target.value);
+    const nextCity = e.target.value;
+    setCity(nextCity);
     if (page === 'cars.html' && !new URLSearchParams(location.search).get('id')) {
       const p = new URLSearchParams(location.search);
-      e.target.value ? p.set('city', e.target.value) : p.delete('city');
-      location.search = p.toString();
+      nextCity ? p.set('city', nextCity) : p.delete('city');
+      history.replaceState(null, '', 'cars.html' + (p.toString() ? '?' + p.toString() : ''));
+      if ($('#cars-city-select')) $('#cars-city-select').value = nextCity;
+      if ($('#sidebar-city-select')) $('#sidebar-city-select').value = nextCity;
+      if ($('#horizon-city-label')) $('#horizon-city-label').textContent = nextCity || 'All Cities';
+      applyCarFilters();
     } else if (page === 'index.html' || page === '') home();
   });
   $('#ds-burger')?.addEventListener('click', e => {
@@ -963,7 +1052,7 @@ function renderFooter() {
         ${brandLockup(true)}
         <p style="margin-top:14px;max-width:320px">Verified self-drive car rentals with transparent pricing, documented vehicle handovers, and digital lease agreements.</p>
       </div>
-      <div><h4>Book &amp; Drive</h4><a href="cars.html">Explore Cars</a><a href="index.html#how-it-works">How It Works</a><a href="index.html#faq">Frequently Asked Questions</a></div>
+      <div><h4>Book &amp; Drive</h4><a href="cars.html">Browse Fleet</a><a href="index.html#how-it-works">How It Works</a><a href="index.html#faq">Frequently Asked Questions</a></div>
       <div><h4>Company &amp; Hosts</h4><a href="about.html">About Safar</a><a href="host-onboarding.html">List Your Car</a><a href="services.html">Mobility Services</a><a href="contact.html">Contact Us</a></div>
       <div><h4>Customer Support</h4>${contact}</div>
     </div>
@@ -1030,11 +1119,9 @@ function carCard(car) {
 
 /* ─── LANDING PAGE (10-SECTION PREMIUM AUTOMOTIVE REDESIGN) ─────────── */
 async function home() {
-  const pad = n => String(n).padStart(2, '0');
-  const toLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(10, 0, 0, 0);
-  const end = new Date(start); end.setDate(end.getDate() + 1);
-  const minNow = new Date(Date.now() + 60 * 60000); minNow.setMinutes(0, 0, 0);
+  const startParts = splitDateTimeParts('', 1, '10:00');
+  const endParts = splitDateTimeParts('', 2, '10:00');
+  const todayStr = toLocalDateStr(new Date());
   const city = getCity();
 
   $('#app').innerHTML = `
@@ -1042,11 +1129,11 @@ async function home() {
       <img class="lp-hero-img" src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=2000&q=85" alt="Self-drive car on open highway" fetchpriority="high">
       <div class="lp-hero-inner">
         <div style="display:grid;gap:14px">
-          <span class="eyebrow" style="color:#F5D9A8">SELF-DRIVE CAR RENTALS</span>
-          <h1 id="lp-title">Your Next Drive Starts Here.</h1>
-          <p>Discover verified self-drive cars, transparent pricing, and convenient bookings for your next trip.</p>
+          <span class="eyebrow" style="color:#F5D9A8">VERIFIED SELF-DRIVE RENTALS</span>
+          <h1 id="lp-title">Rent Verified Self-Drive Cars Across Gujarat</h1>
+          <p>Book inspected Hatchbacks, Sedans, SUVs, 7-Seaters, and Luxury cars with transparent daily pricing and zero hidden charges.</p>
           <div class="lp-hero-ctas">
-            <a class="button btn-orange btn-lg" href="cars.html">Explore Cars</a>
+            <a class="button btn-orange btn-lg" href="cars.html">Browse Fleet</a>
             <a class="button btn-outline btn-lg" href="host-onboarding.html">List Your Car</a>
           </div>
           <!-- Filled from the live /vehicles listing; hidden if it cannot be loaded. No fixed marketing numbers. -->
@@ -1056,12 +1143,25 @@ async function home() {
           </div>
         </div>
         <form class="lp-search" id="lp-search" novalidate aria-label="Search available cars">
-          <label>Pickup Location
-            <select name="city" id="lp-city">${['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === city ? 'selected' : ''}>${c || 'All Cities (Gujarat)'}</option>`).join('')}</select>
-          </label>
-          <label>Pickup Date &amp; Time<input type="datetime-local" name="start" id="lp-start" value="${toLocal(start)}" min="${toLocal(minNow)}" step="1800"></label>
-          <label>Return Date &amp; Time<input type="datetime-local" name="end" id="lp-end" value="${toLocal(end)}" min="${toLocal(start)}" step="1800"></label>
-          <button type="submit" class="btn-orange">${icon('search')} Search Cars</button>
+          <div class="trip-field-box">
+            <span class="trip-field-lbl">${icon('pin', 'ic-xs')} Pickup City</span>
+            <select name="city" id="lp-city" aria-label="Pickup Location">${['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === city ? 'selected' : ''}>${c || 'All Cities (Gujarat)'}</option>`).join('')}</select>
+          </div>
+          <div class="trip-field-box">
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            <div class="dt-split-row">
+              <input type="date" id="lp-start-date" value="${startParts.date}" min="${todayStr}" aria-label="Pickup Date">
+              <select id="lp-start-time" aria-label="Pickup Time">${renderTimeOptions(startParts.time)}</select>
+            </div>
+          </div>
+          <div class="trip-field-box">
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            <div class="dt-split-row">
+              <input type="date" id="lp-end-date" value="${endParts.date}" min="${startParts.date}" aria-label="Return Date">
+              <select id="lp-end-time" aria-label="Return Time">${renderTimeOptions(endParts.time)}</select>
+            </div>
+          </div>
+          <button type="submit" class="btn-orange">${icon('search')} Find Available Cars</button>
           <p id="lp-search-err" class="error" role="alert" hidden style="grid-column:1/-1;margin:0"></p>
         </form>
       </div>
@@ -1071,9 +1171,9 @@ async function home() {
       <div class="lp-section-head">
         <div>
           <div class="eyebrow">Verified Fleet</div>
-          <h2 id="lp-pop">${city ? `Cars Available in ${esc(city)}` : 'Popular Self-Drive Cars'}</h2>
+          <h2 id="lp-pop">${city ? `Available Self-Drive Cars in ${esc(city)}` : 'Browse Verified Fleet by Category'}</h2>
         </div>
-        <a class="button btn-outline btn-sm" href="cars.html${city ? '?city=' + encodeURIComponent(city) : ''}">View All Cars ${icon('arrowRight', 'ic-sm')}</a>
+        <a class="button btn-outline btn-sm" href="cars.html${city ? '?city=' + encodeURIComponent(city) : ''}">Browse All Cars ${icon('arrowRight', 'ic-sm')}</a>
       </div>
       <div class="lp-cats" id="lp-cats" role="group" aria-label="Filter by vehicle category"></div>
       <div class="car-grid" id="fleet">${[1, 2, 3].map(() => '<div class="skeleton-card"><div class="sk-media skeleton-pulse"></div><div class="sk-info"><div class="sk-title skeleton-pulse"></div><div class="sk-sub skeleton-pulse"></div></div></div>').join('')}</div>
@@ -1169,29 +1269,32 @@ async function home() {
       </div>
     </section>`;
 
-  const startEl = $('#lp-start'), endEl = $('#lp-end'), err = $('#lp-search-err');
-  startEl.addEventListener('change', () => {
-    endEl.min = startEl.value;
-    if (endEl.value <= startEl.value) { const s = new Date(startEl.value); s.setDate(s.getDate() + 1); endEl.value = toLocal(s); }
+  const startDateEl = $('#lp-start-date'), startTimeEl = $('#lp-start-time');
+  const endDateEl = $('#lp-end-date'), endTimeEl = $('#lp-end-time');
+  const err = $('#lp-search-err');
+
+  startDateEl.addEventListener('change', () => {
+    endDateEl.min = startDateEl.value;
+    if (endDateEl.value < startDateEl.value) {
+      const nextDay = new Date(`${startDateEl.value}T10:00`);
+      nextDay.setDate(nextDay.getDate() + 1);
+      endDateEl.value = toLocalDateStr(nextDay);
+    }
   });
+
   $('#lp-search').addEventListener('submit', e => {
     e.preventDefault();
-    const s = new Date(startEl.value), en = new Date(endEl.value);
-    let msg = '';
-    if (!Number.isFinite(+s) || !Number.isFinite(+en)) msg = 'Please select both pickup and return dates and times.';
-    else if (s < new Date(Date.now() - 5 * 60000)) msg = 'Pickup date and time must be in the future.';
-    else if (en - s < 4 * 3600000) msg = 'Return time must be at least 4 hours after pickup.';
-    if (msg) { err.textContent = msg; err.hidden = false; return; }
     err.hidden = true;
-    const c = $('#lp-city').value; setCity(c);
-    const p = new URLSearchParams({ startDate: s.toISOString(), endDate: en.toISOString() });
+    const { start, end } = resolveTripSchedule(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
+    const c = $('#lp-city').value;
+    setCity(c);
+    const p = new URLSearchParams({ startDate: start.toISOString(), endDate: end.toISOString() });
     if (c) p.set('city', c);
     location.assign('cars.html?' + p);
   });
 
   try {
     const all = await api('/vehicles');
-    // Real figures from the public listing (the API returns at most 100 approved cars per request).
     const listedCities = [...new Set(all.map(c => (c.locationCity || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     if (all.length) {
       $('#stat-cars').textContent = all.length >= 100 ? '100+' : String(all.length);
@@ -1199,19 +1302,18 @@ async function home() {
       $('#stat-cities-lbl').textContent = listedCities.length === 1 ? 'City' : 'Cities';
       $('#hero-stats').hidden = false;
     }
-    // The fixed service cities are always offered; a listed car in any other city adds that city too.
     for (const c of listedCities) if (!DEFAULT_CITIES.includes(c)) $('#lp-city').append(new Option(c, c));
     const pool = city ? all.filter(c => (c.locationCity || '').toLowerCase().includes(city.toLowerCase())) : all;
-    const cats = [...new Set(pool.map(c => c.category).filter(Boolean))];
     const render = cat => {
-      const list = (cat ? pool.filter(c => c.category === cat) : pool)
+      const list = (cat ? pool.filter(c => normalizeCarCategory(c) === cat) : pool)
         .slice().sort((a, b) => ratingSummary(b).count - ratingSummary(a).count).slice(0, 6);
       $('#fleet').innerHTML = list.length ? list.map(carCard).join('')
-        : empty('No vehicles available for this filter', city ? `No active listings found in ${esc(city)}. Select All Cities to browse the complete fleet.` : 'New vehicles are being onboarded.');
+        : empty('No vehicles available in this category', city ? `No active ${cat || ''} listings found in ${esc(city)}. Select All Cars or switch city to browse the complete fleet.` : 'Select All Cars to view all available vehicles.');
     };
-    $('#lp-cats').innerHTML = cats.length > 1
-      ? [`<button type="button" class="chip active" data-cat="">All Categories</button>`, ...cats.map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`)].join('')
-      : '';
+    $('#lp-cats').innerHTML = [
+      `<button type="button" class="chip active" data-cat="">All Cars</button>`,
+      ...REQUIRED_CATEGORIES.map(c => `<button type="button" class="chip" data-cat="${esc(c.id)}">${esc(c.label)}</button>`)
+    ].join('');
     $$('#lp-cats .chip').forEach(b => b.onclick = () => {
       $$('#lp-cats .chip').forEach(x => x.classList.toggle('active', x === b));
       render(b.dataset.cat);
@@ -1447,8 +1549,17 @@ function auth(forceRegister, loginMode = 'password') {
 let allCars = [];
 
 async function cars() {
-  const id = new URLSearchParams(location.search).get('id');
+  const searchParams = new URLSearchParams(location.search);
+  const id = searchParams.get('id');
   if (id) return carDetails(id);
+
+  const initialCity = searchParams.has('city') ? (searchParams.get('city') || '') : getCity();
+  if (searchParams.has('city')) setCity(initialCity);
+  if ($('#ds-city-select')) $('#ds-city-select').value = initialCity;
+
+  const startParts = splitDateTimeParts(searchParams.get('startDate'), 1, '10:00');
+  const endParts = splitDateTimeParts(searchParams.get('endDate'), 2, '10:00');
+  const todayStr = toLocalDateStr(new Date());
 
   $('#app').innerHTML = `
     <div class="cars-page-wrap">
@@ -1457,23 +1568,42 @@ async function cars() {
         <div class="horizon-search-top">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span class="horizon-location-pill">
-              <span class="ico">${icon('pin')}</span> <strong>${esc(getCity() || 'All cities')}</strong>
+              <span class="ico">${icon('pin')}</span> <strong id="horizon-city-label">${esc(initialCity || 'All Cities (Gujarat)')}</strong>
             </span>
-            <span class="badge ok">${icon('shield')} Reviewed listings</span>
+            <span class="badge ok">${icon('shield')} Verified Self-Drive Fleet</span>
           </div>
         </div>
 
-        <form id="availability-search" class="availability-search">
+        <form id="availability-search" class="availability-search" novalidate>
           <div class="availability-heading">
-            <strong>Search Available Vehicles</strong>
-            <span>Transparent Pricing · Digital Lease Agreement · Verified Handover</span>
+            <strong>Find Your Next Self-Drive Car</strong>
+            <span>Transparent Daily Pricing · Digital Lease Agreement · Verified Handover</span>
           </div>
-          <label>Hub / City<input name="city" placeholder="Ahmedabad, Surat, Vadodara…" maxlength="120"></label>
-          <fieldset class="trip-date-range"><legend>Trip Schedule</legend>
-            <label>Pick-up<input name="startDate" type="datetime-local" required></label>
-            <label>Drop-off<input name="endDate" type="datetime-local" required></label>
-          </fieldset>
-          <button type="submit" class="button btn-orange">Update Search</button>
+
+          <div class="trip-field-box">
+            <span class="trip-field-lbl">${icon('pin', 'ic-xs')} Pickup City / Hub</span>
+            <select name="city" id="cars-city-select" aria-label="Hub / City">
+              ${['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === initialCity ? 'selected' : ''}>${c || 'All Cities (Gujarat)'}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="trip-field-box">
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            <div class="dt-split-row">
+              <input type="date" id="cars-start-date" name="startDatePart" value="${startParts.date}" min="${todayStr}" aria-label="Pick-up Date">
+              <select id="cars-start-time" name="startTimePart" aria-label="Pick-up Time">${renderTimeOptions(startParts.time)}</select>
+            </div>
+          </div>
+
+          <div class="trip-field-box">
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            <div class="dt-split-row">
+              <input type="date" id="cars-end-date" name="endDatePart" value="${endParts.date}" min="${startParts.date}" aria-label="Drop-off Date">
+              <select id="cars-end-time" name="endTimePart" aria-label="Drop-off Time">${renderTimeOptions(endParts.time)}</select>
+            </div>
+          </div>
+
+          <button type="submit" class="button btn-orange">${icon('search')} Search Fleet</button>
         </form>
       </div>
 
@@ -1483,9 +1613,9 @@ async function cars() {
           <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
-          <input id="car-search" type="search" placeholder="Search by make, model, city, transmission, fuel type…" autocomplete="off">
+          <input id="car-search" type="search" placeholder="Search by car name, brand, city, fuel, or transmission…" autocomplete="off">
         </div>
-        <select id="car-sort" class="sort-dropdown">
+        <select id="car-sort" class="sort-dropdown" aria-label="Sort vehicles">
           <option value="">Sort: Recommended</option>
           <option value="price_asc">Price: Low to High</option>
           <option value="price_desc">Price: High to Low</option>
@@ -1493,60 +1623,54 @@ async function cars() {
         </select>
       </div>
 
-      <!-- Quick Filter Pills (Clean SVG Icons, Zero Emojis) -->
-      <div class="chip-row" id="chip-row">
-        <button type="button" class="chip-btn active" data-filter="all">${icon('car')} All Verified Cars</button>
-        <button type="button" class="chip-btn" data-filter="SUV">SUV &amp; 4x4</button>
-        <button type="button" class="chip-btn" data-filter="Sedan">Sedan</button>
-        <button type="button" class="chip-btn" data-filter="Hatchback">Hatchback</button>
-        <button type="button" class="chip-btn" data-filter="Automatic">${icon('sliders')} Automatic</button>
-        <button type="button" class="chip-btn" data-filter="Diesel">${icon('fuel')} Diesel</button>
-        <button type="button" class="chip-btn" data-filter="7seater">${icon('users')} 6/7 Seater</button>
-        <button type="button" class="chip-btn" data-filter="newmodel">Model 2023+</button>
-        <button type="button" class="chip-btn" data-filter="superhost">${icon('star')} Top Rated</button>
+      <!-- Required Limited Car Categories Bar -->
+      <div class="chip-row" id="chip-row" role="group" aria-label="Car categories">
+        <button type="button" class="chip-btn active" data-filter="all">${icon('car')} All Cars</button>
+        ${REQUIRED_CATEGORIES.map(c => `<button type="button" class="chip-btn" data-filter="${esc(c.id)}">${esc(c.label)}</button>`).join('')}
       </div>
 
       <!-- Two-Column Layout: Left Filter Studio + Right Fleet Grid -->
       <div class="cars-layout">
-        <button type="button" class="mobile-filter-toggle btn-outline" aria-expanded="false" aria-controls="vehicle-search-filters">Show Filters</button>
+        <button type="button" class="mobile-filter-toggle btn-outline" id="mobile-filter-toggle-btn" aria-expanded="false" aria-controls="vehicle-search-filters">
+          ${icon('sliders', 'ic-sm')} <span id="mobile-filter-toggle-lbl">Filter Cars</span>
+        </button>
+
         <aside class="sidebar-filters" id="vehicle-search-filters">
           <div class="filter-header-top">
             <h3>Filters</h3>
             <button type="button" class="filter-reset-btn" id="clear-filters-btn">Reset All</button>
           </div>
 
-
-          <!-- Delivery Type -->
+          <!-- Pickup City Filter -->
           <div class="filter-group">
-            <div class="filter-title">Handover Option</div>
-            <label class="checkbox-item">
-              <input type="checkbox" id="filter-home-delivery" />
-              <span>Hub Pickup &amp; Doorstep Delivery</span>
-            </label>
-            <small class="text-muted" style="display:block;font-size:11px;margin-top:4px">8-angle inspection performed at handover.</small>
+            <div class="filter-title">Pickup City</div>
+            <select id="sidebar-city-select" class="sidebar-select" aria-label="Filter by city">
+              ${['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === initialCity ? 'selected' : ''}>${c || 'All Cities (Gujarat)'}</option>`).join('')}
+            </select>
           </div>
 
-          <!-- Daily / Total Price Slider -->
+          <!-- Daily Rate Budget Slider -->
           <div class="filter-group">
             <div class="filter-title">
               <span>Daily Rate Budget</span>
-              <span class="price-val-label" id="price-val-label">&le; &#x20B9;8,500</span>
+              <span class="price-val-label" id="price-val-label">Any budget</span>
             </div>
-            <input type="range" min="1000" max="8500" step="250" value="8500" class="range-slider" id="price-slider" />
+            <input type="range" min="1000" max="10000" step="250" value="10000" class="range-slider" id="price-slider" />
             <div class="range-labels">
               <span>&#x20B9;1,000</span>
-              <span id="budget-maximum">&#x20B9;8,500</span>
+              <span id="budget-maximum">&#x20B9;10,000</span>
             </div>
           </div>
 
-          <!-- Car Type (Category) -->
+          <!-- Required Car Categories -->
           <div class="filter-group">
-            <div class="filter-title">Segment / Body Type</div>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="hatchback" checked /><span>Hatchback</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="suv,compact suv" checked /><span>SUV / Compact SUV</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="sedan" checked /><span>Sedan</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="muv" checked /><span>MUV / 7-Seater</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="luxury" checked /><span>Luxury &amp; Executive</span></label>
+            <div class="filter-title">Car Category</div>
+            ${REQUIRED_CATEGORIES.map(c => `
+              <label class="checkbox-item">
+                <input type="checkbox" class="cat-cb" value="${esc(c.id)}" checked />
+                <span>${esc(c.label)}</span>
+              </label>
+            `).join('')}
           </div>
 
           <!-- Transmission -->
@@ -1557,42 +1681,16 @@ async function cars() {
           </div>
 
           <!-- Fuel Type -->
-          <div class="filter-group">
+          <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
             <div class="filter-title">Fuel Type</div>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Petrol" checked /><span>Petrol</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Diesel" checked /><span>Diesel</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="CNG" checked /><span>CNG</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Electric" checked /><span>Electric (EV)</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Hybrid" checked /><span>Hybrid</span></label>
           </div>
 
-          <!-- Minimum Guest Rating -->
-          <div class="filter-group">
-            <div class="filter-title">Customer Rating</div>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.5" /><span>4.5+ Rated</span></label>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.0" /><span>4.0+ Rated</span></label>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="0" checked /><span>All Verified Cars</span></label>
-          </div>
-
-          <!-- Model Year Slider -->
-          <div class="filter-group">
-            <div class="filter-title">
-              <span>Minimum Model Year</span>
-              <span class="price-val-label" id="year-val-label">&ge; 2018</span>
-            </div>
-            <input type="range" min="2018" max="2026" step="1" value="2018" class="range-slider" id="year-slider" />
-            <div class="range-labels">
-              <span>2018</span>
-              <span>2026</span>
-            </div>
-          </div>
-
-          <!-- Verification Standards -->
-          <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
-            <div class="filter-title">Verification Standards</div>
-            <label class="checkbox-item"><input type="checkbox" id="addon-fastag" checked /><span>Active FASTag Equipped</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="addon-s3" checked /><span>8-Angle S3 Pre-Inspected</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="addon-superhost" /><span>Top Rated Hosts Only</span></label>
+          <div class="mobile-filter-actions">
+            <button type="button" class="button btn-orange" id="apply-mobile-filters-btn" style="width:100%">Apply Filters</button>
           </div>
         </aside>
 
@@ -1607,27 +1705,56 @@ async function cars() {
       </div>
     </div>`;
 
-  const searchParams = new URLSearchParams(location.search);
-  const availabilityForm = $('#availability-search');
-  availabilityForm.elements.city.value = searchParams.get('city') || '';
-  for (const key of ['startDate', 'endDate']) {
-    availabilityForm.elements[key].value = localDateTime(searchParams.get(key));
-    availabilityForm.elements[key].min = localDateTime(Date.now() + 60000);
-  }
-  bindForm('#availability-search', async data => {
-    const start = new Date(data.startDate), end = new Date(data.endDate);
-    if (!Number.isFinite(+start) || !Number.isFinite(+end) || start <= new Date() || end <= start) throw new Error('Choose a future pickup time and a later return time.');
-    location.assign('cars.html?' + new URLSearchParams({ city: data.city, startDate: start.toISOString(), endDate: end.toISOString() }));
+  const startDateEl = $('#cars-start-date'), startTimeEl = $('#cars-start-time');
+  const endDateEl = $('#cars-end-date'), endTimeEl = $('#cars-end-time');
+  const citySelectEl = $('#cars-city-select'), sidebarCityEl = $('#sidebar-city-select');
+
+  startDateEl.addEventListener('change', () => {
+    endDateEl.min = startDateEl.value;
+    if (endDateEl.value < startDateEl.value) {
+      const nextDay = new Date(`${startDateEl.value}T10:00`);
+      nextDay.setDate(nextDay.getDate() + 1);
+      endDateEl.value = toLocalDateStr(nextDay);
+    }
   });
 
+  const syncCityEverywhere = newCity => {
+    setCity(newCity);
+    if (citySelectEl && citySelectEl.value !== newCity) citySelectEl.value = newCity;
+    if (sidebarCityEl && sidebarCityEl.value !== newCity) sidebarCityEl.value = newCity;
+    if ($('#ds-city-select') && $('#ds-city-select').value !== newCity) $('#ds-city-select').value = newCity;
+    if ($('#horizon-city-label')) $('#horizon-city-label').textContent = newCity || 'All Cities (Gujarat)';
+    applyCarFilters();
+  };
+
+  citySelectEl.addEventListener('change', () => syncCityEverywhere(citySelectEl.value));
+  sidebarCityEl.addEventListener('change', () => syncCityEverywhere(sidebarCityEl.value));
+
+  $('#availability-search').addEventListener('submit', e => {
+    e.preventDefault();
+    const { start, end } = resolveTripSchedule(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
+    const chosenCity = citySelectEl.value;
+    setCity(chosenCity);
+    const params = new URLSearchParams({ startDate: start.toISOString(), endDate: end.toISOString() });
+    if (chosenCity) params.set('city', chosenCity);
+    location.assign('cars.html?' + params.toString());
+  });
 
   try {
     const query = new URLSearchParams();
-    for (const key of ['city', 'startDate', 'endDate']) if (searchParams.has(key)) query.set(key, searchParams.get(key));
-    allCars = await api('/vehicles?' + query);
-    // Local dev only, plain browsing only (no trip dates): show labelled samples while nothing real is listed.
+    for (const key of ['startDate', 'endDate']) if (searchParams.has(key)) query.set(key, searchParams.get(key));
+    allCars = await api('/vehicles' + (query.toString() ? '?' + query.toString() : ''));
     if (!allCars.length && PREVIEW_MODE && !query.has('startDate')) allCars = PREVIEW_CARS.map(car => ({ ...car }));
-    const maximum = Math.max(2500, ...allCars.map(car => Math.ceil(Number(car.pricePerDay) / 500) * 500));
+
+    const listedCities = [...new Set(allCars.map(c => (c.locationCity || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    for (const c of listedCities) {
+      if (!DEFAULT_CITIES.includes(c)) {
+        citySelectEl.append(new Option(c, c, false, c === initialCity));
+        sidebarCityEl.append(new Option(c, c, false, c === initialCity));
+      }
+    }
+
+    const maximum = Math.max(2500, ...allCars.map(car => Math.ceil(Number(car.pricePerDay || 2500) / 500) * 500));
     $('#price-slider').max = maximum;
     $('#price-slider').value = maximum;
     $('#price-val-label').textContent = 'Any budget';
@@ -1638,16 +1765,31 @@ async function cars() {
     $('.retry-load-btn')?.addEventListener('click', () => cars());
   }
 
-  $('.mobile-filter-toggle').onclick = event => {
-    const expanded = event.currentTarget.getAttribute('aria-expanded') !== 'true';
-    event.currentTarget.setAttribute('aria-expanded', String(expanded));
-    event.currentTarget.textContent = expanded ? 'Hide Filters' : 'Show Filters';
-    $('#vehicle-search-filters').classList.toggle('filters-expanded', expanded);
+  const toggleMobileFilters = forceState => {
+    const btn = $('#mobile-filter-toggle-btn');
+    const panel = $('#vehicle-search-filters');
+    if (!btn || !panel) return;
+    const expanded = typeof forceState === 'boolean' ? forceState : btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', String(expanded));
+    const lbl = $('#mobile-filter-toggle-lbl');
+    if (lbl) lbl.textContent = expanded ? 'Hide Filters' : 'Filter Cars';
+    panel.classList.toggle('filters-expanded', expanded);
   };
+
+  $('#mobile-filter-toggle-btn').onclick = () => toggleMobileFilters();
+  $('#apply-mobile-filters-btn').onclick = () => {
+    applyCarFilters();
+    toggleMobileFilters(false);
+  };
+
   $$('#chip-row .chip-btn').forEach(btn => {
     btn.onclick = () => {
       $$('#chip-row .chip-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      const f = btn.dataset.filter;
+      $$('.cat-cb').forEach(cb => {
+        cb.checked = (f === 'all') || (cb.value === f);
+      });
       applyCarFilters();
     };
   });
@@ -1655,36 +1797,39 @@ async function cars() {
   $('#car-search').oninput = () => applyCarFilters();
   $('#car-sort').onchange = () => applyCarFilters();
 
-
   $('#price-slider')?.addEventListener('input', e => {
-    $('#price-val-label').textContent = '≤ ₹' + Number(e.target.value).toLocaleString('en-IN');
+    const val = Number(e.target.value);
+    const max = Number(e.target.max);
+    $('#price-val-label').textContent = val >= max ? 'Any budget' : '≤ ₹' + val.toLocaleString('en-IN');
     applyCarFilters();
   });
 
-  $('#year-slider')?.addEventListener('input', e => {
-    $('#year-val-label').textContent = `≥ ${e.target.value}`;
-    applyCarFilters();
+  $$('.cat-cb').forEach(cb => {
+    cb.onchange = () => {
+      const checked = $$('.cat-cb:checked').map(x => x.value);
+      $$('#chip-row .chip-btn').forEach(b => {
+        if (checked.length === 1 && b.dataset.filter === checked[0]) b.classList.add('active');
+        else if (checked.length !== 1 && b.dataset.filter === 'all') b.classList.add('active');
+        else b.classList.remove('active');
+      });
+      applyCarFilters();
+    };
   });
 
-  $$('.cat-cb, .trans-cb, .fuel-cb, .rating-rb, #filter-home-delivery, #addon-superhost').forEach(cb => {
+  $$('.trans-cb, .fuel-cb').forEach(cb => {
     cb.onchange = () => applyCarFilters();
   });
 
   $('#clear-filters-btn').onclick = () => {
     $$('#chip-row .chip-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     $$('.cat-cb, .trans-cb, .fuel-cb').forEach(cb => { cb.checked = true; });
-    $$('.rating-rb').forEach(rb => { rb.checked = rb.value === '0'; });
-    if ($('#year-slider')) {
-      $('#year-slider').value = 2018;
-      $('#year-val-label').textContent = '≥ 2018';
-    }
     if ($('#price-slider')) {
       $('#price-slider').value = $('#price-slider').max;
       $('#price-val-label').textContent = 'Any budget';
     }
     if ($('#car-search')) $('#car-search').value = '';
-    $('#car-sort').value = '';
-    applyCarFilters();
+    if ($('#car-sort')) $('#car-sort').value = '';
+    syncCityEverywhere('');
   };
 }
 
@@ -1696,51 +1841,61 @@ function applyCarFilters() {
     return r.count > 0 ? Number(r.value) : 0;
   };
 
+  const activeCity = ($('#cars-city-select')?.value ?? getCity() ?? '').trim().toLowerCase();
+  if (activeCity) {
+    list = list.filter(c => (c.locationCity || '').toLowerCase().includes(activeCity));
+  }
+
   const q = $('#car-search')?.value?.trim().toLowerCase() || '';
   if (q) {
-    list = list.filter(c => (c.make + ' ' + c.model + ' ' + c.category + ' ' + c.locationCity + ' ' + c.fuelType + ' ' + c.transmission).toLowerCase().includes(q));
+    list = list.filter(c => (
+      (c.make || '') + ' ' +
+      (c.model || '') + ' ' +
+      normalizeCarCategory(c) + ' ' +
+      (c.category || '') + ' ' +
+      (c.locationCity || '') + ' ' +
+      (c.locationAddress || '') + ' ' +
+      (c.fuelType || '') + ' ' +
+      (c.transmission || '')
+    ).toLowerCase().includes(q));
   }
 
-  const activeChip = $('#chip-row .chip-btn.active')?.dataset?.filter || 'all';
-  if (activeChip !== 'all') {
-    if (['Manual','Automatic'].includes(activeChip)) list = list.filter(c => (c.transmission || '').toLowerCase() === activeChip.toLowerCase());
-    else if (['Petrol','Diesel','Electric','CNG','Hybrid'].includes(activeChip)) list = list.filter(c => (c.fuelType || '').toLowerCase() === activeChip.toLowerCase());
-    else if (activeChip === 'superhost') list = list.filter(c => getRating(c) >= 4.5);
-    else if (activeChip === 'newmodel') list = list.filter(c => Number(c.year || 2024) >= 2023);
-    else if (activeChip === '7seater') list = list.filter(c => Number(c.seats || 5) >= 6 || (c.category || '').toLowerCase().includes('muv'));
-    else list = list.filter(c => (c.category || '').toLowerCase().includes(activeChip.toLowerCase()));
+  const selCats = $$('.cat-cb:checked').map(x => x.value);
+  if (selCats.length > 0 && selCats.length < REQUIRED_CATEGORIES.length) {
+    list = list.filter(c => selCats.includes(normalizeCarCategory(c)));
   }
 
-  const selCats  = $$('.cat-cb:checked').map(x => x.value.toLowerCase());
-  const selTxs   = $$('.trans-cb:checked').map(x => x.value.toLowerCase());
+  const selTxs = $$('.trans-cb:checked').map(x => x.value.toLowerCase());
+  if (selTxs.length > 0 && selTxs.length < 2) {
+    list = list.filter(c => selTxs.includes((c.transmission || '').toLowerCase()));
+  }
+
   const selFuels = $$('.fuel-cb:checked').map(x => x.value.toLowerCase());
-  const maxPrice = Number($('#price-slider')?.value || 99999);
-  const minYear  = Number($('#year-slider')?.value || 2018);
-  const minRating = Number(document.querySelector('.rating-rb:checked')?.value || 0);
+  if (selFuels.length > 0 && selFuels.length < 4) {
+    list = list.filter(c => selFuels.includes((c.fuelType || '').toLowerCase()));
+  }
 
-  list = list.filter(c => selCats.some(group => group.split(',').includes((c.category || '').toLowerCase())));
-  list = list.filter(c => selTxs.includes((c.transmission || '').toLowerCase()));
-  list = list.filter(c => selFuels.includes((c.fuelType || '').toLowerCase()));
-  list = list.filter(c => Number(c.pricePerDay) <= maxPrice);
-  list = list.filter(c => Number(c.year || 2024) >= minYear);
-  if (minRating > 0) list = list.filter(c => getRating(c) >= minRating);
+  const maxPrice = Number($('#price-slider')?.value || 99999);
+  list = list.filter(c => Number(c.pricePerDay || 0) <= maxPrice);
 
   const sort = $('#car-sort')?.value || '';
   if (sort === 'price_asc')  list.sort((a, b) => Number(a.pricePerDay) - Number(b.pricePerDay));
   if (sort === 'price_desc') list.sort((a, b) => Number(b.pricePerDay) - Number(a.pricePerDay));
   if (sort === 'rating_desc') list.sort((a, b) => getRating(b) - getRating(a));
 
+  const cityDisplay = $('#cars-city-select')?.value || getCity() || '';
   const datesSelected = new URLSearchParams(location.search).has('startDate') && new URLSearchParams(location.search).has('endDate');
   const preview = allCars.some(car => car.preview);
+  const citySuffix = cityDisplay ? ` in ${cityDisplay}` : ' across Gujarat';
   $('#cars-count-text').textContent = preview
     ? `${list.length} sample car${list.length !== 1 ? 's' : ''} · Preview only, not bookable`
     : datesSelected
-      ? `Showing ${list.length} Verified Car${list.length !== 1 ? 's' : ''} Available for Your Trip`
-      : `Showing ${list.length} Self-Drive Car${list.length !== 1 ? 's' : ''} · Select trip dates to check availability`;
+      ? `Showing ${list.length} Verified Car${list.length !== 1 ? 's' : ''} Available${citySuffix}`
+      : `Showing ${list.length} Verified Self-Drive Car${list.length !== 1 ? 's' : ''}${citySuffix}`;
   const banner = preview ? `<div class="preview-banner" role="note" data-testid="preview-banner"><strong>Preview mode (local only).</strong> No cars are listed yet, so these sample cars show how the page will look. They aren't real listings and can't be booked; real cars appear here once an administrator approves them.</div>` : '';
   $('#fleet-grid').innerHTML = banner + (list.length
     ? list.map(car => car.preview ? previewCard(car) : carCard(car)).join('')
-    : empty('No cars match your exact filter combination', 'Click "Reset All" in the filter sidebar to see all available vehicles.'));
+    : empty('No cars match your current filters', 'Click "Reset All" in the filter panel or switch city to see all available vehicles.'));
 }
 
 /* ─── VEHICLE DETAIL PAGE & BOOKING CONFIGURATOR ─────────────────────── */
@@ -2049,8 +2204,22 @@ async function carDetails(id) {
               <div class="booking-step" data-step="3">Review</div>
               <div class="booking-step" data-step="4">Confirm</div>
             </div>
-            ${inp('startDate', 'Pick-up Date &amp; Time', 'datetime-local')}
-            ${inp('endDate', 'Drop-off Date &amp; Time', 'datetime-local')}
+            <div class="trip-field-box" style="background:var(--bg-subtle);border:1px solid var(--border-main)">
+              <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+              <div class="dt-split-row">
+                <input type="date" id="bp-start-date" aria-label="Pick-up Date" required>
+                <select id="bp-start-time" aria-label="Pick-up Time">${renderTimeOptions('10:00')}</select>
+              </div>
+            </div>
+            <div class="trip-field-box" style="background:var(--bg-subtle);border:1px solid var(--border-main)">
+              <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+              <div class="dt-split-row">
+                <input type="date" id="bp-end-date" aria-label="Drop-off Date" required>
+                <select id="bp-end-time" aria-label="Drop-off Time">${renderTimeOptions('10:00')}</select>
+              </div>
+            </div>
+            <input type="hidden" name="startDate">
+            <input type="hidden" name="endDate">
 
             <p class="text-muted" style="margin:0;font-size:12.5px">Includes ${kmText}; extra distance ${excessText}.</p>
 
@@ -2199,12 +2368,32 @@ async function carDetails(id) {
   if (user) {
     const form = $('#car-booking-form');
     const selectedDates = new URLSearchParams(location.search);
-    for (const key of ['startDate', 'endDate']) {
-      form.elements[key].value = localDateTime(selectedDates.get(key));
-      form.elements[key].min = localDateTime(Date.now() + 60000);
-    }
+    const bpStartParts = splitDateTimeParts(selectedDates.get('startDate'), 1, '10:00');
+    const bpEndParts = splitDateTimeParts(selectedDates.get('endDate'), 2, '10:00');
+    const bpStartDate = $('#bp-start-date', form), bpStartTime = $('#bp-start-time', form);
+    const bpEndDate = $('#bp-end-date', form), bpEndTime = $('#bp-end-time', form);
+    const todayStr = toLocalDateStr(new Date());
+    bpStartDate.min = todayStr;
+    bpStartDate.value = bpStartParts.date;
+    bpStartTime.value = bpStartParts.time;
+    bpEndDate.min = bpStartParts.date;
+    bpEndDate.value = bpEndParts.date;
+    bpEndTime.value = bpEndParts.time;
+
+    const syncHiddenSchedule = () => {
+      if (bpStartDate.value && bpEndDate.value && bpEndDate.value < bpStartDate.value) {
+        bpEndDate.value = bpStartDate.value;
+      }
+      bpEndDate.min = bpStartDate.value || todayStr;
+      const { start, end } = resolveTripSchedule(bpStartDate.value, bpStartTime.value, bpEndDate.value, bpEndTime.value);
+      form.elements.startDate.value = start.toISOString();
+      form.elements.endDate.value = end.toISOString();
+    };
+    syncHiddenSchedule();
+
     let currentQuote = null, quoteSequence = 0, quoteTimer, bookingRequestKey = safeUuid();
     const syncBookingSteps = () => {
+      syncHiddenSchedule();
       const startReady = Boolean(form.elements.startDate.value);
       const endReady = Boolean(form.elements.endDate.value);
       const quoteReady = Boolean(currentQuote);

@@ -1308,3 +1308,222 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   font-weight: 700 !important;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SEPARATE DATE & TIME BOXES + MOBILE FILTER STUDIO & RESPONSIVE LAYOUT
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ic-xs {
+  width: 13px !important;
+  height: 13px !important;
+  vertical-align: -2px !important;
+}
+
+.trip-field-box {
+  background: #F8FAFC;
+  border: 1.5px solid var(--line, #E2E8F0);
+  border-radius: 12px;
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.trip-field-box:focus-within {
+  border-color: #E86A17 !important;
+  box-shadow: 0 0 0 3px rgba(232, 106, 23, 0.16) !important;
+}
+.trip-field-lbl {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.2;
+}
+.dt-split-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+.trip-field-box select,
+.trip-field-box input[type="date"] {
+  height: 40px !important;
+  padding: 0 10px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #0F172A !important;
+  background: #FFFFFF !important;
+  border: 1px solid #CBD5E1 !important;
+  border-radius: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+}
+.trip-field-box select:focus,
+.trip-field-box input[type="date"]:focus {
+  border-color: #E86A17 !important;
+  outline: none !important;
+}
+
+/* Landing page search bar layout with separate date/time boxes */
+.lp-search {
+  grid-template-columns: 1fr 1.35fr 1.35fr auto !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  padding: 16px !important;
+}
+.lp-search > button[type="submit"] {
+  height: auto !important;
+  min-height: 52px !important;
+  padding: 0 22px !important;
+  border-radius: 12px !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+/* Cars page dark purple command bar with separate date/time boxes */
+.horizon-search-bar .availability-search {
+  display: grid !important;
+  grid-template-columns: 1fr 1.3fr 1.3fr auto !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+}
+.horizon-search-bar .availability-heading {
+  grid-column: 1 / -1 !important;
+}
+.horizon-search-bar .trip-field-box {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+}
+.horizon-search-bar .trip-field-lbl {
+  color: #F5D9A8 !important;
+}
+.horizon-search-bar .availability-search button[type="submit"] {
+  height: auto !important;
+  min-height: 52px !important;
+}
+
+/* Sidebar city dropdown & mobile filter actions */
+.sidebar-select {
+  height: 42px !important;
+  padding: 0 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--ink, #0F172A) !important;
+  background: #F8FAFC !important;
+  border: 1.5px solid var(--line, #CBD5E1) !important;
+  border-radius: 10px !important;
+  width: 100% !important;
+  cursor: pointer !important;
+}
+.mobile-filter-toggle {
+  display: none !important;
+}
+.mobile-filter-actions {
+  display: none;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, #E2E4E8);
+}
+
+/* Tablet & Mobile Responsive Overrides (Fixes broken 2-column squeeze on mobile) */
+@media (max-width: 1080px) {
+  .lp-search,
+  .horizon-search-bar .availability-search {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .lp-search > button[type="submit"],
+  .horizon-search-bar .availability-search button[type="submit"] {
+    grid-column: 1 / -1 !important;
+    min-height: 48px !important;
+  }
+}
+
+@media (max-width: 960px) {
+  .cars-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+  .cars-results-wrap {
+    width: 100% !important;
+  }
+  .mobile-filter-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 46px !important;
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    background: #FFFFFF !important;
+    color: var(--ink, #0F172A) !important;
+    border: 1.5px solid var(--line-strong, #CBD5E1) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  }
+  .sidebar-filters#vehicle-search-filters:not(.filters-expanded) {
+    display: none !important;
+  }
+  .sidebar-filters#vehicle-search-filters.filters-expanded {
+    display: flex !important;
+    position: static !important;
+    max-height: none !important;
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    padding: 18px 16px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  }
+  .mobile-filter-actions {
+    display: block !important;
+  }
+  .cars-search-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .search-input-box,
+  .sort-dropdown {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .lp-search,
+  .horizon-search-bar .availability-search {
+    grid-template-columns: 1fr !important;
+  }
+  .horizon-search-bar {
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  .horizon-search-bar .availability-heading strong {
+    font-size: 16.5px !important;
+  }
+  .horizon-search-bar .availability-heading span {
+    font-size: 12px !important;
+  }
+  .dt-split-row {
+    grid-template-columns: 1.15fr 1fr !important;
+    gap: 6px !important;
+  }
+  .trip-field-box select,
+  .trip-field-box input[type="date"] {
+    font-size: 13px !important;
+    padding: 0 8px !important;
+  }
+  .car-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
