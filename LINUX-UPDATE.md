@@ -82,6 +82,25 @@ NODE_ENV=production npm run admin:create
 
 ## 4. Database backup package
 
+### Existing administrator password recovery
+
+When the deployed page loads but the configured administrator's password is rejected, an operator with SSH access can reset only that existing active administrator's password. This does not import local accounts, change roles, unblock accounts, or alter verification. The command checks the same PostgreSQL URL precedence as the API and writes a password-reset audit record in the same transaction. Passwords are entered twice with hidden terminal input and are never supplied through command arguments. Existing sessions are not revoked by this command; no server restart is needed for the new password to work.
+
+For the confirmed server layout, pull the branch and copy just the maintenance script into the existing installation:
+
+```bash
+cd /home/ubuntu/ZipTrip-login-fix
+git pull --ff-only
+install -m 644 apps/backend/scripts/reset-admin-password.cjs \
+  /home/ubuntu/ZipTrip/apps/backend/scripts/reset-admin-password.cjs
+cd /home/ubuntu/ZipTrip/apps/backend
+NODE_ENV=production node --env-file=.env scripts/reset-admin-password.cjs
+```
+
+If the account does not exist, the script makes no changes. Use `NODE_ENV=production npm run admin:create` from that backend directory to create an administrator using the existing interactive command. Do not post passwords, `.env` contents, or private passwords files in chat.
+
+### Backup contents
+
 `safar-local-database.zip` is a separate private backup, not part of the code deployment. It contains `portal.db`, its SHA-256/check/count manifest, and available local media files. SQLite integrity check passed and all 23 table counts matched the source. This is the complete local database snapshot, not the live PostgreSQL database.
 
 You can transfer it to the server home directory for private staging:
