@@ -1670,9 +1670,10 @@ function applyCarFilters() {
   const minYear  = Number($('#year-slider')?.value || 2018);
   const minRating = Number(document.querySelector('.rating-rb:checked')?.value || 0);
 
-  list = list.filter(c => selCats.some(group => group.split(',').includes((c.category || '').toLowerCase())));
-  list = list.filter(c => selTxs.includes((c.transmission || '').toLowerCase()));
-  list = list.filter(c => selFuels.includes((c.fuelType || '').toLowerCase()));
+  // Selecting every preset means no restriction, including values outside the presets.
+  if (selCats.length < $$('.cat-cb').length) list = list.filter(c => selCats.some(group => group.split(',').includes((c.category || '').toLowerCase())));
+  if (selTxs.length < $$('.trans-cb').length) list = list.filter(c => selTxs.includes((c.transmission || '').toLowerCase()));
+  if (selFuels.length < $$('.fuel-cb').length) list = list.filter(c => selFuels.includes((c.fuelType || '').toLowerCase()));
   list = list.filter(c => Number(c.pricePerDay) <= maxPrice);
   list = list.filter(c => Number(c.year || 2024) >= minYear);
   if (minRating > 0) list = list.filter(c => getRating(c) >= minRating);
@@ -1690,9 +1691,17 @@ function applyCarFilters() {
       ? `Showing ${list.length} Verified Car${list.length !== 1 ? 's' : ''} Available for Your Trip`
       : `Showing ${list.length} Self-Drive Car${list.length !== 1 ? 's' : ''} · Select trip dates to check availability`;
   const banner = preview ? `<div class="preview-banner" role="note" data-testid="preview-banner"><strong>Preview mode (local only).</strong> No cars are listed yet, so these sample cars show how the page will look. They aren't real listings and can't be booked; real cars appear here once an administrator approves them.</div>` : '';
+  const params = new URLSearchParams(location.search);
+  const hasServerFilters = ['city', 'startDate', 'endDate'].some(key => Boolean(params.get(key)));
+  const noFleet = !allCars.length;
+  const message = noFleet
+    ? empty(hasServerFilters ? 'No cars available for this search' : 'No cars are currently available',
+      hasServerFilters ? 'Try a different city or different trip dates.' : 'New listings will appear once they are ready for booking.')
+      + (hasServerFilters ? '<div class="actions"><a class="button btn-outline" href="cars.html">Browse all cars</a></div>' : '')
+      + (user?.role === 'ADMIN' ? '<div class="notice">Check your vehicle records, approval, availability and document review in the admin panel. <a href="admin.html?tab=vehicles">Manage vehicles</a> · <a href="admin.html?tab=documents">Review documents</a></div>' : '')
+    : empty('No cars match your exact filter combination', 'Click "Reset All" in the filter sidebar to see all available vehicles.');
   $('#fleet-grid').innerHTML = banner + (list.length
-    ? list.map(car => car.preview ? previewCard(car) : carCard(car)).join('')
-    : empty('No cars match your exact filter combination', 'Click "Reset All" in the filter sidebar to see all available vehicles.'));
+    ? list.map(car => car.preview ? previewCard(car) : carCard(car)).join('') : message);
 }
 
 /* ─── VEHICLE DETAIL PAGE & BOOKING CONFIGURATOR ─────────────────────── */

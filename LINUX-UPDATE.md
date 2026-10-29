@@ -122,6 +122,46 @@ The production app requires PostgreSQL. Do not copy `portal.db` over a PostgreSQ
 
 Private document files also require the original document encryption key for re-encryption into the server's S3 storage. That key is deliberately not included. Uploading the backup ZIP alone does not make those files accessible to the production app.
 
-## Fresh installation
+## Restore the previous 13-car fleet into the existing server
+
+The owner confirmed that the 13 cars in the previous local backup are the missing listings. The private `safar-13-car-restore.zip` package contains only those fleet records, their owner reference, model/hub specifications, 104 public vehicle photos and 39 vehicle-document record stubs. It excludes account password hashes, OTP data and private identity documents. The code is on `fix/remove-demo-controls-linux`; the data ZIP is deliberately outside GitHub.
+
+This restores listings in the administrator's vehicle list without changing existing account passwords, roles, or existing vehicles. Source owners are matched by email; if the previous host does not exist, a host account is created with a random password written to a server-local file with mode 600. Existing registration numbers/vehicle IDs are skipped. Models are reused by their unique specification. Photos go to the configured S3 bucket and are read back and checked. Existing S3 objects with different content are never overwritten. A database error rolls back the new database records together; verified S3 uploads can be reused on retry.
+
+The old 39 RC/Insurance/PUC entries have no evidence attachments. They are restored as pending, and all restored cars are pending approval and inactive. The admin must upload actual document evidence, review it, approve each car, and activate availability before customer booking. Importing old ACTIVE labels alone cannot satisfy the current booking criteria. Actual source S3 credentials and encryption keys are not included or changed. No old customer bookings/payments are imported by this fleet-only tool.
+
+Upload the ZIP into `/home/ubuntu/` using your existing EC2 SSH key. From Windows PowerShell (replace the key path):
+
+```powershell
+scp -i "C:\path\to\zip-trip-key.pem" `
+  "C:\Users\My Buddy\Downloads\ZipTrip-main\releases\safar-linux-20261029\safar-13-car-restore.zip" `
+  ubuntu@13.202.48.156:/home/ubuntu/
+```
+
+Then run on Ubuntu:
+
+```bash
+sudo apt-get install -y unzip
+umask 077
+mkdir -p /home/ubuntu/safar-fleet-restore
+unzip -n /home/ubuntu/safar-13-car-restore.zip -d /home/ubuntu/safar-fleet-restore
+
+cd /home/ubuntu/ZipTrip-login-fix
+git pull --ff-only && bash scripts/linux-update.sh
+
+cd /home/ubuntu/ZipTrip/apps/backend
+# Read-only check, including all source photo checksums:
+NODE_ENV=production node --env-file=.env scripts/restore-fleet.cjs \
+  /home/ubuntu/safar-fleet-restore/fleet-restore
+# Restore missing cars/photos; preserve existing records:
+NODE_ENV=production node --env-file=.env scripts/restore-fleet.cjs \
+  /home/ubuntu/safar-fleet-restore/fleet-restore --apply
+```
+
+Check the returned `restoredVehicles` count (13 on a previously empty fleet), then refresh `admin.html?tab=vehicles`. Newly inserted records are visible immediately without another server restart. Keep the owner credentials file private. If the restore fails, share its summary/failure code, not `.env` contents or passwords. Dry-run and apply do not seed or replace the production database. Back up the production PostgreSQL database with your existing backup tooling before any data migration.
+
+Validation: 10 restore checks cover dry runs, existing login preservation, model/owner matching, duplicate prevention, damaged photos, S3 conflicts, and transaction failure; the full 13-car package was restored in a throwaway Prisma/SQLite database with 104 photo records and 39 pending document records. A rerun left all existing records unchanged. Four browser tests cover empty fleet/search messaging and filtering values outside presets. PostgreSQL/S3 execution must still be verified on the actual server.
+
+## Fresh installation prerequisites
 
 The update commands assume an existing working Safar server. For a fresh installation, first provision PostgreSQL, private S3 access, SMS and other required providers, and configure `apps/backend/.env` from `.env.example`. Use reviewed PostgreSQL migrations (`npm run db:pg:deploy`) against the intended database, then the update helper and administrator creation. See `AWS-DEPLOYMENT.md`, `docs/MEDIA_STORAGE.md`, and `docs/MSG91-OTP-SETUP.md`. No real `.env`, AWS key, JWT secret or document key is supplied in this archive.
