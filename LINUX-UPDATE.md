@@ -14,18 +14,16 @@ Validation: backend TypeScript build succeeded; all 14 authentication/browser ch
 
 ## Deploy from the new Git branch
 
-For the GitHub branch version, use the existing configured checkout on your server:
+The server output confirms `safar-portal.service` is running under systemd, with Node 22 installed. The original `/home/ubuntu/ZipTrip` directory is not a Git checkout. Use the new clone:
 
 ```bash
-cd /home/ubuntu/ZipTrip
+cd /home/ubuntu/ZipTrip-login-fix
 git status --short
-# Resolve or back up local source changes before switching branches; do not reset them.
-git fetch origin
-git switch --track origin/fix/remove-demo-controls-linux
+git pull --ff-only
 bash scripts/linux-update.sh
 ```
 
-If that branch already exists locally, use `git switch fix/remove-demo-controls-linux` then `git pull --ff-only`. The helper installs Linux dependencies, generates the PostgreSQL client, builds the backend, updates an existing Nginx static web directory, and restarts PM2. Keep the existing `.env` and database. Review the backup and prerequisites below before running it. The database backup ZIP is separate and is not committed to GitHub.
+The helper first checks for `safar-portal.service`. For systemd it reads the existing service's WorkingDirectory, backs up the existing code (excluding secrets/data/dependencies), and syncs the new source there without overwriting `.env`, databases, uploads, or Git metadata. It installs dependencies and compiles in that existing directory, then restarts the same service. This avoids installing another dependency tree in the clone. An unrecognized service directory stops the update. PM2 is used only when the systemd service does not exist. Keep the existing `.env` and database. Review prerequisites below before running it. The database backup ZIP is separate and is not committed to GitHub.
 
 ## 1. Upload the source ZIP (alternative to Git)
 
@@ -40,13 +38,13 @@ The source ZIP includes the full application source, lockfiles, database schemas
 
 ## 2. Back up and update the existing checkout
 
-These commands use `/home/ubuntu/ZipTrip`, the path in this project's existing deployment scripts. If your app lives elsewhere, use that actual path throughout. Run as the same Ubuntu account that owns the current PM2 service.
+These alternative ZIP commands use `/home/ubuntu/ZipTrip`, the path in this project's existing deployment scripts. If your app lives elsewhere, use that actual path throughout. Run as the Ubuntu account that owns the installation, with sudo permission to restart its systemd service (or as the account that owns its PM2 process).
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y unzip rsync build-essential python3
 node --version  # must be 22 or newer
-pm2 status
+systemctl status safar-portal.service --no-pager
 
 cd /home/ubuntu
 test -f ZipTrip/apps/backend/.env || { echo 'Use your actual app directory; existing .env not found'; exit 1; }
@@ -65,7 +63,7 @@ curl --fail http://127.0.0.1:3000/api/health
 
 The ZIP contains no `.env` or database and rsync does not use `--delete`, so the server's current settings/data remain in place. Before any database migration, also take a PostgreSQL backup with your existing database backup tooling; the checkout archive above is a code/config backup, not a PostgreSQL backup.
 
-The update script requires your already-configured PostgreSQL connection, JWT secret, private S3 bucket and document encryption key. Preserve these values, especially the encryption key used for existing documents. If you use `POSTGRES_DATABASE_URL`, keep `DATABASE_URL` pointed at the same PostgreSQL database for the maintenance scripts. The script does not run migrations, create accounts, reset passwords, import the local database, or change Nginx configuration. It copies web files to `/var/www/safar` only if that directory already exists, restarts `safar-portal`, then checks the API on port 3000. Use `pm2 logs safar-portal --lines 60 --nostream` if startup fails. If your service name or API port differs, adjust the helper before running it.
+The update script requires your already-configured PostgreSQL connection, JWT secret, private S3 bucket and document encryption key. Preserve these values, especially the encryption key used for existing documents. If you use `POSTGRES_DATABASE_URL`, keep `DATABASE_URL` pointed at the same PostgreSQL database for the maintenance scripts. The script does not run migrations, create accounts, reset passwords, import the local database, or change Nginx configuration. It copies web files to `/var/www/safar` only if that directory already exists, restarts Safar through systemd or PM2, then checks the API on port 3000. For systemd startup errors use `sudo journalctl -u safar-portal.service -n 60 --no-pager`; for PM2 use `pm2 logs safar-portal --lines 60 --nostream`. If your service name or API port differs, adjust the helper before running it.
 
 Do not run the older `deploy.sh`/`rebuild.sh` for this update: those scripts reset the branch, run `db push --accept-data-loss` and seed demonstration data outside production mode. This package's update helper avoids those steps. Check existing cron/automation jobs before using the package so an old auto-deploy does not replace your update from a different branch.
 
