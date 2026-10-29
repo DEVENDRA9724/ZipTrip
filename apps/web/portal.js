@@ -399,8 +399,82 @@ const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
   return { value, label: `${String(h12).padStart(2, '0')}:${m} ${period}` };
 });
 
+function parse24TimeParts(val = '10:00') {
+  const [hh, mm] = String(val || '10:00').split(':').map(Number);
+  const h = Number.isFinite(hh) ? hh : 10;
+  const min = mm >= 15 && mm < 45 ? '30' : '00';
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = String(h % 12 === 0 ? 12 : h % 12).padStart(2, '0');
+  const h24 = `${String(h).padStart(2, '0')}:${min}`;
+  return { h12, min, period, h24 };
+}
+
+function to24TimeStr(h12, min, period) {
+  let h = parseInt(h12, 10) || 10;
+  if (String(period).toUpperCase() === 'PM' && h < 12) h += 12;
+  if (String(period).toUpperCase() === 'AM' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${min === '30' ? '30' : '00'}`;
+}
+
 function renderTimeOptions(selected = '10:00') {
   return TIME_SLOTS.map(s => `<option value="${s.value}" ${s.value === selected ? 'selected' : ''}>${s.label}</option>`).join('');
+}
+
+function renderClockPicker(prefix, selected24 = '10:00', ariaPrefix = 'Time') {
+  const p = parse24TimeParts(selected24);
+  const hours = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const mins = ['00','30'];
+  return `
+    <div class="clock-picker-group" data-clock-prefix="${esc(prefix)}">
+      <select id="${esc(prefix)}-hr" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Hour">
+        ${hours.map(hr => `<option value="${hr}" ${hr === p.h12 ? 'selected' : ''}>${hr}</option>`).join('')}
+      </select>
+      <span class="clock-colon">:</span>
+      <select id="${esc(prefix)}-min" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Minute">
+        ${mins.map(m => `<option value="${m}" ${m === p.min ? 'selected' : ''}>${m}</option>`).join('')}
+      </select>
+      <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
+        <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active' : ''}" data-period="AM">AM</button>
+        <button type="button" class="ampm-btn ${p.period === 'PM' ? 'active' : ''}" data-period="PM">PM</button>
+      </div>
+      <input type="hidden" id="${esc(prefix)}" value="${esc(p.h24)}">
+    </div>`;
+}
+
+function bindClockPickers(root = document) {
+  root.querySelectorAll('.clock-picker-group').forEach(group => {
+    const prefix = group.dataset.clockPrefix;
+    const hrEl = group.querySelector(`#${prefix}-hr`);
+    const minEl = group.querySelector(`#${prefix}-min`);
+    const hiddenEl = group.querySelector(`#${prefix}`);
+    const btns = group.querySelectorAll('.ampm-btn');
+    if (!hrEl || !minEl || !hiddenEl) return;
+
+    const syncClock = () => {
+      const activePeriod = group.querySelector('.ampm-btn.active')?.dataset?.period || 'AM';
+      hiddenEl.value = to24TimeStr(hrEl.value, minEl.value, activePeriod);
+      hiddenEl.dispatchEvent(new Event('input', { bubbles: true }));
+      hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    hrEl.addEventListener('change', syncClock);
+    minEl.addEventListener('change', syncClock);
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btns.forEach(b => b.classList.toggle('active', b === btn));
+        syncClock();
+      });
+    });
+  });
+}
+
+function formatShortTripWindow(startDateStr, startTime24, endDateStr, endTime24) {
+  const s = combineDateTimeParts(startDateStr, startTime24);
+  const e = combineDateTimeParts(endDateStr, endTime24);
+  const fmtDate = dObj => Number.isFinite(+dObj) ? dObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+  const sP = parse24TimeParts(startTime24);
+  const eP = parse24TimeParts(endTime24);
+  return `${fmtDate(s)}, ${sP.h12}:${sP.min} ${sP.period} → ${fmtDate(e)}, ${eP.h12}:${eP.min} ${eP.period}`;
 }
 
 function toLocalDateStr(dObj) {
@@ -1148,17 +1222,17 @@ async function home() {
             <select name="city" id="lp-city" aria-label="Pickup Location">${['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === city ? 'selected' : ''}>${c || 'All Cities (Gujarat)'}</option>`).join('')}</select>
           </div>
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time (HH:MM AM/PM)</span>
             <div class="dt-split-row">
               <input type="date" id="lp-start-date" value="${startParts.date}" min="${todayStr}" aria-label="Pickup Date">
-              <select id="lp-start-time" aria-label="Pickup Time">${renderTimeOptions(startParts.time)}</select>
+              ${renderClockPicker('lp-start-time', startParts.time, 'Pickup Time')}
             </div>
           </div>
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time (HH:MM AM/PM)</span>
             <div class="dt-split-row">
               <input type="date" id="lp-end-date" value="${endParts.date}" min="${startParts.date}" aria-label="Return Date">
-              <select id="lp-end-time" aria-label="Return Time">${renderTimeOptions(endParts.time)}</select>
+              ${renderClockPicker('lp-end-time', endParts.time, 'Return Time')}
             </div>
           </div>
           <button type="submit" class="btn-orange">${icon('search')} Find Available Cars</button>
@@ -1269,6 +1343,7 @@ async function home() {
       </div>
     </section>`;
 
+  bindClockPickers($('#lp-search'));
   const startDateEl = $('#lp-start-date'), startTimeEl = $('#lp-start-time');
   const endDateEl = $('#lp-end-date'), endTimeEl = $('#lp-end-time');
   const err = $('#lp-search-err');
@@ -1382,40 +1457,16 @@ function auth(forceRegister, loginMode = 'password') {
 
   $('#app').innerHTML = `
     <div class="auth-box">
-      <aside class="auth-banner">
-        <div>
-          <img src="safar-logo.png" alt="Safar" class="auth-banner-logo" data-hide-on-error>
-          <h1>Your Journey.<br>Your Rules.</h1>
-          <p>Sign in to manage trips, verify documents, and explore self-drive rentals across India.</p>
-        </div>
-        <img class="auth-journey-art" src="journey.svg" alt="An orange car on a winding road through a sunlit landscape">
-        <div class="auth-steps-list">
-          <div class="auth-step-item"><span class="auth-step-num">1</span> Create your account</div>
-          <div class="auth-step-item"><span class="auth-step-num">2</span> Verify your identity with DigiLocker</div>
-          <div class="auth-step-item"><span class="auth-step-num">3</span> Reserve car &amp; hit the road</div>
-        </div>
-      </aside>
-
       <section class="auth-form-panel">
-        <div class="auth-tab-switch">
-          <button id="tab-login" class="${!isReg ? 'active' : ''}">Sign In</button>
-          <button id="tab-reg" class="${isReg ? 'active' : ''}">Create Account</button>
+        <div class="auth-tab-switch" role="tablist" aria-label="Account access">
+          <button type="button" id="tab-login" class="${!isReg ? 'active' : ''}" role="tab" aria-selected="${!isReg ? 'true' : 'false'}">Sign In</button>
+          <button type="button" id="tab-reg" class="${isReg ? 'active' : ''}" role="tab" aria-selected="${isReg ? 'true' : 'false'}">Sign Up</button>
         </div>
 
-        <h2>${isReg ? 'Create your account' : 'Welcome back'}</h2>
-        <p class="text-muted">${isReg ? 'Register as a customer or vehicle host.' : (isOtpLogin ? 'Enter your mobile number and we will send a one-time password.' : 'Enter your email and password to continue.')}</p>
+        <h2 style="margin:0 0 4px;font-size:24px">${isReg ? 'Create Your Safar Account' : 'Sign In to Safar'}</h2>
+        <p class="text-muted" style="margin:0 0 18px;font-size:13.5px">${isReg ? 'Register as a self-drive customer or vehicle host in under a minute.' : (isOtpLogin ? 'Enter your registered mobile number to receive a 6-digit login OTP.' : 'Enter your email address and password to access your bookings.')}</p>
 
         <form id="auth-form" class="form-stack">
-          ${!isReg && !isOtpLogin ? `
-            <div style="margin-bottom:14px;padding:12px;background:rgba(240,120,24,0.06);border:1px solid rgba(240,120,24,0.22);border-radius:10px">
-              <div style="font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Quick Demo Logins (1-Click Fill)</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="admin@safar.com" data-pass="Admin@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">👑 Admin</button>
-                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="host@safar.com" data-pass="Host@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">🚗 Host</button>
-                <button type="button" class="button btn-outline btn-sm fill-demo-btn" data-email="customer@safar.com" data-pass="Customer@12345678" style="font-size:12px;padding:5px 10px;cursor:pointer">👤 Customer</button>
-              </div>
-            </div>` : ''}
-
           ${isReg ? `
             <div class="form-grid">
               ${inp('firstName', 'First name', 'text', 'autocomplete="given-name" maxlength="60" placeholder="e.g. Rahul"')}
@@ -1433,19 +1484,36 @@ function auth(forceRegister, loginMode = 'password') {
             <p class="text-muted" style="font-size:12px;margin:0">A 6-digit Mobile OTP will be sent to verify your number before identity verification.</p>
           ` : ''}
 
-          <button type="submit" class="button btn-orange" style="width:100%;margin-top:8px">
-            ${isReg ? 'Send Mobile OTP &amp; Create Account →' : (isOtpLogin ? 'Send Login OTP →' : 'Sign In →')}
+          <button type="submit" class="button btn-orange" style="width:100%;margin-top:6px;padding:13px 18px;font-size:15px">
+            ${isReg ? 'Send Mobile OTP &amp; Sign Up →' : (isOtpLogin ? 'Send Login OTP →' : 'Sign In →')}
           </button>
         </form>
 
-        ${!isReg ? `<p style="font-size:13px;color:var(--muted);margin:14px 0 0;text-align:center"><a href="#" id="toggle-login-mode">${isOtpLogin ? 'Use password instead' : 'Sign in with mobile OTP'}</a></p>` : ''}
+        ${!isReg ? `<p style="font-size:13px;color:var(--muted);margin:14px 0 0;text-align:center"><a href="#" id="toggle-login-mode" style="font-weight:600">${isOtpLogin ? 'Use email &amp; password instead' : 'Sign in with mobile OTP'}</a></p>` : ''}
 
-        <p style="font-size:13px;color:var(--muted);margin-top:16px;text-align:center">
+        <p style="font-size:13.5px;color:var(--muted);margin-top:14px;text-align:center">
           ${isReg
-            ? `Already registered? <a href="#" id="link-login">Sign in here</a>`
-            : `Don't have an account? <a href="#" id="link-reg">Register now</a>`}
+            ? `Already have an account? <a href="#" id="link-login" style="font-weight:700">Sign In</a>`
+            : `New to Safar? <a href="#" id="link-reg" style="font-weight:700">Create Account (Sign Up)</a>`}
         </p>
       </section>
+
+      <aside class="auth-banner">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <img src="safar-logo.png" alt="Safar" class="auth-banner-logo" style="margin:0" data-hide-on-error>
+            <span class="badge ok">Verified Self-Drive Platform</span>
+          </div>
+          <h1>Your Journey.<br>Your Rules.</h1>
+          <p>Sign in to manage reservations, complete 1-time Aadhaar &amp; Driving Licence verification, and unlock verified cars across Gujarat.</p>
+        </div>
+        <img class="auth-journey-art" src="journey.svg" alt="An orange car on a winding road through a sunlit landscape">
+        <div class="auth-steps-list">
+          <div class="auth-step-item"><span class="auth-step-num">1</span> Sign up or sign in with Email / Mobile OTP</div>
+          <div class="auth-step-item"><span class="auth-step-num">2</span> Verify Driving Licence &amp; Aadhaar once</div>
+          <div class="auth-step-item"><span class="auth-step-num">3</span> Inspect 8 angles at pickup &amp; hit the road</div>
+        </div>
+      </aside>
     </div>`;
 
   $('#tab-login').onclick = () => auth(false);
@@ -1560,26 +1628,27 @@ async function cars() {
   const startParts = splitDateTimeParts(searchParams.get('startDate'), 1, '10:00');
   const endParts = splitDateTimeParts(searchParams.get('endDate'), 2, '10:00');
   const todayStr = toLocalDateStr(new Date());
+  const tripSummaryText = formatShortTripWindow(startParts.date, startParts.time, endParts.date, endParts.time);
 
   $('#app').innerHTML = `
     <div class="cars-page-wrap">
-      <!-- Top Search & Schedule Command Bar -->
-      <div class="horizon-search-bar">
-        <div class="horizon-search-top">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <!-- Compact Trip Summary Bar (Collapsible so the big search card never duplicates the home page) -->
+      <div class="horizon-search-bar is-compact" id="horizon-search-wrap">
+        <div class="horizon-summary-bar">
+          <div class="horizon-summary-info">
             <span class="horizon-location-pill">
               <span class="ico">${icon('pin')}</span> <strong id="horizon-city-label">${esc(initialCity || 'All Cities (Gujarat)')}</strong>
             </span>
-            <span class="badge ok">${icon('shield')} Verified Self-Drive Fleet</span>
+            <span class="horizon-schedule-pill">
+              ${icon('calendar', 'ic-xs')} <span id="horizon-schedule-label">${esc(tripSummaryText)}</span>
+            </span>
           </div>
+          <button type="button" class="button btn-outline btn-sm horizon-modify-btn" id="toggle-schedule-drawer-btn" aria-expanded="false" aria-controls="availability-search">
+            ${icon('clock', 'ic-xs')} <span id="toggle-schedule-drawer-lbl">Modify City / Dates</span>
+          </button>
         </div>
 
-        <form id="availability-search" class="availability-search" novalidate>
-          <div class="availability-heading">
-            <strong>Find Your Next Self-Drive Car</strong>
-            <span>Transparent Daily Pricing · Digital Lease Agreement · Verified Handover</span>
-          </div>
-
+        <form id="availability-search" class="availability-search is-collapsed" novalidate>
           <div class="trip-field-box">
             <span class="trip-field-lbl">${icon('pin', 'ic-xs')} Pickup City / Hub</span>
             <select name="city" id="cars-city-select" aria-label="Hub / City">
@@ -1588,22 +1657,22 @@ async function cars() {
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time (HH:MM AM/PM)</span>
             <div class="dt-split-row">
               <input type="date" id="cars-start-date" name="startDatePart" value="${startParts.date}" min="${todayStr}" aria-label="Pick-up Date">
-              <select id="cars-start-time" name="startTimePart" aria-label="Pick-up Time">${renderTimeOptions(startParts.time)}</select>
+              ${renderClockPicker('cars-start-time', startParts.time, 'Pick-up Time')}
             </div>
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time (HH:MM AM/PM)</span>
             <div class="dt-split-row">
               <input type="date" id="cars-end-date" name="endDatePart" value="${endParts.date}" min="${startParts.date}" aria-label="Drop-off Date">
-              <select id="cars-end-time" name="endTimePart" aria-label="Drop-off Time">${renderTimeOptions(endParts.time)}</select>
+              ${renderClockPicker('cars-end-time', endParts.time, 'Drop-off Time')}
             </div>
           </div>
 
-          <button type="submit" class="button btn-orange">${icon('search')} Search Fleet</button>
+          <button type="submit" class="button btn-orange">${icon('search')} Apply Schedule</button>
         </form>
       </div>
 
@@ -1705,9 +1774,24 @@ async function cars() {
       </div>
     </div>`;
 
+  bindClockPickers($('#availability-search'));
   const startDateEl = $('#cars-start-date'), startTimeEl = $('#cars-start-time');
   const endDateEl = $('#cars-end-date'), endTimeEl = $('#cars-end-time');
   const citySelectEl = $('#cars-city-select'), sidebarCityEl = $('#sidebar-city-select');
+
+  $('#toggle-schedule-drawer-btn')?.addEventListener('click', e => {
+    const btn = e.currentTarget;
+    const formEl = $('#availability-search');
+    const isCollapsed = formEl.classList.toggle('is-collapsed');
+    btn.setAttribute('aria-expanded', String(!isCollapsed));
+    const lbl = $('#toggle-schedule-drawer-lbl');
+    if (lbl) lbl.textContent = isCollapsed ? 'Modify City / Dates' : 'Close Schedule';
+  });
+
+  const refreshScheduleSummaryPill = () => {
+    const lbl = $('#horizon-schedule-label');
+    if (lbl) lbl.textContent = formatShortTripWindow(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
+  };
 
   startDateEl.addEventListener('change', () => {
     endDateEl.min = startDateEl.value;
@@ -1716,7 +1800,11 @@ async function cars() {
       nextDay.setDate(nextDay.getDate() + 1);
       endDateEl.value = toLocalDateStr(nextDay);
     }
+    refreshScheduleSummaryPill();
   });
+  endDateEl.addEventListener('change', refreshScheduleSummaryPill);
+  startTimeEl.addEventListener('change', refreshScheduleSummaryPill);
+  endTimeEl.addEventListener('change', refreshScheduleSummaryPill);
 
   const syncCityEverywhere = newCity => {
     setCity(newCity);
@@ -2232,18 +2320,18 @@ async function carDetails(id) {
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time (HH:MM AM/PM)</span>
             <div class="dt-split-row">
               <input type="date" id="bp-start-date" aria-label="Pick-up Date" required>
-              <select id="bp-start-time" aria-label="Pick-up Time">${renderTimeOptions('10:00')}</select>
+              ${renderClockPicker('bp-start-time', '10:00', 'Pick-up Time')}
             </div>
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time (HH:MM AM/PM)</span>
             <div class="dt-split-row">
               <input type="date" id="bp-end-date" aria-label="Drop-off Date" required>
-              <select id="bp-end-time" aria-label="Drop-off Time">${renderTimeOptions('10:00')}</select>
+              ${renderClockPicker('bp-end-time', '10:00', 'Drop-off Time')}
             </div>
           </div>
 
@@ -2365,6 +2453,7 @@ async function carDetails(id) {
   // Live Quote Calculator (works for BOTH Guest & Logged-in customers!) & Booking Submission
   const form = $('#car-booking-form');
   if (form) {
+    bindClockPickers(form);
     const selectedDates = new URLSearchParams(location.search);
     const bpStartParts = splitDateTimeParts(selectedDates.get('startDate'), 1, '10:00');
     const bpEndParts = splitDateTimeParts(selectedDates.get('endDate'), 2, '10:00');
@@ -2377,6 +2466,16 @@ async function carDetails(id) {
     bpEndDate.min = bpStartParts.date;
     bpEndDate.value = bpEndParts.date;
     bpEndTime.value = bpEndParts.time;
+
+    const syncClockUiFromValue = (prefix, val24) => {
+      const p = parse24TimeParts(val24);
+      const hrEl = $(`#${prefix}-hr`, form), minEl = $(`#${prefix}-min`, form);
+      if (hrEl) hrEl.value = p.h12;
+      if (minEl) minEl.value = p.min;
+      $$(`[data-clock-prefix="${prefix}"] .ampm-btn`, form).forEach(b => b.classList.toggle('active', b.dataset.period === p.period));
+    };
+    syncClockUiFromValue('bp-start-time', bpStartParts.time);
+    syncClockUiFromValue('bp-end-time', bpEndParts.time);
 
     const syncHiddenSchedule = () => {
       if (bpStartDate.value && bpEndDate.value && bpEndDate.value < bpStartDate.value) {

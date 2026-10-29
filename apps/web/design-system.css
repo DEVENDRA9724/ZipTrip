@@ -2093,3 +2093,235 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
     white-space: nowrap !important;
   }
 }
+
+/* ==========================================================================
+   CLOCK TIME PICKER (HH : MM + AM/PM BUTTONS), COMPACT FLEET SUMMARY BAR,
+   AND MOBILE-FIRST LOGIN / SIGN UP PAGE
+   ========================================================================== */
+
+/* 1. Separate Date + Clock Picker (HH : MM + AM/PM Buttons) */
+.dt-split-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.clock-picker-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 4px 6px;
+  min-height: 44px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.clock-part-sel {
+  appearance: auto;
+  border: 1px solid #E2E8F0 !important;
+  background: #F8FAFC !important;
+  color: #0F172A !important;
+  border-radius: 7px !important;
+  padding: 5px 6px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  min-height: 32px !important;
+  width: auto !important;
+  flex: 1 1 52px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.clock-part-sel:focus {
+  outline: none;
+  border-color: var(--accent, #F47A20) !important;
+  background: #FFFFFF !important;
+}
+
+.clock-colon {
+  font-size: 15px;
+  font-weight: 800;
+  color: #475569;
+  padding: 0 1px;
+  user-select: none;
+}
+
+.ampm-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ampm-btn {
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 5px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.1;
+}
+
+.ampm-btn:hover {
+  color: #0F172A;
+}
+
+.ampm-btn.is-active {
+  background: var(--accent, #F47A20);
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(244, 122, 32, 0.35);
+}
+
+/* 2. Compact Single-Line Trip Summary Bar on Explore Fleet (cars.html) */
+.horizon-search-bar.is-compact {
+  padding: 14px 18px !important;
+}
+
+.horizon-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.horizon-summary-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.horizon-schedule-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.horizon-modify-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.horizon-modify-btn:hover,
+.horizon-modify-btn[aria-expanded="true"] {
+  background: var(--accent, #F47A20);
+  border-color: var(--accent, #F47A20);
+  color: #FFFFFF;
+}
+
+.horizon-search-bar .availability-search.is-collapsed {
+  display: none !important;
+}
+
+.horizon-search-bar .availability-search:not(.is-collapsed) {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* 3. Prominent Sign In / Sign Up Page Layout (Form First on Mobile) */
+.auth-box {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr) !important;
+  align-items: stretch !important;
+}
+
+.auth-form-panel {
+  padding: 32px 30px !important;
+  background: #FFFFFF !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-tab-switch {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 6px !important;
+  background: #F1F5F9 !important;
+  padding: 5px !important;
+  border-radius: 12px !important;
+  border: 1px solid #CBD5E1 !important;
+  margin-bottom: 18px !important;
+}
+
+.auth-tab-switch button {
+  padding: 11px 14px !important;
+  border-radius: 9px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #475569 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+.auth-tab-switch button.active {
+  background: var(--accent, #F47A20) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 3px 10px rgba(244, 122, 32, 0.3) !important;
+}
+
+@media (max-width: 860px) {
+  .auth-wrap {
+    padding: 12px 0 84px !important;
+  }
+  .auth-box {
+    grid-template-columns: 1fr !important;
+  }
+  .auth-form-panel {
+    padding: 20px 18px !important;
+    order: 1 !important;
+  }
+  .auth-banner {
+    order: 2 !important;
+    padding: 20px 18px !important;
+  }
+  .auth-banner img {
+    max-height: 140px !important;
+    width: auto !important;
+    margin: 10px auto 0 !important;
+  }
+  .horizon-summary-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .horizon-modify-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
