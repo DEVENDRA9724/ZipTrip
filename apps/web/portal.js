@@ -427,13 +427,23 @@ document.addEventListener('click', e => {
 document.addEventListener('error', e => {
   if (e.target instanceof HTMLImageElement && e.target.hasAttribute('data-hide-on-error')) e.target.style.display = 'none';
 }, true);
-// Missing or unreachable vehicle photos fall back to the logo once (error events do not bubble, so capture them).
+// Missing or unreachable vehicle photos fall back to the bundled model photo first, then logo if needed.
 document.addEventListener('error', e => {
   const img = e.target;
-  if (!(img instanceof HTMLImageElement) || !img.hasAttribute('data-vehicle-image') || img.dataset.fallbackApplied) return;
-  img.dataset.fallbackApplied = '1';
-  img.classList.add('vehicle-image-fallback');
-  img.src = VEHICLE_IMAGE_FALLBACK;
+  if (!(img instanceof HTMLImageElement) || !img.hasAttribute('data-vehicle-image')) return;
+  if (!img.dataset.fallbackApplied) {
+    img.dataset.fallbackApplied = '1';
+    const stock = getCarStockPhoto({ make: img.alt || '', model: img.alt || '' });
+    if (stock && !img.src.endsWith(stock)) {
+      img.src = stock;
+      return;
+    }
+  }
+  if (img.dataset.fallbackApplied === '1') {
+    img.dataset.fallbackApplied = '2';
+    img.classList.add('vehicle-image-fallback');
+    img.src = VEHICLE_IMAGE_FALLBACK;
+  }
 }, true);
 
 const DOC_NAMES = { RC: 'RC', INSURANCE: 'Insurance', PUC: 'PUC' };

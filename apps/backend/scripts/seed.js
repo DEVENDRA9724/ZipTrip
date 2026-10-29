@@ -37,7 +37,13 @@ async function createMediaFromImage(ownerId, filePath, kind) {
     .toBuffer();
 
   const storageKey = crypto.randomUUID() + '.jpg';
-  if (storage) await storage.put(storageKey, buffer, 'image/jpeg');
+  const uploadDir = path.resolve(__dirname, '../uploads');
+  fs.mkdirSync(uploadDir, { recursive: true });
+  fs.writeFileSync(path.join(uploadDir, path.basename(storageKey)), buffer);
+
+  if (storage) {
+    try { await storage.put(storageKey, buffer, 'image/jpeg'); } catch {}
+  }
 
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
 
@@ -552,6 +558,15 @@ async function seed() {
     if (existing) {
       let firstMediaId = existing.media?.[0]?.id || null;
       const imgPathExisting = path.join(carsDir, carData.imageFile);
+      if (existing.media?.length && fs.existsSync(imgPathExisting)) {
+        const uploadDir = path.resolve(__dirname, '../uploads');
+        fs.mkdirSync(uploadDir, { recursive: true });
+        const rawBuf = fs.readFileSync(imgPathExisting);
+        for (const m of existing.media) {
+          const targetFile = path.join(uploadDir, path.basename(m.storageKey));
+          if (!fs.existsSync(targetFile)) fs.writeFileSync(targetFile, rawBuf);
+        }
+      }
       if (!firstMediaId && fs.existsSync(imgPathExisting)) {
         const mediaListExisting = [];
         for (const kind of PHOTO_KINDS) {

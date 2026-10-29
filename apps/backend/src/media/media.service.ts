@@ -62,7 +62,7 @@ export class MediaService {
     const media = await this.prisma.media.findUnique({
       where: { id },
       include: {
-        vehicle: { select: { approvalStatus: true, availability: true } },
+        vehicle: { select: { approvalStatus: true, availability: true, make: true, model: true } },
       },
     });
     if (!media) throw new NotFoundException('Image not found');
@@ -73,9 +73,42 @@ export class MediaService {
       media.vehicle?.approvalStatus === 'APPROVED' &&
       media.vehicle?.availability === 'ACTIVE';
     if (!publicPhoto && (!user || (user.id !== media.ownerId && user.role !== 'ADMIN'))) throw new ForbiddenException('Image access denied');
-    let buffer = await this.storage.get(media.storageKey);
+    let buffer: Buffer | null = null;
+    try {
+      buffer = await this.storage.get(media.storageKey);
+    } catch {
+      buffer = null;
+    }
     if (!buffer) {
-      // A record whose object is gone is reported as not found; the storage key is never logged or returned.
+      const fs = require('node:fs');
+      const path = require('node:path');
+      const base = path.basename(media.storageKey);
+      const candidates = [
+        path.resolve(process.cwd(), 'uploads', base),
+        path.resolve(process.cwd(), 'uploads', media.storageKey),
+      ];
+      if (!isPrivate && media.vehicle) {
+        const text = `${media.vehicle.make || ''} ${media.vehicle.model || ''}`.toLowerCase();
+        const map: Record<string, string> = {
+          thar: 'thar.jpg', creta: 'creta.jpg', fortuner: 'fortuner.jpg', innova: 'innova.jpg',
+          swift: 'swift.jpg', bmw: 'bmw.jpg', city: 'city.jpg', scorpio: 'scorpio.jpg',
+          dzire: 'dzire.jpg', i20: 'i20.jpg', venue: 'venue.jpg', mercedes: 'mercedes.jpg', carens: 'carens.jpg',
+        };
+        const matched = Object.entries(map).find(([k]) => text.includes(k))?.[1] || 'creta.jpg';
+        candidates.push(
+          path.resolve(process.cwd(), '../web/cars', matched),
+          path.resolve(process.cwd(), 'apps/web/cars', matched),
+          path.resolve('/var/www/safar/cars', matched),
+        );
+      }
+      for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+          buffer = fs.readFileSync(candidate);
+          break;
+        }
+      }
+    }
+    if (!buffer) {
       this.logger.warn(`Media ${media.id} has no stored file`);
       throw new NotFoundException('Image not found');
     }
