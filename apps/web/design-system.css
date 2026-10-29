@@ -2179,10 +2179,616 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   color: #0F172A;
 }
 
+.ampm-btn.active,
 .ampm-btn.is-active {
   background: var(--accent, #F47A20);
   color: #FFFFFF;
   box-shadow: 0 2px 6px rgba(244, 122, 32, 0.35);
+}
+
+/* Inline Safar Time Slider + Floating Clock Pill */
+.safar-time-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.clock-live-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3B123F 0%, #581C5E 100%);
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 5px 9px;
+  border-radius: 7px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.clock-selects-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.safar-time-slider-wrap {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 22px 14px 6px;
+  position: relative;
+}
+
+.safar-time-slider-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #F47A20 0%,
+    #3B123F var(--slider-pct, 42%),
+    #E2E8F0 var(--slider-pct, 42%),
+    #E2E8F0 100%
+  );
+  display: flex;
+  align-items: center;
+}
+
+.safar-time-floating-pill {
+  position: absolute;
+  top: -21px;
+  transform: translateX(-50%);
+  background: #FFFFFF;
+  color: #3B123F;
+  border: 1.5px solid #F47A20;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+  transition: left 0.06s linear;
+}
+
+.safar-time-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer;
+  position: relative;
+  z-index: 3;
+}
+
+.safar-time-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F47A20;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.28);
+  cursor: grab;
+}
+
+.safar-time-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F47A20;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.28);
+  cursor: grab;
+}
+
+.safar-time-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.trip-field-lbl {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+}
+
+.open-studio-link {
+  border: 1px solid rgba(244, 122, 32, 0.45);
+  background: rgba(244, 122, 32, 0.12);
+  color: #F47A20;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.open-studio-link:hover {
+  background: #F47A20;
+  color: #FFFFFF;
+}
+
+.horizon-schedule-pill {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.horizon-schedule-pill:hover {
+  background: rgba(244, 122, 32, 0.25);
+  border-color: #F47A20;
+}
+
+/* ==========================================================================
+   SAFAR TRIP SCHEDULE STUDIO MODAL (2-MONTH CALENDAR + DUAL TIME SLIDERS)
+   ========================================================================== */
+.safar-studio-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.safar-studio-modal {
+  width: 100%;
+  max-width: 780px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.32);
+  border: 1px solid #E2E8F0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+}
+
+.safar-studio-header {
+  background: linear-gradient(135deg, #27092B 0%, #3B123F 100%);
+  color: #FFFFFF;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.safar-studio-summary-chips {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.studio-chip {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 7px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.studio-chip.is-active-pick {
+  border-color: #F47A20;
+  background: rgba(244, 122, 32, 0.18);
+}
+
+.studio-chip-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #FDBA74;
+}
+
+.studio-chip strong {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.studio-duration-pill {
+  background: #F47A20;
+  color: #FFFFFF;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 5px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.safar-studio-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.studio-reset-btn {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #FDBA74;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.studio-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+}
+
+.studio-close-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.safar-studio-body {
+  padding: 18px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.safar-studio-cal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.studio-cal-hint {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475569;
+  background: #F1F5F9;
+  padding: 5px 14px;
+  border-radius: 999px;
+}
+
+.studio-month-nav {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #0F172A;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.studio-month-nav:hover {
+  border-color: #F47A20;
+  color: #F47A20;
+}
+
+.safar-studio-calendars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.studio-cal-month {
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #FAFAFA;
+}
+
+.studio-cal-month-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-bottom: 10px;
+}
+
+.studio-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748B;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #E2E8F0;
+  margin-bottom: 6px;
+}
+
+.studio-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 4px;
+}
+
+.studio-cal-day {
+  height: 36px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.12s ease;
+}
+
+.studio-cal-day.is-empty {
+  pointer-events: none;
+}
+
+.studio-cal-day.is-disabled {
+  color: #CBD5E1;
+  cursor: not-allowed;
+}
+
+.studio-cal-day:not(.is-disabled):not(.is-empty):hover {
+  background: #FFF7ED;
+  color: #F47A20;
+}
+
+.studio-cal-day.is-in-range {
+  background: #FFEDD5;
+  color: #9A3412;
+  border-radius: 0;
+}
+
+.studio-cal-day.is-start {
+  background: #F47A20 !important;
+  color: #FFFFFF !important;
+  border-radius: 9px 0 0 9px;
+  box-shadow: 0 2px 8px rgba(244, 122, 32, 0.35);
+}
+
+.studio-cal-day.is-end {
+  background: #3B123F !important;
+  color: #FFFFFF !important;
+  border-radius: 0 9px 9px 0;
+  box-shadow: 0 2px 8px rgba(59, 18, 63, 0.35);
+}
+
+.studio-cal-day.is-start.is-end {
+  border-radius: 9px;
+}
+
+/* Studio Time Slider Section (Distinctive Safar Plum/Saffron Design) */
+.safar-studio-time-section {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.studio-time-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.studio-time-head h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.studio-time-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #64748B;
+}
+
+.studio-quick-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.studio-preset-chip {
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #334155;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.studio-preset-chip:hover {
+  border-color: #F47A20;
+  color: #F47A20;
+  background: #FFF7ED;
+}
+
+.studio-time-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.studio-time-row-label {
+  display: flex;
+   flex-direction: column;
+  gap: 2px;
+}
+
+.studio-time-row-label strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.studio-time-row-label small {
+  font-size: 12px;
+  font-weight: 700;
+  color: #F47A20;
+}
+
+.studio-slider-rail-wrap {
+  padding-top: 14px;
+}
+
+.studio-slider-rail {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #F47A20 0%,
+    #F47A20 var(--slider-pct, 42%),
+    #E2E8F0 var(--slider-pct, 42%),
+    #E2E8F0 100%
+  );
+  display: flex;
+  align-items: center;
+}
+
+.studio-slider-rail.is-return-rail {
+  background: linear-gradient(
+    90deg,
+    #3B123F 0%,
+    #3B123F var(--slider-pct, 42%),
+    #E2E8F0 var(--slider-pct, 42%),
+    #E2E8F0 100%
+  );
+}
+
+.studio-floating-knob {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #FFFFFF;
+  color: #F47A20;
+  border: 2px solid #F47A20;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16);
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.studio-floating-knob.is-return-knob {
+  color: #3B123F;
+  border-color: #3B123F;
+}
+
+.studio-slider-rail input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 34px;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+  position: relative;
+  z-index: 3;
+  opacity: 0;
+}
+
+.studio-rail-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748B;
+}
+
+.safar-studio-footer {
+  padding: 14px 22px;
+  background: #F8FAFC;
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.studio-footer-meta {
+  font-size: 12.5px;
+  color: #334155;
+}
+
+@media (max-width: 760px) {
+  .safar-studio-calendars {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .studio-time-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .safar-studio-footer .button {
+    width: 100%;
+  }
 }
 
 /* 2. Compact Single-Line Trip Summary Bar on Explore Fleet (cars.html) */

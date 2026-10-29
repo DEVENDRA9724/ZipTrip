@@ -401,12 +401,22 @@ const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
 
 function parse24TimeParts(val = '10:00') {
   const [hh, mm] = String(val || '10:00').split(':').map(Number);
-  const h = Number.isFinite(hh) ? hh : 10;
+  const h = Number.isFinite(hh) ? Math.max(0, Math.min(23, hh)) : 10;
   const min = mm >= 15 && mm < 45 ? '30' : '00';
   const period = h >= 12 ? 'PM' : 'AM';
   const h12 = String(h % 12 === 0 ? 12 : h % 12).padStart(2, '0');
   const h24 = `${String(h).padStart(2, '0')}:${min}`;
-  return { h12, min, period, h24 };
+  const slotIndex = h * 2 + (min === '30' ? 1 : 0); // 0..47
+  const pct = Math.round((slotIndex / 47) * 1000) / 10;
+  const label12 = `${h12}:${min} ${period}`;
+  return { h12, min, period, h24, slotIndex, pct, label12 };
+}
+
+function slotIndexTo24Time(idx) {
+  const clamped = Math.max(0, Math.min(47, parseInt(idx, 10) || 0));
+  const h = Math.floor(clamped / 2);
+  const min = clamped % 2 === 1 ? '30' : '00';
+  return `${String(h).padStart(2, '0')}:${min}`;
 }
 
 function to24TimeStr(h12, min, period) {
@@ -425,45 +435,420 @@ function renderClockPicker(prefix, selected24 = '10:00', ariaPrefix = 'Time') {
   const hours = ['01','02','03','04','05','06','07','08','09','10','11','12'];
   const mins = ['00','30'];
   return `
-    <div class="clock-picker-group" data-clock-prefix="${esc(prefix)}">
-      <select id="${esc(prefix)}-hr" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Hour">
-        ${hours.map(hr => `<option value="${hr}" ${hr === p.h12 ? 'selected' : ''}>${hr}</option>`).join('')}
-      </select>
-      <span class="clock-colon">:</span>
-      <select id="${esc(prefix)}-min" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Minute">
-        ${mins.map(m => `<option value="${m}" ${m === p.min ? 'selected' : ''}>${m}</option>`).join('')}
-      </select>
-      <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
-        <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active' : ''}" data-period="AM">AM</button>
-        <button type="button" class="ampm-btn ${p.period === 'PM' ? 'active' : ''}" data-period="PM">PM</button>
+    <div class="safar-time-widget" data-clock-prefix="${esc(prefix)}">
+      <div class="clock-picker-group">
+        <span class="clock-live-badge" id="${esc(prefix)}-badge">${esc(p.label12)}</span>
+        <div class="clock-selects-wrap">
+          <select id="${esc(prefix)}-hr" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Hour">
+            ${hours.map(hr => `<option value="${hr}" ${hr === p.h12 ? 'selected' : ''}>${hr}</option>`).join('')}
+          </select>
+          <span class="clock-colon">:</span>
+          <select id="${esc(prefix)}-min" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Minute">
+            ${mins.map(m => `<option value="${m}" ${m === p.min ? 'selected' : ''}>${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
+          <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active is-active' : ''}" data-period="AM">AM</button>
+          <button type="button" class="ampm-btn ${p.period === 'PM' ? 'active is-active' : ''}" data-period="PM">PM</button>
+        </div>
+      </div>
+      <div class="safar-time-slider-wrap">
+        <div class="safar-time-slider-track" style="--slider-pct:${p.pct}%">
+          <div class="safar-time-floating-pill" id="${esc(prefix)}-pill" style="left:${p.pct}%">${esc(p.label12)}</div>
+          <input type="range" id="${esc(prefix)}-slider" class="safar-time-range" min="0" max="47" step="1" value="${p.slotIndex}" aria-label="${esc(ariaPrefix)} Slider (IST)">
+        </div>
+        <div class="safar-time-ticks" aria-hidden="true">
+          <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11:30 PM</span>
+        </div>
       </div>
       <input type="hidden" id="${esc(prefix)}" value="${esc(p.h24)}">
     </div>`;
 }
 
 function bindClockPickers(root = document) {
-  root.querySelectorAll('.clock-picker-group').forEach(group => {
+  root.querySelectorAll('.safar-time-widget').forEach(group => {
+    if (group.dataset.boundClock === '1') return;
+    group.dataset.boundClock = '1';
     const prefix = group.dataset.clockPrefix;
     const hrEl = group.querySelector(`#${prefix}-hr`);
     const minEl = group.querySelector(`#${prefix}-min`);
+    const sliderEl = group.querySelector(`#${prefix}-slider`);
+    const pillEl = group.querySelector(`#${prefix}-pill`);
+    const badgeEl = group.querySelector(`#${prefix}-badge`);
+    const trackEl = group.querySelector('.safar-time-slider-track');
     const hiddenEl = group.querySelector(`#${prefix}`);
     const btns = group.querySelectorAll('.ampm-btn');
     if (!hrEl || !minEl || !hiddenEl) return;
 
-    const syncClock = () => {
-      const activePeriod = group.querySelector('.ampm-btn.active')?.dataset?.period || 'AM';
-      hiddenEl.value = to24TimeStr(hrEl.value, minEl.value, activePeriod);
-      hiddenEl.dispatchEvent(new Event('input', { bubbles: true }));
-      hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+    const apply24Value = (val24, emitEvents = true) => {
+      const p = parse24TimeParts(val24);
+      hrEl.value = p.h12;
+      minEl.value = p.min;
+      btns.forEach(b => {
+        const isMatch = b.dataset.period === p.period;
+        b.classList.toggle('active', isMatch);
+        b.classList.toggle('is-active', isMatch);
+      });
+      if (sliderEl) sliderEl.value = String(p.slotIndex);
+      if (pillEl) {
+        pillEl.textContent = p.label12;
+        pillEl.style.left = `${p.pct}%`;
+      }
+      if (badgeEl) badgeEl.textContent = p.label12;
+      if (trackEl) trackEl.style.setProperty('--slider-pct', `${p.pct}%`);
+      hiddenEl.value = p.h24;
+      if (emitEvents) {
+        hiddenEl.dispatchEvent(new Event('input', { bubbles: true }));
+        hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     };
 
-    hrEl.addEventListener('change', syncClock);
-    minEl.addEventListener('change', syncClock);
+    group._setClockValue = apply24Value;
+
+    const syncFromParts = () => {
+      const activePeriod = group.querySelector('.ampm-btn.active, .ampm-btn.is-active')?.dataset?.period || 'AM';
+      apply24Value(to24TimeStr(hrEl.value, minEl.value, activePeriod), true);
+    };
+
+    hrEl.addEventListener('change', syncFromParts);
+    minEl.addEventListener('change', syncFromParts);
     btns.forEach(btn => {
       btn.addEventListener('click', () => {
-        btns.forEach(b => b.classList.toggle('active', b === btn));
-        syncClock();
+        btns.forEach(b => {
+          const isMatch = b === btn;
+          b.classList.toggle('active', isMatch);
+          b.classList.toggle('is-active', isMatch);
+        });
+        syncFromParts();
       });
+    });
+
+    if (sliderEl) {
+      sliderEl.addEventListener('input', () => {
+        apply24Value(slotIndexTo24Time(sliderEl.value), true);
+      });
+    }
+  });
+
+  // Also bind any date inputs or "Open Calendar & Time Studio" triggers inside this form/container
+  bindTripScheduleStudioTriggers(root);
+}
+
+function setClockPickerValue(prefix, val24, emitEvents = true) {
+  const widget = document.querySelector(`.safar-time-widget[data-clock-prefix="${prefix}"]`);
+  if (widget && typeof widget._setClockValue === 'function') {
+    widget._setClockValue(val24, emitEvents);
+  } else {
+    const hidden = document.getElementById(prefix);
+    if (hidden) hidden.value = val24;
+  }
+}
+
+function openTripScheduleModal({ startDateId, startTimeId, endDateId, endTimeId, onApply }) {
+  const sDateInput = document.getElementById(startDateId);
+  const sTimeInput = document.getElementById(startTimeId);
+  const eDateInput = document.getElementById(endDateId);
+  const eTimeInput = document.getElementById(endTimeId);
+  if (!sDateInput || !sTimeInput || !eDateInput || !eTimeInput) return;
+
+  const todayStr = toLocalDateStr(new Date());
+  const defaultStart = splitDateTimeParts(null, 1, '10:00');
+  const defaultEnd = splitDateTimeParts(null, 2, '10:00');
+
+  let selStartDate = sDateInput.value || defaultStart.date;
+  let selEndDate = eDateInput.value || defaultEnd.date;
+  let selStartTime = sTimeInput.value || '10:00';
+  let selEndTime = eTimeInput.value || '10:00';
+  let pickingStep = 'start'; // 'start' then 'end'
+
+  const initDateObj = new Date(`${selStartDate}T00:00:00`);
+  let viewYear = Number.isFinite(+initDateObj) ? initDateObj.getFullYear() : new Date().getFullYear();
+  let viewMonth = Number.isFinite(+initDateObj) ? initDateObj.getMonth() : new Date().getMonth();
+
+  let existing = document.getElementById('safar-schedule-studio-backdrop');
+  if (existing) existing.remove();
+
+  const backdrop = document.createElement('div');
+  backdrop.id = 'safar-schedule-studio-backdrop';
+  backdrop.className = 'safar-studio-backdrop';
+  backdrop.innerHTML = `
+    <div class="safar-studio-modal" role="dialog" aria-modal="true" aria-label="Select Trip Dates and Times">
+      <div class="safar-studio-header">
+        <div class="safar-studio-summary-chips">
+          <div class="studio-chip is-pickup" id="studio-chip-start">
+            <span class="studio-chip-tag">PICK-UP</span>
+            <strong id="studio-lbl-start"></strong>
+          </div>
+          <div class="studio-duration-pill" id="studio-duration-badge">1 Day</div>
+          <div class="studio-chip is-return" id="studio-chip-end">
+            <span class="studio-chip-tag">DROP-OFF</span>
+            <strong id="studio-lbl-end"></strong>
+          </div>
+        </div>
+        <div class="safar-studio-header-actions">
+          <button type="button" class="studio-reset-btn" id="studio-reset-btn">RESET</button>
+          <button type="button" class="studio-close-btn" id="studio-close-btn" aria-label="Close calendar">&times;</button>
+        </div>
+      </div>
+
+      <div class="safar-studio-body">
+        <div class="safar-studio-cal-bar">
+          <button type="button" class="studio-month-nav" id="studio-prev-month" aria-label="Previous month">&#8249;</button>
+          <span class="studio-cal-hint" id="studio-cal-hint">Tap pickup date, then tap drop-off date</span>
+          <button type="button" class="studio-month-nav" id="studio-next-month" aria-label="Next month">&#8250;</button>
+        </div>
+        <div class="safar-studio-calendars" id="studio-calendars-grid"></div>
+
+        <div class="safar-studio-time-section">
+          <div class="studio-time-head">
+            <div>
+              <h4>Select Start Time &amp; End Time</h4>
+              <p>All times are shown in IST (UTC+5:30) · 30-minute precision</p>
+            </div>
+            <div class="studio-quick-presets">
+              <button type="button" class="studio-preset-chip" data-preset="09:00">9:00 AM</button>
+              <button type="button" class="studio-preset-chip" data-preset="12:00">12:00 PM</button>
+              <button type="button" class="studio-preset-chip" data-preset="18:00">6:00 PM</button>
+              <button type="button" class="studio-preset-chip" data-preset="21:00">9:00 PM</button>
+            </div>
+          </div>
+
+          <div class="studio-time-row">
+            <div class="studio-time-row-label">
+              <span class="studio-dot is-pickup"></span>
+              <strong>Start Time</strong>
+              <small id="studio-start-ampm-lbl"></small>
+            </div>
+            <div class="studio-slider-rail-wrap">
+              <div class="studio-slider-rail" id="studio-start-rail">
+                <div class="studio-floating-knob" id="studio-start-knob">10:00 AM</div>
+                <input type="range" id="studio-start-range" min="0" max="47" step="1" value="20" aria-label="Start Time">
+              </div>
+              <div class="studio-rail-scale">
+                <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11:30 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="studio-time-row">
+            <div class="studio-time-row-label">
+              <span class="studio-dot is-return"></span>
+              <strong>End Time</strong>
+              <small id="studio-end-ampm-lbl"></small>
+            </div>
+            <div class="studio-slider-rail-wrap">
+              <div class="studio-slider-rail is-return-rail" id="studio-end-rail">
+                <div class="studio-floating-knob is-return-knob" id="studio-end-knob">10:00 AM</div>
+                <input type="range" id="studio-end-range" min="0" max="47" step="1" value="20" aria-label="End Time">
+              </div>
+              <div class="studio-rail-scale">
+                <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11:30 PM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="safar-studio-footer">
+        <div class="studio-footer-meta" id="studio-footer-meta"></div>
+        <button type="button" class="button btn-orange" id="studio-apply-btn">Confirm Dates &amp; Time</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+
+  const fmtSummaryDate = (dateStr, time24) => {
+    const d = combineDateTimeParts(dateStr, time24);
+    const p = parse24TimeParts(time24);
+    if (!Number.isFinite(+d)) return `${dateStr}, ${p.label12}`;
+    const day = d.getDate();
+    const mon = d.toLocaleDateString('en-IN', { month: 'short' });
+    const yr = String(d.getFullYear()).slice(-2);
+    return `${day} ${mon}'${yr}, ${p.label12}`;
+  };
+
+  const renderSingleMonth = (year, month) => {
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startWeekday = firstDay.getDay(); // 0 = Sun
+    const monthTitle = `${firstDay.toLocaleDateString('en-IN', { month: 'long' })} '${String(year).slice(-2)}`;
+    const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    let cells = '';
+    for (let i = 0; i < startWeekday; i++) {
+      cells += `<span class="studio-cal-day is-empty"></span>`;
+    }
+    const pad = n => String(n).padStart(2, '0');
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
+      const isPast = dateStr < todayStr;
+      const isStart = dateStr === selStartDate;
+      const isEnd = dateStr === selEndDate;
+      const isBetween = selStartDate && selEndDate && dateStr > selStartDate && dateStr < selEndDate;
+      const cls = [
+        'studio-cal-day',
+        isPast ? 'is-disabled' : '',
+        isStart ? 'is-start' : '',
+        isEnd ? 'is-end' : '',
+        isBetween ? 'is-in-range' : '',
+      ].filter(Boolean).join(' ');
+      cells += `<button type="button" class="${cls}" data-date="${dateStr}" ${isPast ? 'disabled' : ''}><span>${d}</span></button>`;
+    }
+    return `
+      <div class="studio-cal-month">
+        <div class="studio-cal-month-title">${monthTitle}</div>
+        <div class="studio-cal-weekdays">${weekdays.map(w => `<span>${w}</span>`).join('')}</div>
+        <div class="studio-cal-days">${cells}</div>
+      </div>
+    `;
+  };
+
+  const updateStudioUI = () => {
+    const sP = parse24TimeParts(selStartTime);
+    const eP = parse24TimeParts(selEndTime);
+
+    backdrop.querySelector('#studio-lbl-start').textContent = fmtSummaryDate(selStartDate, selStartTime);
+    backdrop.querySelector('#studio-lbl-end').textContent = fmtSummaryDate(selEndDate, selEndTime);
+    backdrop.querySelector('#studio-chip-start').classList.toggle('is-active-pick', pickingStep === 'start');
+    backdrop.querySelector('#studio-chip-end').classList.toggle('is-active-pick', pickingStep === 'end');
+
+    const sDateObj = combineDateTimeParts(selStartDate, selStartTime);
+    const eDateObj = combineDateTimeParts(selEndDate, selEndTime);
+    const diffHours = Math.max(1, Math.round((eDateObj - sDateObj) / 3600000));
+    const days = Math.floor(diffHours / 24);
+    const remHrs = diffHours % 24;
+    const durText = days > 0 ? `${days} Day${days > 1 ? 's' : ''}${remHrs > 0 ? ` · ${remHrs} hr` : ''}` : `${diffHours} Hours`;
+    backdrop.querySelector('#studio-duration-badge').textContent = durText;
+    backdrop.querySelector('#studio-footer-meta').innerHTML = `<strong>Total Trip Window:</strong> ${durText} (${fmtSummaryDate(selStartDate, selStartTime)} → ${fmtSummaryDate(selEndDate, selEndTime)})`;
+
+    // Render 2 consecutive months
+    const m2Date = new Date(viewYear, viewMonth + 1, 1);
+    const calGrid = backdrop.querySelector('#studio-calendars-grid');
+    calGrid.innerHTML = renderSingleMonth(viewYear, viewMonth) + renderSingleMonth(m2Date.getFullYear(), m2Date.getMonth());
+
+    calGrid.querySelectorAll('.studio-cal-day[data-date]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const picked = btn.dataset.date;
+        if (pickingStep === 'start' || picked < selStartDate) {
+          selStartDate = picked;
+          if (selEndDate <= selStartDate) {
+            const nextDay = new Date(`${selStartDate}T00:00:00`);
+            nextDay.setDate(nextDay.getDate() + 1);
+            selEndDate = toLocalDateStr(nextDay);
+          }
+          pickingStep = 'end';
+          backdrop.querySelector('#studio-cal-hint').textContent = 'Now select your drop-off date';
+        } else {
+          selEndDate = picked;
+          pickingStep = 'start';
+          backdrop.querySelector('#studio-cal-hint').textContent = 'Trip dates selected · Adjust times below if needed';
+        }
+        updateStudioUI();
+      });
+    });
+
+    // Update sliders
+    const sRange = backdrop.querySelector('#studio-start-range');
+    const eRange = backdrop.querySelector('#studio-end-range');
+    const sKnob = backdrop.querySelector('#studio-start-knob');
+    const eKnob = backdrop.querySelector('#studio-end-knob');
+    const sRail = backdrop.querySelector('#studio-start-rail');
+    const eRail = backdrop.querySelector('#studio-end-rail');
+
+    sRange.value = String(sP.slotIndex);
+    eRange.value = String(eP.slotIndex);
+    sKnob.textContent = sP.label12;
+    eKnob.textContent = eP.label12;
+    sKnob.style.left = `${sP.pct}%`;
+    eKnob.style.left = `${eP.pct}%`;
+    sRail.style.setProperty('--slider-pct', `${sP.pct}%`);
+    eRail.style.setProperty('--slider-pct', `${eP.pct}%`);
+    backdrop.querySelector('#studio-start-ampm-lbl').textContent = sP.label12;
+    backdrop.querySelector('#studio-end-ampm-lbl').textContent = eP.label12;
+  };
+
+  backdrop.querySelector('#studio-prev-month').addEventListener('click', () => {
+    const d = new Date(viewYear, viewMonth - 1, 1);
+    viewYear = d.getFullYear();
+    viewMonth = d.getMonth();
+    updateStudioUI();
+  });
+  backdrop.querySelector('#studio-next-month').addEventListener('click', () => {
+    const d = new Date(viewYear, viewMonth + 1, 1);
+    viewYear = d.getFullYear();
+    viewMonth = d.getMonth();
+    updateStudioUI();
+  });
+
+  backdrop.querySelector('#studio-start-range').addEventListener('input', e => {
+    selStartTime = slotIndexTo24Time(e.target.value);
+    updateStudioUI();
+  });
+  backdrop.querySelector('#studio-end-range').addEventListener('input', e => {
+    selEndTime = slotIndexTo24Time(e.target.value);
+    updateStudioUI();
+  });
+
+  backdrop.querySelectorAll('.studio-preset-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      selStartTime = chip.dataset.preset;
+      selEndTime = chip.dataset.preset;
+      updateStudioUI();
+    });
+  });
+
+  backdrop.querySelector('#studio-reset-btn').addEventListener('click', () => {
+    selStartDate = defaultStart.date;
+    selEndDate = defaultEnd.date;
+    selStartTime = '10:00';
+    selEndTime = '10:00';
+    pickingStep = 'start';
+    updateStudioUI();
+  });
+
+  const closeModal = () => backdrop.remove();
+  backdrop.querySelector('#studio-close-btn').addEventListener('click', closeModal);
+  backdrop.addEventListener('click', e => {
+    if (e.target === backdrop) closeModal();
+  });
+
+  backdrop.querySelector('#studio-apply-btn').addEventListener('click', () => {
+    sDateInput.value = selStartDate;
+    eDateInput.min = selStartDate;
+    eDateInput.value = selEndDate < selStartDate ? selStartDate : selEndDate;
+    setClockPickerValue(startTimeId, selStartTime, true);
+    setClockPickerValue(endTimeId, selEndTime, true);
+    sDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+    eDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+    if (typeof onApply === 'function') onApply({ selStartDate, selStartTime, selEndDate, selEndTime });
+    closeModal();
+  });
+
+  updateStudioUI();
+}
+
+function bindTripScheduleStudioTriggers(root = document) {
+  const configs = [
+    { formId: 'lp-search', startDateId: 'lp-start-date', startTimeId: 'lp-start-time', endDateId: 'lp-end-date', endTimeId: 'lp-end-time' },
+    { formId: 'availability-search', startDateId: 'cars-start-date', startTimeId: 'cars-start-time', endDateId: 'cars-end-date', endTimeId: 'cars-end-time' },
+    { formId: 'car-booking-form', startDateId: 'bp-start-date', startTimeId: 'bp-start-time', endDateId: 'bp-end-date', endTimeId: 'bp-end-time' },
+  ];
+
+  configs.forEach(cfg => {
+    const form = root.id === cfg.formId ? root : root.querySelector?.(`#${cfg.formId}`) || document.getElementById(cfg.formId);
+    if (!form || form.dataset.studioBound === '1') return;
+    form.dataset.studioBound = '1';
+
+    form.querySelectorAll('.trip-field-box').forEach(box => {
+      const dateInput = box.querySelector('input[type="date"]');
+      const lbl = box.querySelector('.trip-field-lbl');
+      if (dateInput && lbl && !lbl.querySelector('.open-studio-link')) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'open-studio-link';
+        btn.innerHTML = `${icon('calendar', 'ic-xs')} Interactive Calendar &amp; Time Slider`;
+        btn.addEventListener('click', () => openTripScheduleModal(cfg));
+        lbl.appendChild(btn);
+      }
     });
   });
 }
@@ -1788,6 +2173,19 @@ async function cars() {
     if (lbl) lbl.textContent = isCollapsed ? 'Modify City / Dates' : 'Close Schedule';
   });
 
+  $('.horizon-schedule-pill')?.addEventListener('click', () => {
+    openTripScheduleModal({
+      startDateId: 'cars-start-date',
+      startTimeId: 'cars-start-time',
+      endDateId: 'cars-end-date',
+      endTimeId: 'cars-end-time',
+      onApply: () => {
+        refreshScheduleSummaryPill();
+        $('#availability-search')?.requestSubmit();
+      },
+    });
+  });
+
   const refreshScheduleSummaryPill = () => {
     const lbl = $('#horizon-schedule-label');
     if (lbl) lbl.textContent = formatShortTripWindow(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
@@ -2467,15 +2865,8 @@ async function carDetails(id) {
     bpEndDate.value = bpEndParts.date;
     bpEndTime.value = bpEndParts.time;
 
-    const syncClockUiFromValue = (prefix, val24) => {
-      const p = parse24TimeParts(val24);
-      const hrEl = $(`#${prefix}-hr`, form), minEl = $(`#${prefix}-min`, form);
-      if (hrEl) hrEl.value = p.h12;
-      if (minEl) minEl.value = p.min;
-      $$(`[data-clock-prefix="${prefix}"] .ampm-btn`, form).forEach(b => b.classList.toggle('active', b.dataset.period === p.period));
-    };
-    syncClockUiFromValue('bp-start-time', bpStartParts.time);
-    syncClockUiFromValue('bp-end-time', bpEndParts.time);
+    setClockPickerValue('bp-start-time', bpStartParts.time, false);
+    setClockPickerValue('bp-end-time', bpEndParts.time, false);
 
     const syncHiddenSchedule = () => {
       if (bpStartDate.value && bpEndDate.value && bpEndDate.value < bpStartDate.value) {
