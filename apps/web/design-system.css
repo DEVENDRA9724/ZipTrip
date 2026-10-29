@@ -1346,13 +1346,12 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   line-height: 1.2;
 }
 .dt-split-row {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 8px;
-  align-items: center;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
   min-width: 0;
 }
-.trip-field-box select,
+.trip-field-box select:not(.safar-time-dropdown),
 .trip-field-box input[type="date"] {
   height: 40px !important;
   padding: 0 10px !important;
@@ -1514,10 +1513,11 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
     font-size: 12px !important;
   }
   .dt-split-row {
-    grid-template-columns: 1.15fr 1fr !important;
-    gap: 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
   }
-  .trip-field-box select,
+  .trip-field-box select:not(.safar-time-dropdown),
   .trip-field-box input[type="date"] {
     font-size: 13px !important;
     padding: 0 8px !important;
@@ -2099,55 +2099,99 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
    AND MOBILE-FIRST LOGIN / SIGN UP PAGE
    ========================================================================== */
 
-/* 1. Separate Date + Clock Picker (HH : MM + AM/PM Buttons) */
+/* 1. Separate Date + Time Control (Full-Width Time Dropdown, Stepper & AM/PM Buttons) */
 .dt-split-row {
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
 }
 
-.clock-picker-group {
+.safar-time-control-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   background: #FFFFFF;
   border: 1.5px solid #CBD5E1;
   border-radius: 10px;
-  padding: 4px 6px;
+  padding: 4px 8px;
   min-height: 44px;
   box-sizing: border-box;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.clock-part-sel {
-  appearance: auto;
-  border: 1px solid #E2E8F0 !important;
-  background: #F8FAFC !important;
+.safar-time-dropdown-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.safar-time-clock-icon {
+  color: var(--accent, #F47A20);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.safar-time-dropdown {
+  width: 100% !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  border: none !important;
+  background: transparent !important;
   color: #0F172A !important;
-  border-radius: 7px !important;
-  padding: 5px 6px !important;
-  font-size: 13.5px !important;
-  font-weight: 700 !important;
-  min-height: 32px !important;
-  width: auto !important;
-  flex: 1 1 52px;
-  text-align: center;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  padding: 0 20px 0 2px !important;
   cursor: pointer;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
 }
 
-.clock-part-sel:focus {
-  outline: none;
-  border-color: var(--accent, #F47A20) !important;
-  background: #FFFFFF !important;
+.safar-dropdown-arrow {
+  position: absolute;
+  right: 2px;
+  pointer-events: none;
+  font-size: 11px;
+  color: #64748B;
 }
 
-.clock-colon {
-  font-size: 15px;
+.safar-step-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.safar-step-btn {
+  border: none;
+  background: #FFFFFF;
+  color: #0F172A;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 16px;
   font-weight: 800;
-  color: #475569;
-  padding: 0 1px;
-  user-select: none;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  transition: all 0.15s ease;
+}
+
+.safar-step-btn:hover {
+  background: #FFF7ED;
+  color: var(--accent, #F47A20);
 }
 
 .ampm-toggle-group {
@@ -2165,7 +2209,7 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   border: none;
   background: transparent;
   color: #475569;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.03em;
   padding: 5px 9px;
@@ -2193,33 +2237,11 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   gap: 8px;
 }
 
-.clock-live-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #3B123F 0%, #581C5E 100%);
-  color: #FFFFFF;
-  font-size: 11.5px;
-  font-weight: 800;
-  padding: 5px 9px;
-  border-radius: 7px;
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-}
-
-.clock-selects-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-}
-
 .safar-time-slider-wrap {
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
   border-radius: 10px;
-  padding: 22px 14px 6px;
+  padding: 26px 14px 8px;
   position: relative;
 }
 
@@ -2240,15 +2262,15 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
 
 .safar-time-floating-pill {
   position: absolute;
-  top: -21px;
+  top: -23px;
   transform: translateX(-50%);
   background: #FFFFFF;
   color: #3B123F;
   border: 1.5px solid #F47A20;
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.14);
   border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 10.5px;
+  padding: 3px 10px;
+  font-size: 11.5px;
   font-weight: 800;
   white-space: nowrap;
   pointer-events: none;

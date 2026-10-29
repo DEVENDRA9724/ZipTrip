@@ -432,20 +432,19 @@ function renderTimeOptions(selected = '10:00') {
 
 function renderClockPicker(prefix, selected24 = '10:00', ariaPrefix = 'Time') {
   const p = parse24TimeParts(selected24);
-  const hours = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const mins = ['00','30'];
   return `
     <div class="safar-time-widget" data-clock-prefix="${esc(prefix)}">
-      <div class="clock-picker-group">
-        <span class="clock-live-badge" id="${esc(prefix)}-badge">${esc(p.label12)}</span>
-        <div class="clock-selects-wrap">
-          <select id="${esc(prefix)}-hr" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Hour">
-            ${hours.map(hr => `<option value="${hr}" ${hr === p.h12 ? 'selected' : ''}>${hr}</option>`).join('')}
+      <div class="safar-time-control-bar">
+        <div class="safar-time-dropdown-wrap">
+          <span class="safar-time-clock-icon">${icon('clock', 'ic-xs')}</span>
+          <select id="${esc(prefix)}-select" class="safar-time-dropdown" aria-label="${esc(ariaPrefix)}">
+            ${TIME_SLOTS.map(s => `<option value="${s.value}" ${s.value === p.h24 ? 'selected' : ''}>${s.label}</option>`).join('')}
           </select>
-          <span class="clock-colon">:</span>
-          <select id="${esc(prefix)}-min" class="clock-part-sel" aria-label="${esc(ariaPrefix)} Minute">
-            ${mins.map(m => `<option value="${m}" ${m === p.min ? 'selected' : ''}>${m}</option>`).join('')}
-          </select>
+          <span class="safar-dropdown-arrow" aria-hidden="true">▾</span>
+        </div>
+        <div class="safar-step-btns" role="group" aria-label="Step time by 30 minutes">
+          <button type="button" class="safar-step-btn" data-step="-1" aria-label="Minus 30 minutes" title="Minus 30 min">−</button>
+          <button type="button" class="safar-step-btn" data-step="1" aria-label="Plus 30 minutes" title="Plus 30 min">+</button>
         </div>
         <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
           <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active is-active' : ''}" data-period="AM">AM</button>
@@ -470,31 +469,28 @@ function bindClockPickers(root = document) {
     if (group.dataset.boundClock === '1') return;
     group.dataset.boundClock = '1';
     const prefix = group.dataset.clockPrefix;
-    const hrEl = group.querySelector(`#${prefix}-hr`);
-    const minEl = group.querySelector(`#${prefix}-min`);
+    const selectEl = group.querySelector(`#${prefix}-select`);
     const sliderEl = group.querySelector(`#${prefix}-slider`);
     const pillEl = group.querySelector(`#${prefix}-pill`);
-    const badgeEl = group.querySelector(`#${prefix}-badge`);
     const trackEl = group.querySelector('.safar-time-slider-track');
     const hiddenEl = group.querySelector(`#${prefix}`);
     const btns = group.querySelectorAll('.ampm-btn');
-    if (!hrEl || !minEl || !hiddenEl) return;
+    const stepBtns = group.querySelectorAll('.safar-step-btn');
+    if (!selectEl || !hiddenEl) return;
 
     const apply24Value = (val24, emitEvents = true) => {
       const p = parse24TimeParts(val24);
-      hrEl.value = p.h12;
-      minEl.value = p.min;
+      if (selectEl.value !== p.h24) selectEl.value = p.h24;
       btns.forEach(b => {
         const isMatch = b.dataset.period === p.period;
         b.classList.toggle('active', isMatch);
         b.classList.toggle('is-active', isMatch);
       });
-      if (sliderEl) sliderEl.value = String(p.slotIndex);
+      if (sliderEl && sliderEl.value !== String(p.slotIndex)) sliderEl.value = String(p.slotIndex);
       if (pillEl) {
         pillEl.textContent = p.label12;
         pillEl.style.left = `${p.pct}%`;
       }
-      if (badgeEl) badgeEl.textContent = p.label12;
       if (trackEl) trackEl.style.setProperty('--slider-pct', `${p.pct}%`);
       hiddenEl.value = p.h24;
       if (emitEvents) {
@@ -505,21 +501,29 @@ function bindClockPickers(root = document) {
 
     group._setClockValue = apply24Value;
 
-    const syncFromParts = () => {
-      const activePeriod = group.querySelector('.ampm-btn.active, .ampm-btn.is-active')?.dataset?.period || 'AM';
-      apply24Value(to24TimeStr(hrEl.value, minEl.value, activePeriod), true);
-    };
+    selectEl.addEventListener('change', () => {
+      apply24Value(selectEl.value, true);
+    });
 
-    hrEl.addEventListener('change', syncFromParts);
-    minEl.addEventListener('change', syncFromParts);
     btns.forEach(btn => {
       btn.addEventListener('click', () => {
-        btns.forEach(b => {
-          const isMatch = b === btn;
-          b.classList.toggle('active', isMatch);
-          b.classList.toggle('is-active', isMatch);
-        });
-        syncFromParts();
+        const targetPeriod = btn.dataset.period;
+        const curP = parse24TimeParts(hiddenEl.value || selectEl.value);
+        if (curP.period !== targetPeriod) {
+          let h24Num = (parseInt(curP.h12, 10) % 12);
+          if (targetPeriod === 'PM') h24Num += 12;
+          const new24 = `${String(h24Num).padStart(2, '0')}:${curP.min}`;
+          apply24Value(new24, true);
+        }
+      });
+    });
+
+    stepBtns.forEach(sBtn => {
+      sBtn.addEventListener('click', () => {
+        const delta = parseInt(sBtn.dataset.step, 10) || 1;
+        const curIdx = parseInt(sliderEl?.value || '20', 10);
+        const nextIdx = (curIdx + delta + 48) % 48;
+        apply24Value(slotIndexTo24Time(nextIdx), true);
       });
     });
 
@@ -838,18 +842,19 @@ function bindTripScheduleStudioTriggers(root = document) {
     if (!form || form.dataset.studioBound === '1') return;
     form.dataset.studioBound = '1';
 
-    form.querySelectorAll('.trip-field-box').forEach(box => {
-      const dateInput = box.querySelector('input[type="date"]');
-      const lbl = box.querySelector('.trip-field-lbl');
-      if (dateInput && lbl && !lbl.querySelector('.open-studio-link')) {
+    const firstBox = form.querySelector('.trip-field-box');
+    if (firstBox) {
+      const lbl = firstBox.querySelector('.trip-field-lbl');
+      if (lbl && !lbl.querySelector('.open-studio-link')) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'open-studio-link';
-        btn.innerHTML = `${icon('calendar', 'ic-xs')} Interactive Calendar &amp; Time Slider`;
+        btn.innerHTML = `${icon('calendar', 'ic-xs')} 2-Month View`;
+        btn.title = 'Open 2-Month Interactive Calendar & Time Slider';
         btn.addEventListener('click', () => openTripScheduleModal(cfg));
         lbl.appendChild(btn);
       }
-    });
+    }
   });
 }
 
