@@ -61,16 +61,16 @@ export declare class AccountService {
                 media: {
                     kind: string;
                 }[];
-                status: import("@prisma/client").$Enums.VehicleStatus;
                 id: string;
                 documents: {
                     status: string;
                     kind: string;
                     validUntil: Date | null;
                 }[];
-                year: number;
+                status: import("@prisma/client").$Enums.VehicleStatus;
                 make: string;
                 model: string;
+                year: number;
                 pricePerDay: import("@prisma/client-runtime-utils").Decimal;
                 locationCity: string;
                 registrationNumber: string | null;
@@ -99,10 +99,10 @@ export declare class AccountService {
                 stage: string;
             }[];
             settlement: {
-                status: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: string;
                 bookingId: string;
                 note: string | null;
                 depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -119,7 +119,6 @@ export declare class AccountService {
                 reviewedById: string | null;
             } | null;
         } & {
-            status: import("@prisma/client").$Enums.BookingStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -141,6 +140,7 @@ export declare class AccountService {
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -220,9 +220,9 @@ export declare class AccountService {
         upcoming: ({
             vehicle: {
                 id: string;
-                year: number;
                 make: string;
                 model: string;
+                year: number;
                 locationCity: string;
                 registrationNumber: string | null;
             };
@@ -230,7 +230,6 @@ export declare class AccountService {
                 status: string;
             } | null;
         } & {
-            status: import("@prisma/client").$Enums.BookingStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -252,6 +251,7 @@ export declare class AccountService {
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -275,10 +275,10 @@ export declare class AccountService {
                 status: string;
             } | null;
             settlement: {
-                status: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: string;
                 bookingId: string;
                 note: string | null;
                 depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -295,7 +295,6 @@ export declare class AccountService {
                 reviewedById: string | null;
             } | null;
         } & {
-            status: import("@prisma/client").$Enums.BookingStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -317,6 +316,7 @@ export declare class AccountService {
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;

@@ -11,18 +11,18 @@ export declare class VehiclesController {
             rating: number;
         }[];
     } & {
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -60,13 +60,13 @@ export declare class VehiclesController {
             kind: string;
         }[];
         documents: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             mediaId: string | null;
             source: string;
             vehicleId: string | null;
+            status: string;
             reviewNote: string | null;
             kind: string;
             userId: string;
@@ -78,18 +78,18 @@ export declare class VehiclesController {
             verifiedById: string | null;
             verifiedAt: Date | null;
         }[];
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -136,18 +136,18 @@ export declare class VehiclesController {
             comment: string | null;
         })[];
     } & {
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -200,11 +200,11 @@ export declare class VehiclesController {
             releasedAt: Date | null;
         }[];
         bookings: {
-            status: import("@prisma/client").$Enums.BookingStatus;
             id: string;
             bookingRef: string;
             startDate: Date;
             endDate: Date;
+            status: import("@prisma/client").$Enums.BookingStatus;
         }[];
     }>;
     hostAgreement(req: any, id: string): Promise<{
@@ -267,18 +267,18 @@ export declare class VehiclesController {
             id: string;
         };
     }, id: string): Promise<{
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -316,13 +316,13 @@ export declare class VehiclesController {
     }): Promise<{
         flaggedBookings: number;
         documents: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             mediaId: string | null;
             source: string;
             vehicleId: string | null;
+            status: string;
             reviewNote: string | null;
             kind: string;
             userId: string;
@@ -334,18 +334,18 @@ export declare class VehiclesController {
             verifiedById: string | null;
             verifiedAt: Date | null;
         }[];
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -374,18 +374,18 @@ export declare class VehiclesController {
         rejectedReason: string | null;
     } | {
         flaggedBookings: number;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -419,18 +419,18 @@ export declare class VehiclesController {
             kind: string;
         }[];
     } & {
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -459,18 +459,18 @@ export declare class VehiclesController {
         rejectedReason: string | null;
     }>;
     create(req: any, body: any): Promise<{
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;

@@ -97,7 +97,7 @@ export class S3ObjectStorage implements ObjectStorage {
       const name =
         (error as { name?: string; Code?: string })?.name ||
         (error as { Code?: string })?.Code;
-      if (name === 'NoSuchKey' || name === 'NotFound') return null;
+      if (name === 'NoSuchKey' || name === 'NotFound' || name === 'NoSuchBucket') return null;
       return unavailable('read', error);
     }
   }

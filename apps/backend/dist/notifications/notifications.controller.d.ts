@@ -3,13 +3,13 @@ export declare class NotificationsController {
     private readonly notifications;
     constructor(notifications: NotificationsService);
     list(req: any): import("@prisma/client").Prisma.PrismaPromise<{
-        message: string;
-        type: string;
         id: string;
         createdAt: Date;
         userId: string;
-        title: string;
         bookingId: string | null;
+        message: string;
+        type: string;
+        title: string;
         metadata: string | null;
         readAt: Date | null;
     }[]>;

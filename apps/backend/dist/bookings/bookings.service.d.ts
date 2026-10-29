@@ -8,18 +8,18 @@ export declare class BookingsService {
     constructor(prisma: PrismaService, notifications?: NotificationsService | undefined);
     create(customerId: string, data: any): Promise<{
         vehicle: {
-            status: import("@prisma/client").$Enums.VehicleStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             serviceType: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-            year: number;
-            make: string;
-            model: string;
+            status: import("@prisma/client").$Enums.VehicleStatus;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -51,7 +51,6 @@ export declare class BookingsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            bookingId: string;
             actualStartTime: Date | null;
             actualEndTime: Date | null;
             startOdometer: number | null;
@@ -66,21 +65,22 @@ export declare class BookingsService {
             extraHours: import("@prisma/client-runtime-utils").Decimal;
             penaltyCharges: import("@prisma/client-runtime-utils").Decimal;
             tripStatus: string;
+            bookingId: string;
         } | null;
         invoice: {
             number: string;
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
             snapshot: string;
         } | null;
         payment: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
@@ -89,7 +89,6 @@ export declare class BookingsService {
             paymentType: string;
         } | null;
     } & {
-        status: import("@prisma/client").$Enums.BookingStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -111,6 +110,7 @@ export declare class BookingsService {
         platformFee: import("@prisma/client-runtime-utils").Decimal;
         hostRevenue: import("@prisma/client-runtime-utils").Decimal;
         totalAmount: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.BookingStatus;
         expiresAt: Date | null;
         requestKey: string | null;
         dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -122,18 +122,18 @@ export declare class BookingsService {
     }>;
     pay(customerId: string, id: string, body: any): Promise<({
         vehicle: {
-            status: import("@prisma/client").$Enums.VehicleStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             serviceType: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-            year: number;
-            make: string;
-            model: string;
+            status: import("@prisma/client").$Enums.VehicleStatus;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -163,18 +163,18 @@ export declare class BookingsService {
         };
         invoice: {
             number: string;
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
             snapshot: string;
         } | null;
         payment: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
@@ -202,7 +202,6 @@ export declare class BookingsService {
             dlValidUntil: Date | null;
         };
     } & {
-        status: import("@prisma/client").$Enums.BookingStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -224,6 +223,7 @@ export declare class BookingsService {
         platformFee: import("@prisma/client-runtime-utils").Decimal;
         hostRevenue: import("@prisma/client-runtime-utils").Decimal;
         totalAmount: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.BookingStatus;
         expiresAt: Date | null;
         requestKey: string | null;
         dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -234,18 +234,18 @@ export declare class BookingsService {
         agreementAcceptedAt: Date | null;
     }) | ({
         vehicle: {
-            status: import("@prisma/client").$Enums.VehicleStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             serviceType: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-            year: number;
-            make: string;
-            model: string;
+            status: import("@prisma/client").$Enums.VehicleStatus;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -277,7 +277,6 @@ export declare class BookingsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            bookingId: string;
             actualStartTime: Date | null;
             actualEndTime: Date | null;
             startOdometer: number | null;
@@ -292,21 +291,22 @@ export declare class BookingsService {
             extraHours: import("@prisma/client-runtime-utils").Decimal;
             penaltyCharges: import("@prisma/client-runtime-utils").Decimal;
             tripStatus: string;
+            bookingId: string;
         } | null;
         invoice: {
             number: string;
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
             snapshot: string;
         } | null;
         payment: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
@@ -328,7 +328,6 @@ export declare class BookingsService {
             damageNote: string | null;
         }[];
     } & {
-        status: import("@prisma/client").$Enums.BookingStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -350,6 +349,7 @@ export declare class BookingsService {
         platformFee: import("@prisma/client-runtime-utils").Decimal;
         hostRevenue: import("@prisma/client-runtime-utils").Decimal;
         totalAmount: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.BookingStatus;
         expiresAt: Date | null;
         requestKey: string | null;
         dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -378,18 +378,18 @@ export declare class BookingsService {
                 isActive: boolean;
             } | null;
         } & {
-            status: import("@prisma/client").$Enums.VehicleStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             serviceType: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-            year: number;
-            make: string;
-            model: string;
+            status: import("@prisma/client").$Enums.VehicleStatus;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -421,7 +421,6 @@ export declare class BookingsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            bookingId: string;
             actualStartTime: Date | null;
             actualEndTime: Date | null;
             startOdometer: number | null;
@@ -436,21 +435,22 @@ export declare class BookingsService {
             extraHours: import("@prisma/client-runtime-utils").Decimal;
             penaltyCharges: import("@prisma/client-runtime-utils").Decimal;
             tripStatus: string;
+            bookingId: string;
         } | null;
         invoice: {
             number: string;
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
             snapshot: string;
         } | null;
         payment: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
@@ -472,10 +472,10 @@ export declare class BookingsService {
             damageNote: string | null;
         }[];
         settlement: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             bookingId: string;
             note: string | null;
             depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -492,7 +492,6 @@ export declare class BookingsService {
             reviewedById: string | null;
         } | null;
     } & {
-        status: import("@prisma/client").$Enums.BookingStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -514,6 +513,7 @@ export declare class BookingsService {
         platformFee: import("@prisma/client-runtime-utils").Decimal;
         hostRevenue: import("@prisma/client-runtime-utils").Decimal;
         totalAmount: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.BookingStatus;
         expiresAt: Date | null;
         requestKey: string | null;
         dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -536,18 +536,18 @@ export declare class BookingsService {
                 isActive: boolean;
             } | null;
         } & {
-            status: import("@prisma/client").$Enums.VehicleStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             serviceType: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-            year: number;
-            make: string;
-            model: string;
+            status: import("@prisma/client").$Enums.VehicleStatus;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -579,7 +579,6 @@ export declare class BookingsService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            bookingId: string;
             actualStartTime: Date | null;
             actualEndTime: Date | null;
             startOdometer: number | null;
@@ -594,21 +593,22 @@ export declare class BookingsService {
             extraHours: import("@prisma/client-runtime-utils").Decimal;
             penaltyCharges: import("@prisma/client-runtime-utils").Decimal;
             tripStatus: string;
+            bookingId: string;
         } | null;
         invoice: {
             number: string;
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
             snapshot: string;
         } | null;
         payment: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             bookingId: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             currency: string;
@@ -662,10 +662,10 @@ export declare class BookingsService {
             damageNote: string | null;
         }[];
         settlement: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             bookingId: string;
             note: string | null;
             depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -682,7 +682,6 @@ export declare class BookingsService {
             reviewedById: string | null;
         } | null;
     } & {
-        status: import("@prisma/client").$Enums.BookingStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -704,6 +703,7 @@ export declare class BookingsService {
         platformFee: import("@prisma/client-runtime-utils").Decimal;
         hostRevenue: import("@prisma/client-runtime-utils").Decimal;
         totalAmount: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.BookingStatus;
         expiresAt: Date | null;
         requestKey: string | null;
         dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -869,18 +869,18 @@ export declare class BookingsService {
                     address: string;
                     isActive: boolean;
                 } | null;
-                status: import("@prisma/client").$Enums.VehicleStatus;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 serviceType: string;
                 securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-                year: number;
-                make: string;
-                model: string;
+                status: import("@prisma/client").$Enums.VehicleStatus;
                 hostId: string;
                 modelSpecId: string | null;
                 currentHubId: string | null;
+                make: string;
+                model: string;
+                year: number;
                 category: string;
                 transmission: string;
                 fuelType: string;

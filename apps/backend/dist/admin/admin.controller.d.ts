@@ -28,13 +28,13 @@ export declare class AdminController {
                 kind: string;
             }[];
             documents: {
-                status: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 mediaId: string | null;
                 source: string;
                 vehicleId: string | null;
+                status: string;
                 reviewNote: string | null;
                 kind: string;
                 userId: string;
@@ -51,18 +51,18 @@ export declare class AdminController {
                 firstName: string;
                 lastName: string;
             };
-            status: import("@prisma/client").$Enums.VehicleStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             serviceType: string;
             securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-            year: number;
-            make: string;
-            model: string;
+            status: import("@prisma/client").$Enums.VehicleStatus;
             hostId: string;
             modelSpecId: string | null;
             currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
             category: string;
             transmission: string;
             fuelType: string;
@@ -92,18 +92,18 @@ export declare class AdminController {
         }[];
         bookings: ({
             vehicle: {
-                status: import("@prisma/client").$Enums.VehicleStatus;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 serviceType: string;
                 securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-                year: number;
-                make: string;
-                model: string;
+                status: import("@prisma/client").$Enums.VehicleStatus;
                 hostId: string;
                 modelSpecId: string | null;
                 currentHubId: string | null;
+                make: string;
+                model: string;
+                year: number;
                 category: string;
                 transmission: string;
                 fuelType: string;
@@ -133,18 +133,18 @@ export declare class AdminController {
             };
             invoice: {
                 number: string;
-                status: string;
                 id: string;
                 createdAt: Date;
+                status: string;
                 bookingId: string;
                 amount: import("@prisma/client-runtime-utils").Decimal;
                 currency: string;
                 snapshot: string;
             } | null;
             payment: {
-                status: string;
                 id: string;
                 createdAt: Date;
+                status: string;
                 bookingId: string;
                 amount: import("@prisma/client-runtime-utils").Decimal;
                 currency: string;
@@ -158,7 +158,6 @@ export declare class AdminController {
                 lastName: string;
             };
         } & {
-            status: import("@prisma/client").$Enums.BookingStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -180,6 +179,7 @@ export declare class AdminController {
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -196,13 +196,13 @@ export declare class AdminController {
                 lastName: string;
             };
         } & {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             mediaId: string | null;
             source: string;
             vehicleId: string | null;
+            status: string;
             reviewNote: string | null;
             kind: string;
             userId: string;
@@ -215,12 +215,12 @@ export declare class AdminController {
             verifiedAt: Date | null;
         })[];
         audit: {
-            detail: string;
             id: string;
             createdAt: Date;
             actorId: string;
             action: string;
             targetId: string;
+            detail: string;
         }[];
         reviewFlags: {
             bookingId: string;
@@ -287,13 +287,13 @@ export declare class AdminController {
         files: any;
     }>;
     review(req: any, id: string, body: any): Promise<{
-        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         mediaId: string | null;
         source: string;
         vehicleId: string | null;
+        status: string;
         reviewNote: string | null;
         kind: string;
         userId: string;
@@ -306,18 +306,18 @@ export declare class AdminController {
         verifiedAt: Date | null;
     }>;
     createVehicle(req: any, body: any): Promise<{
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -355,18 +355,18 @@ export declare class AdminController {
         status?: unknown;
         note?: unknown;
     }): Promise<{
-        status: import("@prisma/client").$Enums.VehicleStatus;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         serviceType: string;
         securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        year: number;
-        make: string;
-        model: string;
+        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
+        make: string;
+        model: string;
+        year: number;
         category: string;
         transmission: string;
         fuelType: string;
@@ -396,9 +396,9 @@ export declare class AdminController {
     } | null>;
     payment(req: any, id: string, body: any): Promise<{
         number: string;
-        status: string;
         id: string;
         createdAt: Date;
+        status: string;
         bookingId: string;
         amount: import("@prisma/client-runtime-utils").Decimal;
         currency: string;
@@ -425,10 +425,10 @@ export declare class AdminController {
         estimatedDepositRelease: number;
         damageReviewRequired: boolean;
         settlement: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             bookingId: string;
             note: string | null;
             depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -448,8 +448,8 @@ export declare class AdminController {
     }>;
     vehicleHistory(req: any, id: string, query?: any): Promise<{
         vehicle: {
-            status: import("@prisma/client").$Enums.VehicleStatus;
             id: string;
+            status: import("@prisma/client").$Enums.VehicleStatus;
             make: string;
             model: string;
             fuelLevelPercent: number;
@@ -457,33 +457,33 @@ export declare class AdminController {
             odometer: number;
         };
         events: {
-            detail: string;
             id: string;
             createdAt: Date;
             actorId: string;
             action: string;
             targetId: string;
+            detail: string;
         }[];
         bookings: {
-            status: import("@prisma/client").$Enums.BookingStatus;
             id: string;
             bookingRef: string;
             startDate: Date;
             endDate: Date;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
             customer: {
                 firstName: string;
                 lastName: string;
             };
         }[];
         documents: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             mediaId: string | null;
             source: string;
             vehicleId: string | null;
+            status: string;
             reviewNote: string | null;
             kind: string;
             userId: string;
@@ -497,10 +497,10 @@ export declare class AdminController {
         }[];
     }>;
     settleBooking(req: any, id: string, body: any): Promise<{
-        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         bookingId: string;
         note: string | null;
         depositHeld: import("@prisma/client-runtime-utils").Decimal;
@@ -532,18 +532,18 @@ export declare class AdminController {
     swapCandidates(req: any, id: string): Promise<{
         currentBooking: {
             vehicle: {
-                status: import("@prisma/client").$Enums.VehicleStatus;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
                 serviceType: string;
                 securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-                year: number;
-                make: string;
-                model: string;
+                status: import("@prisma/client").$Enums.VehicleStatus;
                 hostId: string;
                 modelSpecId: string | null;
                 currentHubId: string | null;
+                make: string;
+                model: string;
+                year: number;
                 category: string;
                 transmission: string;
                 fuelType: string;
@@ -572,7 +572,6 @@ export declare class AdminController {
                 rejectedReason: string | null;
             };
         } & {
-            status: import("@prisma/client").$Enums.BookingStatus;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -594,6 +593,7 @@ export declare class AdminController {
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -634,13 +634,13 @@ export declare class AdminController {
         message?: undefined;
     }>;
     quickReviewDocument(req: any, id: string, body: any): Promise<{
-        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         mediaId: string | null;
         source: string;
         vehicleId: string | null;
+        status: string;
         reviewNote: string | null;
         kind: string;
         userId: string;

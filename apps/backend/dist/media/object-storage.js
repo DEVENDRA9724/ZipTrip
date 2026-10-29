@@ -71,7 +71,7 @@ class S3ObjectStorage {
         catch (error) {
             const name = error?.name ||
                 error?.Code;
-            if (name === 'NoSuchKey' || name === 'NotFound')
+            if (name === 'NoSuchKey' || name === 'NotFound' || name === 'NoSuchBucket')
                 return null;
             return unavailable('read', error);
         }

@@ -30,10 +30,10 @@ export declare class PayoutsService {
         role: string;
     }): Promise<{
         verificationCurrent: boolean;
-        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         userId: string;
         reviewedById: string | null;
         revision: number;
@@ -46,9 +46,9 @@ export declare class PayoutsService {
         changedAt: Date | null;
         reviewedAt: Date | null;
         payouts: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             note: string | null;
             accountId: string;
@@ -77,9 +77,9 @@ export declare class PayoutsService {
         id: string;
         role: string;
     }): Promise<{
-        status: string;
         id: string;
         createdAt: Date;
+        status: string;
         amount: import("@prisma/client-runtime-utils").Decimal;
         note: string | null;
         accountId: string;
@@ -106,10 +106,10 @@ export declare class PayoutsService {
             lastName: string;
             role: import("@prisma/client").$Enums.Role;
         };
-        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         userId: string;
         reviewedById: string | null;
         revision: number;
@@ -122,9 +122,9 @@ export declare class PayoutsService {
         changedAt: Date | null;
         reviewedAt: Date | null;
         payouts: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             note: string | null;
             accountId: string;
@@ -151,9 +151,9 @@ export declare class PayoutsService {
         id: string;
         role: string;
     }, id: string, body: any): Promise<{
-        status: string;
         id: string;
         createdAt: Date;
+        status: string;
         amount: import("@prisma/client-runtime-utils").Decimal;
         note: string | null;
         accountId: string;
@@ -180,9 +180,9 @@ export declare class PayoutsService {
         role: string;
     }, id: string, body: any): Promise<{
         cancelled: {
-            status: string;
             id: string;
             createdAt: Date;
+            status: string;
             amount: import("@prisma/client-runtime-utils").Decimal;
             note: string | null;
             accountId: string;

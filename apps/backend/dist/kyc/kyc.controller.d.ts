@@ -12,13 +12,13 @@ export declare class KycController {
         configured: boolean;
         environment: string;
         documents: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             mediaId: string | null;
             source: string;
             vehicleId: string | null;
+            status: string;
             reviewNote: string | null;
             kind: string;
             userId: string;
@@ -31,8 +31,8 @@ export declare class KycController {
             verifiedAt: Date | null;
         }[];
         sessions: {
-            status: string;
             id: string;
+            status: string;
             expiresAt: Date;
             environment: string;
             consentAt: Date;
@@ -69,13 +69,13 @@ export declare class KycController {
         } | null;
     }>;
     document(req: any, body: any): Promise<{
-        status: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
         mediaId: string | null;
         source: string;
         vehicleId: string | null;
+        status: string;
         reviewNote: string | null;
         kind: string;
         userId: string;
@@ -133,13 +133,13 @@ export declare class KycController {
         configured: boolean;
         environment: string;
         documents: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             mediaId: string | null;
             source: string;
             vehicleId: string | null;
+            status: string;
             reviewNote: string | null;
             kind: string;
             userId: string;
@@ -152,8 +152,8 @@ export declare class KycController {
             verifiedAt: Date | null;
         }[];
         sessions: {
-            status: string;
             id: string;
+            status: string;
             expiresAt: Date;
             environment: string;
             consentAt: Date;
@@ -197,13 +197,13 @@ export declare class KycController {
         configured: boolean;
         environment: string;
         documents: {
-            status: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
             mediaId: string | null;
             source: string;
             vehicleId: string | null;
+            status: string;
             reviewNote: string | null;
             kind: string;
             userId: string;
@@ -216,8 +216,8 @@ export declare class KycController {
             verifiedAt: Date | null;
         }[];
         sessions: {
-            status: string;
             id: string;
+            status: string;
             expiresAt: Date;
             environment: string;
             consentAt: Date;

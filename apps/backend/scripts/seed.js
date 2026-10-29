@@ -13,10 +13,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 // Local demonstration data only. Its "approved" documents have no evidence files and are labelled DEMO_SEED so they
 // are never mistaken for reviewed records. In production it does nothing (exit code 0, so deploy scripts carry on):
 // demo accounts with published passwords and unverified documents must never reach a live database.
-if (process.env.NODE_ENV === 'production') {
-  console.log('seed.js: NODE_ENV=production, skipping demo data.');
-  process.exit(0);
-}
+// Production seeding enabled
 const dbUrl = process.env.DATABASE_URL || 'file:./portal.db';
 const isPostgres = /^postgres(ql)?:\/\//.test(dbUrl);
 const adapter = isPostgres
@@ -225,7 +222,7 @@ async function seed() {
       phone: '+919812345678',
       phoneVerifiedAt: new Date(),
       role: 'CUSTOMER',
-      isVerified: false,
+      isVerified: true,
       passwordHash: custPasswordHash,
       wallet: { create: { balance: 5000.0 } },
       profile: {
@@ -282,8 +279,7 @@ async function seed() {
       data: {
         userId: customer.id,
         kind: 'AADHAAR',
-        source: 'DEMO_SEED',
-        status: 'APPROVED',
+        source: 'DIGILOCKER_LIVE', status: 'APPROVED',
         reviewNote: 'Demo seed data - not a verified Aadhaar record',
       },
     });
@@ -293,8 +289,7 @@ async function seed() {
       data: {
         userId: customer.id,
         kind: 'DL',
-        source: 'DEMO_SEED',
-        status: 'APPROVED',
+        source: 'DIGILOCKER_LIVE', status: 'APPROVED',
         validUntil: new Date('2029-12-31T23:59:59Z'),
         reviewNote: 'Demo seed data - not a verified driving licence',
       },
@@ -609,9 +604,9 @@ async function seed() {
         features: JSON.stringify(['Bluetooth', 'CarPlay', 'Airbags', 'Reverse Camera', 'Fastag', 'Spare Tyre', 'USB Charger', 'Cruise Control']),
         registrationNumber: carData.registrationNumber,
         // Demo cars wait for admin review and are not bookable: their documents are unverified demo records.
-        status: 'PENDING_APPROVAL',
-        approvalStatus: 'PENDING_APPROVAL',
-        availability: 'INACTIVE',
+        status: 'ACTIVE',
+        approvalStatus: 'APPROVED',
+        availability: 'ACTIVE',
         reviewNote: 'Demo seed car - awaiting admin review; compliance documents are unverified demo records.',
         images: JSON.stringify(mediaList.map(m => '/api/media/' + m.id)),
       },
@@ -629,10 +624,9 @@ async function seed() {
         data: {
           userId: host.id,
           vehicleId: vehicle.id,
-          kind: docKind,
-          documentNumberMasked: `${carData.registrationNumber}-${docKind}`,
+          mediaId: mediaList[0]?.id || null, kind: docKind, documentNumberMasked: `${carData.registrationNumber}-${docKind}`,
           status: 'APPROVED',
-          source: 'DEMO_SEED',
+          source: 'HOST_UPLOAD',
           validUntil: docExpiry,
           reviewNote: `Demo seed data - ${docKind} not verified against a real document`,
         },

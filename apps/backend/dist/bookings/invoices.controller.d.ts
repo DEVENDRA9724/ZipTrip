@@ -6,9 +6,9 @@ export declare class InvoicesController {
         bookingRef: string;
         details: any;
         number: string;
-        status: string;
         id: string;
         createdAt: Date;
+        status: string;
         bookingId: string;
         amount: import("@prisma/client-runtime-utils").Decimal;
         currency: string;
