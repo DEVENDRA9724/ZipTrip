@@ -30,7 +30,11 @@ export class VehiclesService {
     if (query.transmission) where.transmission = text(query.transmission, 'Transmission');
     if (query.seats) where.seats = number(query.seats, 'Seats', 2, 12, true);
     if (query.maxPrice) where.pricePerDay = { lte: number(query.maxPrice, 'Price', 1, 1000000) };
-    return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { select: { rating: true } } }, orderBy: { createdAt: 'asc' }, take: 100 });
+    if (query.dealer) {
+      const dealerTerm = text(query.dealer, 'Dealer');
+      where.host = { OR: [{ id: { contains: dealerTerm } }, { firstName: { contains: dealerTerm } }, { lastName: { contains: dealerTerm } }, { email: { contains: dealerTerm } }] };
+    }
+    return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { select: { rating: true } }, host: { select: { id: true, firstName: true, lastName: true, role: true } } }, orderBy: { createdAt: 'asc' }, take: 100 });
   }
   async findOne(id: string) {
     const vehicle = await this.prisma.vehicle.findFirst({

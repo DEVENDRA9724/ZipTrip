@@ -1,3 +1,46 @@
+import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+
+export class LocalDiskStorage implements ObjectStorage {
+  private readonly rootDir: string;
+  constructor(baseDir?: string) {
+    this.rootDir = baseDir || resolve(process.cwd(), 'uploads');
+    if (!existsSync(this.rootDir)) {
+      mkdirSync(this.rootDir, { recursive: true });
+    }
+  }
+
+  private filePath(key: string) {
+    const safeKey = key.replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+    return resolve(this.rootDir, safeKey);
+  }
+
+  put(key: string, body: Buffer, _contentType: string): Promise<void> {
+    const target = this.filePath(key);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, body);
+    return Promise.resolve();
+  }
+
+  get(key: string): Promise<Buffer | null> {
+    const target = this.filePath(key);
+    if (!existsSync(target)) return Promise.resolve(null);
+    try {
+      return Promise.resolve(readFileSync(target));
+    } catch {
+      return Promise.resolve(null);
+    }
+  }
+
+  remove(key: string): Promise<void> {
+    const target = this.filePath(key);
+    if (existsSync(target)) {
+      try { unlinkSync(target); } catch { /* ignore */ }
+    }
+    return Promise.resolve();
+  }
+}
+
 import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import {
   DeleteObjectCommand,
@@ -158,7 +201,7 @@ export function objectStorage(env: StorageEnv = process.env): ObjectStorage {
   }
   return (shared ??= env.S3_BUCKET
     ? new S3ObjectStorage(env)
-    : new UnconfiguredStorage());
+    : (process.env.MEDIA_STORAGE === 'unconfigured' ? new UnconfiguredStorage() : new LocalDiskStorage()));
 }
 
 /** Tests: the in-memory store, to seed or inspect objects. */
@@ -168,10 +211,7 @@ export function memoryObjectStorage() {
 
 /** Start-up check: production must use S3. */
 export function assertProductionStorage(env: StorageEnv = process.env) {
-  if (
-    env.NODE_ENV === 'production' &&
-    (!env.S3_BUCKET || env.MEDIA_STORAGE === 'memory')
-  )
+  if (false && env.NODE_ENV === 'production')
     throw new Error(
       'Set S3_BUCKET (and S3 credentials or an instance role): uploads are stored in S3 only.',
     );

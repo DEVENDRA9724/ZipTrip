@@ -372,11 +372,12 @@ const setCity = c => localStorage.setItem('safar-city', c || '');
 const initials = u => ((u?.firstName || '?')[0] + (u?.lastName || '')[0] || '').toUpperCase();
 
 const REQUIRED_CATEGORIES = [
-  { id: 'Hatchback', label: 'Hatchback' },
+  { id: 'SUV', label: 'SUV & 4×4' },
   { id: 'Sedan', label: 'Sedan' },
-  { id: 'SUV', label: 'SUV' },
-  { id: 'MUV', label: 'MUV / 7-Seater' },
+  { id: 'Hatchback', label: 'Hatchback' },
+  { id: 'MUV', label: '7-Seater MUV' },
   { id: 'Luxury', label: 'Luxury' },
+  { id: 'Compact SUV', label: 'Compact SUV' },
 ];
 
 function normalizeCarCategory(car) {
@@ -432,28 +433,29 @@ function renderTimeOptions(selected = '10:00') {
 
 function renderClockPicker(prefix, selected24 = '10:00', ariaPrefix = 'Time') {
   const p = parse24TimeParts(selected24);
+  const hours = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const mins = ['00','30'];
   return `
     <div class="safar-time-widget" data-clock-prefix="${esc(prefix)}">
       <div class="safar-time-control-bar">
-        <div class="safar-time-dropdown-wrap">
-          <span class="safar-time-clock-icon">${icon('clock', 'ic-xs')}</span>
-          <select id="${esc(prefix)}-select" class="safar-time-dropdown" aria-label="${esc(ariaPrefix)}">
-            ${TIME_SLOTS.map(s => `<option value="${s.value}" ${s.value === p.h24 ? 'selected' : ''}>${s.label}</option>`).join('')}
-          </select>
-          <span class="safar-dropdown-arrow" aria-hidden="true">▾</span>
+        <div class="safar-time-boxes">
+          <div class="time-box-part">
+            <span class="time-box-sub">HR</span>
+            <select id="${esc(prefix)}-hr" class="time-part-select" aria-label="${esc(ariaPrefix)} Hour">
+              ${hours.map(hr => `<option value="${hr}" ${hr === p.h12 ? 'selected' : ''}>${hr}</option>`).join('')}
+            </select>
+          </div>
+          <span class="time-sep">:</span>
+          <div class="time-box-part">
+            <span class="time-box-sub">MIN</span>
+            <select id="${esc(prefix)}-min" class="time-part-select" aria-label="${esc(ariaPrefix)} Minute">
+              ${mins.map(m => `<option value="${m}" ${m === p.min ? 'selected' : ''}>${m}</option>`).join('')}
+            </select>
+          </div>
         </div>
         <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
           <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active is-active' : ''}" data-period="AM">AM</button>
           <button type="button" class="ampm-btn ${p.period === 'PM' ? 'active is-active' : ''}" data-period="PM">PM</button>
-        </div>
-      </div>
-      <div class="safar-time-slider-wrap">
-        <div class="safar-time-slider-track" style="--slider-pct:${p.pct}%">
-          <div class="safar-time-floating-pill" id="${esc(prefix)}-pill" style="left:${p.pct}%">${esc(p.label12)}</div>
-          <input type="range" id="${esc(prefix)}-slider" class="safar-time-range" min="0" max="47" step="1" value="${p.slotIndex}" aria-label="${esc(ariaPrefix)} Slider (IST)">
-        </div>
-        <div class="safar-time-ticks" aria-hidden="true">
-          <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11:30 PM</span>
         </div>
       </div>
       <input type="hidden" id="${esc(prefix)}" value="${esc(p.h24)}">
@@ -465,28 +467,21 @@ function bindClockPickers(root = document) {
     if (group.dataset.boundClock === '1') return;
     group.dataset.boundClock = '1';
     const prefix = group.dataset.clockPrefix;
-    const selectEl = group.querySelector(`#${prefix}-select`);
-    const sliderEl = group.querySelector(`#${prefix}-slider`);
-    const pillEl = group.querySelector(`#${prefix}-pill`);
-    const trackEl = group.querySelector('.safar-time-slider-track');
+    const hrEl = group.querySelector(`#${prefix}-hr`);
+    const minEl = group.querySelector(`#${prefix}-min`);
     const hiddenEl = group.querySelector(`#${prefix}`);
     const btns = group.querySelectorAll('.ampm-btn');
-    if (!selectEl || !hiddenEl) return;
+    if (!hrEl || !minEl || !hiddenEl) return;
 
     const apply24Value = (val24, emitEvents = true) => {
       const p = parse24TimeParts(val24);
-      if (selectEl.value !== p.h24) selectEl.value = p.h24;
+      if (hrEl.value !== p.h12) hrEl.value = p.h12;
+      if (minEl.value !== p.min) minEl.value = p.min;
       btns.forEach(b => {
         const isMatch = b.dataset.period === p.period;
         b.classList.toggle('active', isMatch);
         b.classList.toggle('is-active', isMatch);
       });
-      if (sliderEl && sliderEl.value !== String(p.slotIndex)) sliderEl.value = String(p.slotIndex);
-      if (pillEl) {
-        pillEl.textContent = p.label12;
-        pillEl.style.left = `${p.pct}%`;
-      }
-      if (trackEl) trackEl.style.setProperty('--slider-pct', `${p.pct}%`);
       hiddenEl.value = p.h24;
       if (emitEvents) {
         hiddenEl.dispatchEvent(new Event('input', { bubbles: true }));
@@ -496,31 +491,25 @@ function bindClockPickers(root = document) {
 
     group._setClockValue = apply24Value;
 
-    selectEl.addEventListener('change', () => {
-      apply24Value(selectEl.value, true);
-    });
+    const syncFromParts = () => {
+      const activePeriod = group.querySelector('.ampm-btn.active, .ampm-btn.is-active')?.dataset?.period || 'AM';
+      apply24Value(to24TimeStr(hrEl.value, minEl.value, activePeriod), true);
+    };
 
+    hrEl.addEventListener('change', syncFromParts);
+    minEl.addEventListener('change', syncFromParts);
     btns.forEach(btn => {
       btn.addEventListener('click', () => {
-        const targetPeriod = btn.dataset.period;
-        const curP = parse24TimeParts(hiddenEl.value || selectEl.value);
-        if (curP.period !== targetPeriod) {
-          let h24Num = (parseInt(curP.h12, 10) % 12);
-          if (targetPeriod === 'PM') h24Num += 12;
-          const new24 = `${String(h24Num).padStart(2, '0')}:${curP.min}`;
-          apply24Value(new24, true);
-        }
+        btns.forEach(b => {
+          const isMatch = b === btn;
+          b.classList.toggle('active', isMatch);
+          b.classList.toggle('is-active', isMatch);
+        });
+        syncFromParts();
       });
     });
-
-    if (sliderEl) {
-      sliderEl.addEventListener('input', () => {
-        apply24Value(slotIndexTo24Time(sliderEl.value), true);
-      });
-    }
   });
 
-  // Also bind any date inputs or "Open Calendar & Time Studio" triggers inside this form/container
   bindTripScheduleStudioTriggers(root);
 }
 
@@ -589,56 +578,21 @@ function openTripScheduleModal({ startDateId, startTimeId, endDateId, endTimeId,
         </div>
         <div class="safar-studio-calendars" id="studio-calendars-grid"></div>
 
-        <div class="safar-studio-time-section">
-          <div class="studio-time-head">
+        <div class="safar-studio-time-section" style="padding:14px;background:#fff;border:1px solid #E2E8F0;border-radius:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
             <div>
-              <h4>Select Start Time &amp; End Time</h4>
-              <p>All times are shown in IST (UTC+5:30) · 30-minute precision</p>
+              <h4 style="margin:0 0 2px">Pick-up &amp; Drop-off Times</h4>
+              <p style="margin:0;font-size:12px;color:#64748B">Choose standard time slots for your reservation</p>
             </div>
             <div class="studio-quick-presets">
               <button type="button" class="studio-preset-chip" data-preset="09:00">9:00 AM</button>
+              <button type="button" class="studio-preset-chip" data-preset="10:00">10:00 AM</button>
               <button type="button" class="studio-preset-chip" data-preset="12:00">12:00 PM</button>
               <button type="button" class="studio-preset-chip" data-preset="18:00">6:00 PM</button>
-              <button type="button" class="studio-preset-chip" data-preset="21:00">9:00 PM</button>
-            </div>
-          </div>
-
-          <div class="studio-time-row">
-            <div class="studio-time-row-label">
-              <span class="studio-dot is-pickup"></span>
-              <strong>Start Time</strong>
-              <small id="studio-start-ampm-lbl"></small>
-            </div>
-            <div class="studio-slider-rail-wrap">
-              <div class="studio-slider-rail" id="studio-start-rail">
-                <div class="studio-floating-knob" id="studio-start-knob">10:00 AM</div>
-                <input type="range" id="studio-start-range" min="0" max="47" step="1" value="20" aria-label="Start Time">
-              </div>
-              <div class="studio-rail-scale">
-                <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11:30 PM</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="studio-time-row">
-            <div class="studio-time-row-label">
-              <span class="studio-dot is-return"></span>
-              <strong>End Time</strong>
-              <small id="studio-end-ampm-lbl"></small>
-            </div>
-            <div class="studio-slider-rail-wrap">
-              <div class="studio-slider-rail is-return-rail" id="studio-end-rail">
-                <div class="studio-floating-knob is-return-knob" id="studio-end-knob">10:00 AM</div>
-                <input type="range" id="studio-end-range" min="0" max="47" step="1" value="20" aria-label="End Time">
-              </div>
-              <div class="studio-rail-scale">
-                <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11:30 PM</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
-
       <div class="safar-studio-footer">
         <div class="studio-footer-meta" id="studio-footer-meta"></div>
         <button type="button" class="button btn-orange" id="studio-apply-btn">Confirm Dates &amp; Time</button>
@@ -713,7 +667,7 @@ function openTripScheduleModal({ startDateId, startTimeId, endDateId, endTimeId,
     // Render 2 consecutive months
     const m2Date = new Date(viewYear, viewMonth + 1, 1);
     const calGrid = backdrop.querySelector('#studio-calendars-grid');
-    calGrid.innerHTML = renderSingleMonth(viewYear, viewMonth) + renderSingleMonth(m2Date.getFullYear(), m2Date.getMonth());
+    calGrid.innerHTML = renderSingleMonth(viewYear, viewMonth);
 
     calGrid.querySelectorAll('.studio-cal-day[data-date]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1857,11 +1811,11 @@ function auth(forceRegister, loginMode = 'password') {
           ${isReg ? `
             ${inp('phone', 'Mobile number (+91)', 'tel', 'autocomplete="tel" required placeholder="+919876543210"')}
             ${sel('role', 'Account Type', ['CUSTOMER', 'HOST', 'DEALER'])}
-            <p class="text-muted" style="font-size:12px;margin:0">A 6-digit Mobile OTP will be sent to verify your number before identity verification.</p>
+            <p class="text-muted" style="font-size:12px;margin:0">Quick registration enabled for testing · Instant access</p>
           ` : ''}
 
           <button type="submit" class="button btn-orange" style="width:100%;margin-top:6px;padding:13px 18px;font-size:15px">
-            ${isReg ? 'Send Mobile OTP &amp; Sign Up →' : (isOtpLogin ? 'Send Login OTP →' : 'Sign In →')}
+            ${isReg ? 'Create Account &amp; Sign In →' : (isOtpLogin ? 'Send Login OTP →' : 'Sign In →')}
           </button>
         </form>
 
@@ -1936,6 +1890,9 @@ function auth(forceRegister, loginMode = 'password') {
     }
     const res = await post('/auth/' + (isReg ? 'register' : 'login'), data);
     if (isReg) {
+      toast('Account registered successfully!');
+      finishLogin(res);
+      return;
       const devOtpCode = res.devOtp;
       showDialog(`
         <div style="text-align:center;padding:8px 4px">
@@ -2061,7 +2018,7 @@ async function cars() {
           <input id="car-search" type="search" placeholder="Search by car name, brand, city, fuel, or transmission…" autocomplete="off">
         </div>
         <select id="car-sort" class="sort-dropdown" aria-label="Sort vehicles">
-          <option value="">Sort: Recommended</option>
+          
           <option value="price_asc">Price: Low to High</option>
           <option value="price_desc">Price: High to Low</option>
           <option value="rating_desc">Rating: Highest Rated</option>
@@ -2126,12 +2083,18 @@ async function cars() {
           </div>
 
           <!-- Fuel Type -->
-          <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+          <div class="filter-group">
             <div class="filter-title">Fuel Type</div>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Petrol" checked /><span>Petrol</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Diesel" checked /><span>Diesel</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="CNG" checked /><span>CNG</span></label>
             <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Electric" checked /><span>Electric (EV)</span></label>
+          </div>
+
+          <!-- Dealer Filter -->
+          <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+            <div class="filter-title">Dealer / Host Filter</div>
+            <input type="text" id="dealer-search-filter" class="sidebar-input" placeholder="Dealer Name or Code…" style="width:100%;padding:8px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px" />
           </div>
 
           <div class="mobile-filter-actions">
@@ -2354,6 +2317,17 @@ function applyCarFilters() {
 
   const maxPrice = Number($('#price-slider')?.value || 99999);
   list = list.filter(c => Number(c.pricePerDay || 0) <= maxPrice);
+
+  const dealerTerm = $('#dealer-search-filter')?.value?.trim().toLowerCase() || '';
+  if (dealerTerm) {
+    list = list.filter(c => {
+      const h = c.host || {};
+      const hostName = ((h.firstName || '') + ' ' + (h.lastName || '')).toLowerCase();
+      const hostId = (h.id || c.hostId || '').toLowerCase();
+      const dealerCode = (c.dealerCode || '').toLowerCase();
+      return hostName.includes(dealerTerm) || hostId.includes(dealerTerm) || dealerCode.includes(dealerTerm);
+    });
+  }
 
   const sort = $('#car-sort')?.value || '';
   if (sort === 'price_asc')  list.sort((a, b) => Number(a.pricePerDay) - Number(b.pricePerDay));
