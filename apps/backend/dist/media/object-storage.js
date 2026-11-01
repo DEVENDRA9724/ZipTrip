@@ -173,7 +173,7 @@ function objectStorage(env = process.env) {
             throw new Error('MEDIA_STORAGE=memory is for tests only');
         return (memory ??= new MemoryObjectStorage());
     }
-    return (shared ??= env.S3_BUCKET
+    return (shared ??= (env.S3_BUCKET || env.AWS_S3_BUCKET)
         ? new S3ObjectStorage(env)
         : (process.env.MEDIA_STORAGE === 'unconfigured' ? new UnconfiguredStorage() : new LocalDiskStorage()));
 }
