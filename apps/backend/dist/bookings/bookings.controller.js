@@ -48,6 +48,9 @@ let BookingsController = class BookingsController {
     async cancel(req, id) {
         return this.bookingsService.cancel(req.user.id, id);
     }
+    verifyCustomerDocs(req, id) {
+        return this.bookingsService.verifyCustomerDocs(req.user, id);
+    }
     inspect(req, id, body) {
         return this.bookingsService.inspect(req.user, id, body);
     }
@@ -119,6 +122,14 @@ __decorate([
 ], BookingsController.prototype, "cancel", null);
 __decorate([
     (0, common_1.Post)(':id/inspection'),
+    (0, common_1.Post)(':id/verify-customer-docs'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], BookingsController.prototype, "verifyCustomerDocs", null);
+__decorate([
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)()),

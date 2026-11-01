@@ -1175,7 +1175,7 @@ const VEHICLE_DOCUMENT_KINDS = ['RC', 'INSURANCE', 'PUC'];
 const DOCUMENT_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const DOCUMENT_UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
 
-const HOST_SECTIONS = [['fleet', 'My Fleet'], ['add', 'Add Car'], ['documents', 'Car Documents'], ['bookings', 'Bookings'], ['payouts', 'Payouts']];
+const HOST_SECTIONS = [['fleet', 'My Fleet'], ['add', 'Add Car'], ['documents', 'Car Documents'], ['bookings', 'Bookings'], ['payouts', 'Payouts'], ['staff', 'Staff & Team']];
 const HOST_SECTION_IDS = HOST_SECTIONS.map(([id]) => id);
 const hostSectionFromUrl = () => { const t = new URLSearchParams(location.search).get('tab'); return HOST_SECTION_IDS.includes(t) ? t : 'fleet'; };
 const HOST_SECTION_HEADS = {
@@ -1184,6 +1184,7 @@ const HOST_SECTION_HEADS = {
   documents: ['Car Documents', 'RC, Insurance and PUC for each of your cars. A car can be approved only when all three are verified.'],
   bookings: ['Bookings on Your Cars', 'Reservations and trips customers have booked on your cars.'],
   payouts: ['Payouts', 'The bank account Safar pays your settlements into.'],
+  staff: ['Staff & Field Team', 'Manage field executives for vehicle handovers and customer verifications.'],
 };
 
 // One card per car on the Car Documents page: each required document with its real standing and an upload action.
@@ -3436,6 +3437,10 @@ async function host(tab, focusVehicleId) {
     </div>
 
     <section id="host-section-fleet" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+        <p class="text-muted" style="margin:0">Manage your active fleet, availability calendar, and individual vehicle financial ledgers.</p>
+        <button type="button" class="button btn-outline btn-sm" id="fleet-bulk-import-btn" style="border-color:var(--brand);color:var(--brand);font-weight:700;">📥 Bulk Import Vehicles (CSV)</button>
+      </div>
       ${vehicles.length ? `<div class="admin-vehicle-grid">` + vehicles.map(v => {
         return `
         <article class="panel admin-vehicle-tile">
@@ -3464,7 +3469,8 @@ async function host(tab, focusVehicleId) {
               : ADMIN_RESTRICTIONS.includes(v.availabilityReason) ? ''
               : v.approvalStatus === 'APPROVED' ? `<button type="button" class="button btn-outline btn-sm vehicle-availability" data-id="${esc(v.id)}" data-to="ACTIVE">Accept bookings</button>` : ''}
             <a class="button btn-ghost btn-sm" href="host-onboarding.html?tab=documents&amp;vehicle=${encodeURIComponent(v.id)}" data-host-goto="documents" data-vehicle="${esc(v.id)}">Car documents →</a>
-            <button type="button" class="button btn-outline btn-sm host-schedule" data-id="${esc(v.id)}">Manage availability</button>
+            <button type="button" class="button btn-outline btn-sm host-schedule" data-id="${esc(v.id)}">📅 Calendar & Block Dates</button>
+            <button type="button" class="button btn-outline btn-sm vehicle-ledger-btn" data-id="${esc(v.id)}">📊 Vehicle Ledger</button>
             <a class="button btn-ghost btn-sm" href="host-agreement.html?id=${encodeURIComponent(v.id)}">Host–Safar agreement</a>
           </div>
           </div>
@@ -3478,6 +3484,8 @@ async function host(tab, focusVehicleId) {
           <h3>01 · Vehicle Specifications &amp; Pricing</h3>
           <div class="form-grid">
             ${inp('registrationNumber','Registration Number','text','placeholder="e.g. GJ01AB1234" maxlength="16"')}
+            ${inp('chassisNumber','Chassis Number','text','placeholder="e.g. MALBA51BLM123456" maxlength="32"')}
+            ${inp('engineNumber','Engine Number','text','placeholder="e.g. G4LA123456" maxlength="32"')}
             ${inp('locationCity','Hub / City Location','text','placeholder="e.g. Ahmedabad"')}
             ${inp('make','Make / Brand','text','placeholder="e.g. Hyundai"')}
             ${inp('model','Model','text','placeholder="e.g. Creta SX"')}
@@ -3589,7 +3597,17 @@ async function host(tab, focusVehicleId) {
     </section>
 
     <section id="host-section-bookings" hidden>
-      <section class="panel">${renderBookingTable(hosted, true)}</section>
+      <div class="panel" style="margin-bottom:16px;padding:14px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg-subtle);">
+        <input type="text" id="host-booking-search" placeholder="Search by Booking ID, Customer Name, Car Reg..." style="flex:1 1 240px;min-width:180px;height:42px;border:1.5px solid var(--border-main);border-radius:10px;padding:0 12px;font-size:14px;">
+        <select id="host-booking-filter-status" style="height:42px;min-width:150px;border:1.5px solid var(--border-main);border-radius:10px;padding:0 12px;font-size:14px;background:#fff;">
+          <option value="ALL">All Statuses</option>
+          <option value="CONFIRMED">Confirmed (Pending Handover)</option>
+          <option value="ACTIVE">Active Trips (On Road)</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+      </div>
+      <section class="panel" id="host-bookings-table-panel">${renderBookingTable(hosted, true)}</section>
     </section>
 
     <section id="host-section-payouts" hidden>
@@ -3605,6 +3623,21 @@ async function host(tab, focusVehicleId) {
         <div class="actions"><button type="submit" class="button btn-orange">Save payout details</button></div>
       </form>
     </section>
+    </section>
+
+    <section id="host-section-staff" hidden>
+      <section class="panel">
+        <div class="heading" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
+            <h3 style="margin:0">Field Executives & Support Staff</h3>
+            <p class="text-muted" style="margin:4px 0 0">Authorize field employees to perform vehicle handovers, OTP verifications, and customer KYC document checks.</p>
+          </div>
+          <button type="button" class="button btn-orange btn-sm" id="open-add-staff-btn">+ Add Field Executive</button>
+        </div>
+        <div id="host-staff-list-wrap" style="margin-top:16px;">
+          <p class="text-muted">Loading staff members...</p>
+        </div>
+      </section>
     </section>`;
 
   // Header menu, fleet "Car documents" links: switch section in place.
@@ -4516,6 +4549,8 @@ function renderBookingTable(list, isHost) {
                 ${badge(st)}
                 ${b.payment ? `<span style="margin-left:4px">${badge(b.payment.status)}</span>` : ''}
                 ${st === 'PENDING' ? `<p class="text-muted" style="font-size:11px;margin-top:4px;">Complete payment to confirm booking</p>` : ''}
+                ${st === 'CONFIRMED' ? `<div style="margin-top:6px;background:rgba(240,120,24,0.12);border:1px solid rgba(240,120,24,0.3);padding:4px 8px;border-radius:6px;display:inline-block;"><span style="font-size:11px;color:var(--brand);font-weight:700;">🔑 Delivery Start OTP: </span><strong style="font-size:14px;letter-spacing:2px;color:var(--cta);">${esc(b.startOtp || '1234')}</strong></div>` : ''}
+                ${st === 'ACTIVE' ? `<div style="margin-top:6px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);padding:4px 8px;border-radius:6px;display:inline-block;"><span style="font-size:11px;color:var(--brand);font-weight:700;">🔑 Return End OTP: </span><strong style="font-size:14px;letter-spacing:2px;color:#059669;">${esc(b.endOtp || '5678')}</strong></div>` : ''}
                 ${(() => {
                   if (['CANCELLED','EXPIRED','FAILED'].includes(st)) return '';
                   const step = st === 'COMPLETED' ? 4 : st === 'ACTIVE' ? 3 : st === 'CONFIRMED' ? 2 : 1;
@@ -4532,6 +4567,7 @@ function renderBookingTable(list, isHost) {
                   ${!isHost && st === 'PENDING' ? `<button type="button" class="button btn-orange btn-sm pay-booking-btn" data-id="${esc(b.id)}">Pay Now</button>` : ''}
                   ${['CONFIRMED','ACTIVE'].includes(b.status)
                     ? `<button type="button" class="button btn-orange btn-sm inspection-btn" data-id="${esc(b.id)}" data-stage="${b.status === 'CONFIRMED' ? 'PICKUP' : 'RETURN'}">${b.status === 'CONFIRMED' ? 'Start Pickup Inspection' : 'Complete Return Inspection'}</button>` : ''}
+                  ${isHost ? `<button type="button" class="button btn-outline btn-sm customer-dossier-btn" data-id="${esc(b.id)}" style="color:var(--brand);font-weight:700;">👤 Customer Dossier</button>` : ''}
                   <a class="button btn-outline btn-sm" href="agreement.html?id=${encodeURIComponent(b.id)}">Agreement</a>
                   ${b.invoice ? `<a class="button btn-outline btn-sm" href="invoice.html?id=${encodeURIComponent(b.invoice.id)}">Invoice</a>` : ''}
                   ${['PENDING','CONFIRMED'].includes(st) && new Date(b.startDate) > new Date()
@@ -4630,6 +4666,13 @@ function openHandoverWizardModal(bookingId, stage) {
 
         <div class="form-grid" style="margin-top:14px;">
           ${inp('odometer', isPickup ? 'Pickup Odometer Reading (km)' : 'Return Odometer Reading (km)', 'number', `min="0" max="2000000" required value="${isPickup ? '14200' : '14460'}"`)}
+        </div>
+        <div style="background:rgba(244,122,32,0.06);border:1.5px solid var(--cta);border-radius:10px;padding:12px 14px;margin-top:12px;">
+          <label style="display:block;font-weight:700;color:var(--brand);margin-bottom:6px;">
+            ${isPickup ? '🔑 Mandatory Delivery Start OTP (Provided by Customer)' : '🔑 Mandatory Return End OTP (Provided by Customer)'}
+          </label>
+          <input name="otp" type="text" inputmode="numeric" maxlength="6" required placeholder="Enter 4-digit OTP" style="font-size:18px;font-weight:800;letter-spacing:6px;text-align:center;height:44px;background:#fff;">
+          <small class="text-muted" style="font-size:11.5px;display:block;margin-top:4px;">Customer sees this OTP on their booking card in My Trips.</small>
           ${inp('fuelPercent', isPickup ? 'Pickup Fuel / Battery (%)' : 'Return Fuel / Battery (%)', 'number', 'min="0" max="100" step="1" required value="85"')}
         </div>
 
@@ -4923,6 +4966,8 @@ async function agreement() {
         <div class="agreement-meta-grid compact">
           <div><span>Vehicle</span><strong>${esc(V.make + ' ' + V.model)} (${V.year})</strong></div>
           <div><span>Registration</span><strong>${esc(V.registrationNumber || 'Assigned at pickup')}</strong></div>
+          <div><span>Chassis Number</span><strong>${esc(V.chassisNumber || 'Verified in RC')}</strong></div>
+          <div><span>Engine Number</span><strong>${esc(V.engineNumber || 'Verified in RC')}</strong></div>
           <div><span>Category</span><strong>${esc(V.category)}</strong></div>
           <div><span>Pickup location</span><strong>${esc(V.locationCity)}</strong></div>
           <div><span>Transmission / fuel</span><strong>${esc(V.transmission)} · ${esc(V.fuelType)}</strong></div>
@@ -6339,3 +6384,314 @@ async function loadFolderSchedule(vehicleId) {
     container.innerHTML = `<p class="error">Unable to load schedule: ${esc(err.message)}</p>`;
   }
 }
+
+/* ─── DEALER / HOST ENHANCEMENTS: STAFF, DOSSIER, LEDGER, BULK IMPORT ─── */
+
+async function loadHostStaffList() {
+  const container = $('#host-staff-list-wrap');
+  if (!container) return;
+  try {
+    const list = await api('/account/staff');
+    if (!list.length) {
+      container.innerHTML = empty('No staff accounts yet', 'Click + Add Field Executive above to authorize team members.');
+      return;
+    }
+    container.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Executive Name</th><th>Email (Login)</th><th>Phone</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${list.map(s => `
+              <tr>
+                <td><strong>${esc(s.firstName + ' ' + s.lastName)}</strong></td>
+                <td>${esc(s.email)}</td>
+                <td>${esc(s.phone || '-')}</td>
+                <td><span class="badge brand">${esc(s.role)}</span></td>
+                <td>${d(s.createdAt)}</td>
+                <td><button type="button" class="btn-ghost btn-sm delete-staff-btn" data-id="${esc(s.id)}" style="color:var(--err);">Delete</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    $$('.delete-staff-btn', container).forEach(b => {
+      b.onclick = async () => {
+        if (!confirm('Revoke access for this executive?')) return;
+        b.disabled = true;
+        try {
+          await del('/account/staff/' + b.dataset.id);
+          toast('Staff member removed.');
+          await loadHostStaffList();
+        } catch (e) {
+          b.disabled = false;
+          toast(e.message, true);
+        }
+      };
+    });
+  } catch (err) {
+    container.innerHTML = `<p class="error">${esc(err.message)}</p>`;
+  }
+}
+
+function openAddStaffModal() {
+  showDialog(`
+    <div style="max-width:480px;">
+      <span class="badge brand">DEALER TEAM MANAGEMENT</span>
+      <h3 style="margin:8px 0 4px;">Add Field Executive</h3>
+      <p class="text-muted" style="margin:0 0 16px;">This executive will receive an account to conduct vehicle handovers, OTP checks, and returns.</p>
+      <form id="add-staff-form" class="form-stack">
+        <div class="form-grid">
+          ${inp('firstName', 'First Name', 'text', 'required placeholder="e.g. Rahul"')}
+          ${inp('lastName', 'Last Name', 'text', 'required placeholder="e.g. Sharma"')}
+        </div>
+        ${inp('email', 'Email (Login ID)', 'email', 'required placeholder="executive@dealership.com"')}
+        ${inp('phone', 'Phone Number', 'tel', 'placeholder="+91 98765 43210"')}
+        ${inp('password', 'Set Password', 'password', 'required minlength="6" placeholder="At least 6 characters"')}
+        <button type="submit" class="button btn-orange" style="margin-top:12px;width:100%;justify-content:center;">Create Executive Account</button>
+      </form>
+    </div>
+  `);
+  bindForm('#add-staff-form', async (data) => {
+    await post('/account/staff', data);
+    $('dialog').close();
+    toast('Field executive account created successfully!');
+    await loadHostStaffList();
+  });
+}
+
+async function openCustomerDossierModal(bookingId) {
+  showDialog(`<div style="max-width:680px;text-align:center;padding:24px;"><p class="text-muted">Loading customer verification dossier...</p></div>`);
+  try {
+    const booking = await api('/bookings/' + encodeURIComponent(bookingId));
+    const c = booking.customer || {};
+    const docs = c.documents || [];
+    showDialog(`
+      <div style="max-width:720px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <span class="badge brand">CUSTOMER KYC DOSSIER</span>
+            <h3 style="margin:4px 0 0;">${esc(c.firstName + ' ' + c.lastName)}</h3>
+          </div>
+          <div>
+            ${c.isVerified ? '<span class="badge ok">✓ DigiLocker / ID Verified</span>' : '<span class="badge warn">Pending KYC</span>'}
+            ${booking.customerDocsVerifiedByHost ? '<span class="badge ok" style="margin-left:6px;">✓ Verified by Dealer</span>' : ''}
+          </div>
+        </div>
+        <p class="text-muted" style="margin:6px 0 16px;">Email: ${esc(c.email)} · Phone: ${esc(c.phone || 'Not provided')} · Booking Ref: <strong>${esc(booking.bookingRef)}</strong></p>
+
+        <h4 style="margin:16px 0 8px;">Submitted Identity & Driving Licence Documents</h4>
+        ${docs.length ? `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Document</th><th>Status</th><th>Submitted</th><th>View Evidence</th></tr></thead>
+              <tbody>
+                ${docs.map(d => `
+                  <tr>
+                    <td><strong>${esc(DOC_NAMES[d.kind] || d.kind)}</strong></td>
+                    <td>${docStatusBadge(d)}</td>
+                    <td>${dt(d.createdAt)}</td>
+                    <td>${d.mediaId ? `<button type="button" class="button btn-outline btn-sm view-cust-doc-btn" data-id="${esc(d.id)}" data-kind="${esc(d.kind)}">View File</button>` : '<span class="text-muted">No file</span>'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : '<p class="notice">No government documents uploaded yet by this customer.</p>'}
+
+        <div style="margin-top:20px;padding:16px;background:var(--bg-subtle);border-radius:12px;border:1px solid var(--border-main);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div>
+            <strong>Dealer Handover Document Verification</strong>
+            <p class="text-muted" style="margin:2px 0 0;font-size:12px;">Verify customer identity against their physical DL & Aadocker before handing over vehicle keys.</p>
+          </div>
+          <button type="button" class="button btn-orange btn-sm" id="verify-customer-handover-btn" data-id="${esc(booking.id)}" ${booking.customerDocsVerifiedByHost ? 'disabled' : ''}>
+            ${booking.customerDocsVerifiedByHost ? '✓ Already Verified for Handover' : 'Verify Customer for Handover'}
+          </button>
+        </div>
+      </div>
+    `);
+    $$('.view-cust-doc-btn').forEach(btn => {
+      btn.onclick = () => openOwnDocument(btn.dataset.id, btn.dataset.kind);
+    });
+    $('#verify-customer-handover-btn').onclick = async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        await post('/bookings/' + bookingId + '/verify-customer-docs', {});
+        toast('Customer verified for vehicle handover!');
+        $('dialog').close();
+        await host('bookings');
+      } catch (err) {
+        e.currentTarget.disabled = false;
+        toast(err.message, true);
+      }
+    };
+  } catch (err) {
+    showDialog(`<p class="error">Unable to load dossier: ${esc(err.message)}</p>`);
+  }
+}
+
+async function openVehicleLedgerModal(vehicleId) {
+  showDialog(`<div style="max-width:720px;text-align:center;padding:24px;"><p class="text-muted">Loading vehicle account ledger...</p></div>`);
+  try {
+    const data = await api('/vehicles/' + encodeURIComponent(vehicleId) + '/ledger');
+    const v = data.vehicle;
+    const m = data.metrics;
+    showDialog(`
+      <div style="max-width:780px;">
+        <span class="badge ok">VEHICLE FINANCIAL LEDGER &amp; AUDIT</span>
+        <h3 style="margin:8px 0 2px;">${esc(v.make + ' ' + v.model + ' (' + v.year + ')')}</h3>
+        <p class="text-muted" style="margin:0 0 16px;">Reg: <strong>${esc(v.registrationNumber)}</strong> · City: ${esc(v.locationCity)} · Chassis: ${esc(v.chassisNumber || 'N/A')} · Engine: ${esc(v.engineNumber || 'N/A')}</p>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;">
+          <div style="background:var(--bg-subtle);padding:12px;border-radius:10px;border:1px solid var(--border-main);">
+            <span class="text-muted" style="font-size:12px;">Total Bookings</span>
+            <div style="font-size:20px;font-weight:800;color:var(--brand);">${m.totalBookings}</div>
+          </div>
+          <div style="background:var(--bg-subtle);padding:12px;border-radius:10px;border:1px solid var(--border-main);">
+            <span class="text-muted" style="font-size:12px;">Completed Trips</span>
+            <div style="font-size:20px;font-weight:800;color:var(--ok);">${m.completedTrips}</div>
+          </div>
+          <div style="background:var(--bg-subtle);padding:12px;border-radius:10px;border:1px solid var(--border-main);">
+            <span class="text-muted" style="font-size:12px;">Gross Revenue</span>
+            <div style="font-size:20px;font-weight:800;color:var(--ink);">${money(m.totalGrossRevenue)}</div>
+          </div>
+          <div style="background:rgba(16,185,129,0.08);padding:12px;border-radius:10px;border:1px solid rgba(16,185,129,0.3);">
+            <span style="font-size:12px;color:#059669;font-weight:700;">Host Payout (80%)</span>
+            <div style="font-size:20px;font-weight:800;color:#059669;">${money(m.hostNetPayout)}</div>
+          </div>
+        </div>
+
+        <h4 style="margin:16px 0 8px;">Trip & Revenue Ledger</h4>
+        ${data.bookingHistory.length ? `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Booking Ref</th><th>Customer</th><th>Dates</th><th>Total Fare</th><th>Host Split (80%)</th><th>Status</th></tr></thead>
+              <tbody>
+                ${data.bookingHistory.map(b => `
+                  <tr>
+                    <td><strong>${esc(b.bookingRef)}</strong></td>
+                    <td>${esc(b.customerName)}</td>
+                    <td>${d(b.startDate)} → ${d(b.endDate)}</td>
+                    <td>${money(b.totalAmount)}</td>
+                    <td style="color:var(--ok);font-weight:700;">${money(b.hostPayout)}</td>
+                    <td>${badge(b.status)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : '<p class="notice">No trips recorded on this vehicle ledger yet.</p>'}
+      </div>
+    `);
+  } catch (err) {
+    showDialog(`<p class="error">Unable to load ledger: ${esc(err.message)}</p>`);
+  }
+}
+
+function openBulkImportModal() {
+  showDialog(`
+    <div style="max-width:540px;">
+      <span class="badge brand">BULK VEHICLE ONBOARDING</span>
+      <h3 style="margin:8px 0 4px;">Bulk Import Vehicles (CSV)</h3>
+      <p class="text-muted" style="margin:0 0 16px;">Upload a CSV file containing your dealership fleet specifications.</p>
+      <div style="background:var(--bg-subtle);padding:14px;border-radius:10px;border:1px solid var(--border-main);margin-bottom:14px;">
+        <strong>Need the CSV Template?</strong>
+        <p class="text-muted" style="font-size:12px;margin:4px 0 10px;">Download our pre-formatted spreadsheet template with required columns.</p>
+        <button type="button" class="button btn-outline btn-sm" id="download-csv-template-btn">📥 Download Template CSV</button>
+      </div>
+      <form id="bulk-import-form" class="form-stack">
+        <label>Select CSV File
+          <input type="file" id="bulk-csv-input" accept=".csv,text/csv" required>
+        </label>
+        <div id="bulk-preview-box" hidden style="margin-top:10px;padding:12px;background:rgba(240,120,24,0.06);border-radius:8px;font-size:13px;"></div>
+        <button type="submit" class="button btn-orange" id="submit-bulk-btn" style="width:100%;justify-content:center;margin-top:12px;">Import Vehicles</button>
+      </form>
+    </div>
+  `);
+
+  $('#download-csv-template-btn').onclick = () => {
+    const csvContent = "make,model,year,registrationNumber,category,transmission,fuelType,seats,pricePerDay,odometer,chassisNumber,engineNumber,locationCity\n" +
+      "Hyundai,Creta SX,2024,GJ01AB1001,SUV,Automatic,Petrol,5,2800,12000,MALBA51BLM123456,G4LA123456,Ahmedabad\n" +
+      "Maruti,Swift ZXi,2023,GJ01CD2002,Hatchback,Manual,Petrol,5,1500,24000,MA3EW71S00123456,K12M123456,Ahmedabad";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "safar-vehicles-template.csv";
+    a.click();
+  };
+
+  let parsedCars = [];
+  $('#bulk-csv-input').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target.result;
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) {
+        toast('CSV must contain a header row and at least one vehicle row', true);
+        return;
+      }
+      const headers = lines[0].split(',').map(h => h.trim());
+      parsedCars = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim());
+        if (cols.length < headers.length) continue;
+        const car = {};
+        headers.forEach((h, idx) => { car[h] = cols[idx]; });
+        parsedCars.push(car);
+      }
+      const pbox = $('#bulk-preview-box');
+      pbox.hidden = false;
+      pbox.innerHTML = `<strong>Ready to import ${parsedCars.length} vehicle(s).</strong><br><span class="text-muted">Columns recognized: ${headers.join(', ')}</span>`;
+    };
+    reader.readAsText(file);
+  };
+
+  bindForm('#bulk-import-form', async () => {
+    if (!parsedCars.length) throw new Error('Please select a valid CSV with vehicle rows.');
+    $('#submit-bulk-btn').disabled = true;
+    try {
+      const res = await post('/vehicles/bulk-import', { cars: parsedCars });
+      $('dialog').close();
+      toast(`Successfully imported ${res.imported} vehicles! Now upload their photos and RC in My Fleet.`);
+      await host('fleet');
+    } catch (err) {
+      $('#submit-bulk-btn').disabled = false;
+      toast(err.message, true);
+    }
+  });
+}
+
+// Global hook: bind buttons when host page renders
+document.addEventListener('click', (e) => {
+  const ledgerBtn = e.target.closest('.vehicle-ledger-btn');
+  if (ledgerBtn) {
+    openVehicleLedgerModal(ledgerBtn.dataset.id);
+    return;
+  }
+  const dossierBtn = e.target.closest('.customer-dossier-btn');
+  if (dossierBtn) {
+    openCustomerDossierModal(dossierBtn.dataset.id);
+    return;
+  }
+  const bulkBtn = e.target.closest('#fleet-bulk-import-btn');
+  if (bulkBtn) {
+    openBulkImportModal();
+    return;
+  }
+  const addStaffBtn = e.target.closest('#open-add-staff-btn');
+  if (addStaffBtn) {
+    openAddStaffModal();
+    return;
+  }
+});
+
+// Hook into showHostSection to load staff when switching to staff tab
+const origShowHostSection = showHostSection;
+showHostSection = function(tab, vehicleId) {
+  origShowHostSection(tab, vehicleId);
+  if (tab === 'staff') {
+    loadHostStaffList();
+  }
+};

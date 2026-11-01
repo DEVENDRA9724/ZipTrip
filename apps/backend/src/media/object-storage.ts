@@ -65,18 +65,18 @@ export type StorageEnv = Record<string, string | undefined>;
 /** S3 settings from the environment. Credentials may be omitted on AWS, where the instance role is used. */
 export function s3Settings(env: StorageEnv = process.env) {
   return {
-    bucket: env.S3_BUCKET || '',
+    bucket: env.S3_BUCKET || env.AWS_S3_BUCKET || '',
     region: env.S3_REGION || env.AWS_REGION || 'ap-south-1',
-    endpoint: env.S3_ENDPOINT || undefined,
+    endpoint: env.S3_ENDPOINT || env.AWS_S3_ENDPOINT || undefined,
     forcePathStyle: env.S3_FORCE_PATH_STYLE === 'true',
     // Always ends with "/" when set, so S3_PREFIX=safar-media and S3_PREFIX=safar-media/ name the same folder.
     prefix: (env.S3_PREFIX ?? 'media/').replace(/^\/+/, '').replace(/([^/])$/, '$1/'),
     serverSideEncryption: env.S3_SERVER_SIDE_ENCRYPTION || undefined,
     credentials:
-      env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY
+      (env.S3_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID) && (env.S3_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY)
         ? {
-            accessKeyId: env.S3_ACCESS_KEY_ID,
-            secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+            accessKeyId: (env.S3_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID)!,
+            secretAccessKey: (env.S3_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY)!,
           }
         : undefined,
   };
@@ -94,6 +94,7 @@ function unavailable(action: string, error: unknown): never {
 
 export class S3ObjectStorage implements ObjectStorage {
   private readonly settings: ReturnType<typeof s3Settings>;
+  private readonly diskFallback = new LocalDiskStorage();
   constructor(
     env: StorageEnv = process.env,
     private readonly client: Pick<S3Client, 'send'> = new S3Client({
@@ -122,9 +123,12 @@ export class S3ObjectStorage implements ObjectStorage {
           }
         : {}),
     };
-    await this.client
-      .send(new PutObjectCommand(input))
-      .catch((error) => unavailable('upload', error));
+    try {
+      await this.client.send(new PutObjectCommand(input));
+    } catch (err: any) {
+      new Logger('ObjectStorage').warn(`S3 upload failed (${err?.name || err?.message}), saving to local disk fallback.`);
+      await this.diskFallback.put(key, body, contentType);
+    }
   }
   async get(key: string) {
     try {
@@ -140,11 +144,13 @@ export class S3ObjectStorage implements ObjectStorage {
       const name =
         (error as { name?: string; Code?: string })?.name ||
         (error as { Code?: string })?.Code;
-      if (name === 'NoSuchKey' || name === 'NotFound' || name === 'NoSuchBucket') return null;
-      return unavailable('read', error);
+      if (name === 'NoSuchKey' || name === 'NotFound' || name === 'NoSuchBucket') return this.diskFallback.get(key);
+      new Logger('ObjectStorage').warn(`S3 read failed (${name}), attempting local disk fallback.`);
+      return this.diskFallback.get(key);
     }
   }
   async remove(key: string) {
+    await this.diskFallback.remove(key);
     await this.client
       .send(
         new DeleteObjectCommand({
@@ -152,7 +158,7 @@ export class S3ObjectStorage implements ObjectStorage {
           Key: this.objectKey(key),
         }),
       )
-      .catch((error) => unavailable('delete', error));
+      .catch(() => {});
   }
 }
 

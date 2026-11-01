@@ -1,3 +1,11 @@
+export declare class LocalDiskStorage implements ObjectStorage {
+    private readonly rootDir;
+    constructor(baseDir?: string);
+    private filePath;
+    put(key: string, body: Buffer, _contentType: string): Promise<void>;
+    get(key: string): Promise<Buffer | null>;
+    remove(key: string): Promise<void>;
+}
 import { S3Client } from '@aws-sdk/client-s3';
 export interface ObjectStorage {
     put(key: string, body: Buffer, contentType: string): Promise<void>;
@@ -20,10 +28,11 @@ export declare function s3Settings(env?: StorageEnv): {
 export declare class S3ObjectStorage implements ObjectStorage {
     private readonly client;
     private readonly settings;
+    private readonly diskFallback;
     constructor(env?: StorageEnv, client?: Pick<S3Client, 'send'>);
     private objectKey;
     put(key: string, body: Buffer, contentType: string): Promise<void>;
-    get(key: string): Promise<Buffer<ArrayBuffer> | null>;
+    get(key: string): Promise<Buffer<ArrayBufferLike> | null>;
     remove(key: string): Promise<void>;
 }
 export declare class MemoryObjectStorage implements ObjectStorage {

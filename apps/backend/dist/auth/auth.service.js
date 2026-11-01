@@ -92,7 +92,7 @@ let AuthService = class AuthService {
         }
         data.firstName = (0, validation_1.text)(data.firstName, 'First name', 60);
         data.lastName = (0, validation_1.text)(data.lastName, 'Last name', 60);
-        data.role = (0, validation_1.choice)(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST', 'DEALER']);
+        data.role = (0, validation_1.choice)(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST', 'DEALER', 'EXECUTIVE']);
         if (data.phone) {
             data.phone = this.msg91.normalizePhone((0, validation_1.text)(data.phone, 'Phone', 20));
         }
@@ -147,7 +147,7 @@ let AuthService = class AuthService {
         else if (this.exposeDevOtp()) {
             console.log(`[SAFAR OTP] Mobile Verification OTP for ${user.phone || user.email}: ${otpCode}`);
         }
-        const payload = { id: user.id, email: user.email, role: user.role };
+        const payload = { id: user.id, email: user.email, role: user.role, dealerId: user.dealerId };
         const token = this.jwtService.sign(payload);
         return {
             user: this.sanitizeUser(user),
@@ -172,7 +172,7 @@ let AuthService = class AuthService {
         if (!isMatch) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
-        const payload = { id: user.id, email: user.email, role: user.role };
+        const payload = { id: user.id, email: user.email, role: user.role, dealerId: user.dealerId };
         const token = this.jwtService.sign(payload);
         return { user: this.sanitizeUser(user), token };
     }
@@ -211,7 +211,7 @@ let AuthService = class AuthService {
                 throw new common_1.BadRequestException('Invalid or expired OTP code. Please try again.');
         }
         const updated = await this.prisma.user.update({ where: { id: user.id }, data: { phone, phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null }, include: { wallet: true, profile: true } });
-        const token = this.jwtService.sign({ id: updated.id, email: updated.email, role: updated.role });
+        const token = this.jwtService.sign({ id: updated.id, email: updated.email, role: updated.role, dealerId: updated.dealerId });
         return { user: this.sanitizeUser(updated), token };
     }
     maskPhone(phone) {

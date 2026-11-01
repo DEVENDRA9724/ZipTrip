@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Request, UseGuards, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AccountService } from './account.service';
 
@@ -35,5 +35,29 @@ export class AccountController {
   @Post('delete-request')
   requestAccountDeletion(@Request() req: any, @Body() body: any) {
     return this.account.requestAccountDeletion(req.user.id, body);
+  }
+
+  @Get('staff')
+  listStaff(@Request() req: any) {
+    if (req.user.role !== 'DEALER' && req.user.role !== 'HOST' && req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Dealer or host access required');
+    }
+    return this.account.listStaff(req.user.id);
+  }
+
+  @Post('staff')
+  createStaff(@Request() req: any, @Body() body: any) {
+    if (req.user.role !== 'DEALER' && req.user.role !== 'HOST' && req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Dealer or host access required');
+    }
+    return this.account.createStaff(req.user.id, body);
+  }
+
+  @Delete('staff/:id')
+  deleteStaff(@Request() req: any, @Param('id') id: string) {
+    if (req.user.role !== 'DEALER' && req.user.role !== 'HOST' && req.user.role !== 'ADMIN') {
+      throw new ForbiddenException('Dealer or host access required');
+    }
+    return this.account.deleteStaff(req.user.id, id);
   }
 }

@@ -42,7 +42,11 @@ let VehiclesService = class VehiclesService {
             where.seats = (0, validation_1.number)(query.seats, 'Seats', 2, 12, true);
         if (query.maxPrice)
             where.pricePerDay = { lte: (0, validation_1.number)(query.maxPrice, 'Price', 1, 1000000) };
-        return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...validation_1.PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { select: { rating: true } } }, orderBy: { createdAt: 'asc' }, take: 100 });
+        if (query.dealer) {
+            const dealerTerm = (0, validation_1.text)(query.dealer, 'Dealer');
+            where.host = { OR: [{ id: { contains: dealerTerm } }, { firstName: { contains: dealerTerm } }, { lastName: { contains: dealerTerm } }, { email: { contains: dealerTerm } }] };
+        }
+        return this.prisma.vehicle.findMany({ where, include: { media: { where: { kind: { in: [...validation_1.PHOTO_KINDS] } }, select: { id: true, kind: true } }, reviews: { select: { rating: true } }, host: { select: { id: true, firstName: true, lastName: true, role: true } } }, orderBy: { createdAt: 'asc' }, take: 100 });
     }
     async findOne(id) {
         const vehicle = await this.prisma.vehicle.findFirst({
@@ -437,7 +441,91 @@ let VehiclesService = class VehiclesService {
             seats: (0, validation_1.number)(data.seats, 'Seats', 2, 12, true), pricePerDay,
             odometer: (0, validation_1.number)(data.odometer, 'Odometer', 0, 2000000, true),
             locationCity: (0, validation_1.text)(data.locationCity ?? data.city, 'City'),
+            chassisNumber: data.chassisNumber ? (0, validation_1.text)(data.chassisNumber, 'Chassis Number', 50) : null,
+            engineNumber: data.engineNumber ? (0, validation_1.text)(data.engineNumber, 'Engine Number', 50) : null,
         };
+    }
+    async ledger(actorId, vehicleId) {
+        const access = await this.managementScope(actorId, vehicleId);
+        const vehicle = await this.prisma.vehicle.findFirst({
+            where: access,
+            include: {
+                host: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+                documents: true,
+                currentHub: true,
+            },
+        });
+        if (!vehicle)
+            throw new common_1.NotFoundException('Vehicle not found');
+        const bookings = await this.prisma.booking.findMany({
+            where: { vehicleId },
+            include: {
+                customer: { select: { id: true, firstName: true, lastName: true, phone: true, email: true } },
+                payment: true,
+                settlement: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+        const completedBookings = bookings.filter(b => b.status === 'COMPLETED' || b.status === 'ACTIVE');
+        const totalBookingsCount = bookings.length;
+        const totalDaysRented = completedBookings.reduce((sum, b) => sum + (b.rentalDays || 1), 0);
+        const grossRevenue = completedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
+        const platformCommission = completedBookings.reduce((sum, b) => sum + Number(b.platformFee || 0), 0);
+        const netHostRevenue = completedBookings.reduce((sum, b) => sum + Number(b.hostRevenue || 0), 0);
+        const securityDepositsHeld = bookings.filter(b => b.status === 'ACTIVE').reduce((sum, b) => sum + Number(b.securityDeposit || 0), 0);
+        return {
+            vehicle,
+            metrics: {
+                totalBookingsCount,
+                completedTripsCount: completedBookings.length,
+                totalDaysRented,
+                grossRevenue,
+                platformCommission,
+                netHostRevenue,
+                securityDepositsHeld,
+            },
+            bookings,
+        };
+    }
+    async bulkImport(actorId, cars) {
+        const user = await this.prisma.user.findUnique({ where: { id: actorId } });
+        if (!user || !validation_1.FLEET_ROLES.includes(user.role)) {
+            throw new common_1.ForbiddenException('Dealer or host account required to import fleet');
+        }
+        if (!Array.isArray(cars) || !cars.length) {
+            throw new common_1.BadRequestException('Provide an array of vehicle records to import');
+        }
+        const created = [];
+        const errors = [];
+        for (let i = 0; i < cars.length; i++) {
+            const row = cars[i];
+            try {
+                const details = await this.listingDetails(row);
+                const car = await this.prisma.vehicle.create({
+                    data: {
+                        hostId: actorId,
+                        ...details,
+                        images: '[]',
+                        approvalStatus: 'DRAFT',
+                        availability: 'INACTIVE',
+                        status: 'PENDING_APPROVAL',
+                    },
+                });
+                created.push(car);
+            }
+            catch (err) {
+                errors.push({ row: i + 1, regNumber: row.registrationNumber || 'Unknown', error: err.message });
+            }
+        }
+        await this.prisma.auditLog.create({
+            data: {
+                actorId,
+                action: 'VEHICLES_BULK_IMPORTED',
+                targetId: actorId,
+                detail: `Imported ${created.length} vehicles, ${errors.length} failed`,
+            },
+        });
+        return { importedCount: created.length, failedCount: errors.length, created, errors };
     }
 };
 exports.VehiclesService = VehiclesService;

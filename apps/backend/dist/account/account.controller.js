@@ -39,6 +39,24 @@ let AccountController = class AccountController {
     requestAccountDeletion(req, body) {
         return this.account.requestAccountDeletion(req.user.id, body);
     }
+    listStaff(req) {
+        if (req.user.role !== 'DEALER' && req.user.role !== 'HOST' && req.user.role !== 'ADMIN') {
+            throw new common_1.ForbiddenException('Dealer or host access required');
+        }
+        return this.account.listStaff(req.user.id);
+    }
+    createStaff(req, body) {
+        if (req.user.role !== 'DEALER' && req.user.role !== 'HOST' && req.user.role !== 'ADMIN') {
+            throw new common_1.ForbiddenException('Dealer or host access required');
+        }
+        return this.account.createStaff(req.user.id, body);
+    }
+    deleteStaff(req, id) {
+        if (req.user.role !== 'DEALER' && req.user.role !== 'HOST' && req.user.role !== 'ADMIN') {
+            throw new common_1.ForbiddenException('Dealer or host access required');
+        }
+        return this.account.deleteStaff(req.user.id, id);
+    }
 };
 exports.AccountController = AccountController;
 __decorate([
@@ -87,6 +105,29 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AccountController.prototype, "requestAccountDeletion", null);
+__decorate([
+    (0, common_1.Get)('staff'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "listStaff", null);
+__decorate([
+    (0, common_1.Post)('staff'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "createStaff", null);
+__decorate([
+    (0, common_1.Delete)('staff/:id'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AccountController.prototype, "deleteStaff", null);
 exports.AccountController = AccountController = __decorate([
     (0, common_1.Controller)('account'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

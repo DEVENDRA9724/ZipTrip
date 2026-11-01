@@ -10,6 +10,7 @@ enum Role {
   CUSTOMER
   HOST
   DEALER
+  EXECUTIVE
   ADMIN
 }
 
@@ -43,6 +44,7 @@ model User {
   isVerified      Boolean   @default(false)
   isBlocked       Boolean   @default(false)
   profileImage    String?
+  dealerId        String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -161,6 +163,8 @@ model Vehicle {
   bookings           Booking[]
   reviews            Review[]
   registrationNumber String?             @unique
+  chassisNumber      String?
+  engineNumber       String?
   odometer           Int                 @default(0)
   reviewNote         String?
   // Approval (DRAFT | PENDING_APPROVAL | APPROVED | REJECTED) and availability (ACTIVE | INACTIVE) are separate.
@@ -232,6 +236,10 @@ model Booking {
   agreementVersion    String        @default("safarcars-car-sharing-v2")
   agreementSnapshot   String?
   agreementAcceptedAt DateTime?
+  startOtp            String?
+  endOtp              String?
+  handoverExecutiveId String?
+  returnExecutiveId   String?
   invoice             Invoice?
   inspections         Inspection[]
   partyRatings        PartyRating[]

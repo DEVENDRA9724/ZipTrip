@@ -58,20 +58,20 @@ export declare class AccountService {
             active: number;
             pendingApproval: number;
             vehicles: {
-                media: {
-                    kind: string;
-                }[];
                 id: string;
                 documents: {
                     status: string;
                     kind: string;
                     validUntil: Date | null;
                 }[];
-                status: import("@prisma/client").$Enums.VehicleStatus;
+                media: {
+                    kind: string;
+                }[];
                 make: string;
                 model: string;
                 year: number;
                 pricePerDay: import("@prisma/client-runtime-utils").Decimal;
+                status: import("@prisma/client").$Enums.VehicleStatus;
                 locationCity: string;
                 registrationNumber: string | null;
                 odometer: number;
@@ -85,15 +85,15 @@ export declare class AccountService {
                 model: string;
                 registrationNumber: string | null;
             };
-            payment: {
-                status: string;
-                amount: import("@prisma/client-runtime-utils").Decimal;
-            } | null;
             customer: {
                 phone: string | null;
                 firstName: string;
                 lastName: string;
             };
+            payment: {
+                status: string;
+                amount: import("@prisma/client-runtime-utils").Decimal;
+            } | null;
             inspections: {
                 createdAt: Date;
                 stage: string;
@@ -104,7 +104,6 @@ export declare class AccountService {
                 updatedAt: Date;
                 status: string;
                 bookingId: string;
-                note: string | null;
                 depositHeld: import("@prisma/client-runtime-utils").Decimal;
                 automaticCharges: import("@prisma/client-runtime-utils").Decimal;
                 damageCharges: import("@prisma/client-runtime-utils").Decimal;
@@ -116,31 +115,32 @@ export declare class AccountService {
                 totalDeduction: import("@prisma/client-runtime-utils").Decimal;
                 refundAmount: import("@prisma/client-runtime-utils").Decimal;
                 additionalAmountDue: import("@prisma/client-runtime-utils").Decimal;
+                note: string | null;
                 reviewedById: string | null;
             } | null;
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
+            serviceType: string;
+            vehicleId: string;
+            startDate: Date;
+            endDate: Date;
             bookingRef: string;
             customerId: string;
-            vehicleId: string;
             driverId: string | null;
             pickupHubId: string | null;
             dropoffHubId: string | null;
-            startDate: Date;
-            endDate: Date;
             tenureHours: number;
-            serviceType: string;
             baseFare: import("@prisma/client-runtime-utils").Decimal;
-            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
             insuranceFee: import("@prisma/client-runtime-utils").Decimal;
             discountAmount: import("@prisma/client-runtime-utils").Decimal;
             taxAmount: import("@prisma/client-runtime-utils").Decimal;
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
-            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -149,6 +149,10 @@ export declare class AccountService {
             agreementVersion: string;
             agreementSnapshot: string | null;
             agreementAcceptedAt: Date | null;
+            startOtp: string | null;
+            endOtp: string | null;
+            handoverExecutiveId: string | null;
+            returnExecutiveId: string | null;
         })[];
         earnings: {
             grossCollected: number;
@@ -233,25 +237,25 @@ export declare class AccountService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
+            serviceType: string;
+            vehicleId: string;
+            startDate: Date;
+            endDate: Date;
             bookingRef: string;
             customerId: string;
-            vehicleId: string;
             driverId: string | null;
             pickupHubId: string | null;
             dropoffHubId: string | null;
-            startDate: Date;
-            endDate: Date;
             tenureHours: number;
-            serviceType: string;
             baseFare: import("@prisma/client-runtime-utils").Decimal;
-            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
             insuranceFee: import("@prisma/client-runtime-utils").Decimal;
             discountAmount: import("@prisma/client-runtime-utils").Decimal;
             taxAmount: import("@prisma/client-runtime-utils").Decimal;
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
-            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -260,6 +264,10 @@ export declare class AccountService {
             agreementVersion: string;
             agreementSnapshot: string | null;
             agreementAcceptedAt: Date | null;
+            startOtp: string | null;
+            endOtp: string | null;
+            handoverExecutiveId: string | null;
+            returnExecutiveId: string | null;
         })[];
         recent: ({
             vehicle: {
@@ -267,11 +275,11 @@ export declare class AccountService {
                 model: string;
                 locationCity: string;
             };
-            invoice: {
-                number: string;
+            payment: {
                 status: string;
             } | null;
-            payment: {
+            invoice: {
+                number: string;
                 status: string;
             } | null;
             settlement: {
@@ -280,7 +288,6 @@ export declare class AccountService {
                 updatedAt: Date;
                 status: string;
                 bookingId: string;
-                note: string | null;
                 depositHeld: import("@prisma/client-runtime-utils").Decimal;
                 automaticCharges: import("@prisma/client-runtime-utils").Decimal;
                 damageCharges: import("@prisma/client-runtime-utils").Decimal;
@@ -292,31 +299,32 @@ export declare class AccountService {
                 totalDeduction: import("@prisma/client-runtime-utils").Decimal;
                 refundAmount: import("@prisma/client-runtime-utils").Decimal;
                 additionalAmountDue: import("@prisma/client-runtime-utils").Decimal;
+                note: string | null;
                 reviewedById: string | null;
             } | null;
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
+            serviceType: string;
+            vehicleId: string;
+            startDate: Date;
+            endDate: Date;
             bookingRef: string;
             customerId: string;
-            vehicleId: string;
             driverId: string | null;
             pickupHubId: string | null;
             dropoffHubId: string | null;
-            startDate: Date;
-            endDate: Date;
             tenureHours: number;
-            serviceType: string;
             baseFare: import("@prisma/client-runtime-utils").Decimal;
-            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
             insuranceFee: import("@prisma/client-runtime-utils").Decimal;
             discountAmount: import("@prisma/client-runtime-utils").Decimal;
             taxAmount: import("@prisma/client-runtime-utils").Decimal;
             platformFee: import("@prisma/client-runtime-utils").Decimal;
             hostRevenue: import("@prisma/client-runtime-utils").Decimal;
             totalAmount: import("@prisma/client-runtime-utils").Decimal;
-            status: import("@prisma/client").$Enums.BookingStatus;
             expiresAt: Date | null;
             requestKey: string | null;
             dailyRate: import("@prisma/client-runtime-utils").Decimal;
@@ -325,6 +333,10 @@ export declare class AccountService {
             agreementVersion: string;
             agreementSnapshot: string | null;
             agreementAcceptedAt: Date | null;
+            startOtp: string | null;
+            endOtp: string | null;
+            handoverExecutiveId: string | null;
+            returnExecutiveId: string | null;
         })[];
         disputes: {
             id: string;
@@ -394,5 +406,28 @@ export declare class AccountService {
     }>;
     requestAccountDeletion(userId: string, body: any): Promise<{
         ok: boolean;
+    }>;
+    listStaff(dealerId: string): Promise<{
+        id: string;
+        email: string;
+        phone: string | null;
+        firstName: string;
+        lastName: string;
+        role: import("@prisma/client").$Enums.Role;
+        isVerified: boolean;
+        createdAt: Date;
+    }[]>;
+    createStaff(dealerId: string, body: any): Promise<{
+        id: string;
+        email: string;
+        phone: string | null;
+        firstName: string;
+        lastName: string;
+        role: import("@prisma/client").$Enums.Role;
+        createdAt: Date;
+    }>;
+    deleteStaff(dealerId: string, staffId: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
 }

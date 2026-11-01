@@ -68,4 +68,16 @@ export class VehiclesController {
   async create(@Request() req: any, @Body() body: any) {
     return this.vehiclesService.create(req.user.id, body);
   }
+
+  @Get(':id/ledger')
+  @UseGuards(JwtAuthGuard)
+  ledger(@Request() req: any, @Param('id') id: string) {
+    return this.vehiclesService.ledger(req.user.id, id);
+  }
+
+  @Post('bulk-import')
+  @UseGuards(JwtAuthGuard)
+  bulkImport(@Request() req: any, @Body() body: any) {
+    return this.vehiclesService.bulkImport(req.user.id, Array.isArray(body) ? body : body.cars || []);
+  }
 }

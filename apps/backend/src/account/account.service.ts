@@ -261,4 +261,68 @@ export class AccountService {
     });
     return { ok: true };
   }
+
+  async listStaff(dealerId: string) {
+    return this.prisma.user.findMany({
+      where: { dealerId, role: 'EXECUTIVE' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        role: true,
+        isVerified: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createStaff(dealerId: string, body: any) {
+    const firstName = text(body.firstName, 'First name', 60);
+    const lastName = text(body.lastName || '', 'Last name', 60);
+    const email = text(body.email, 'Email', 120).toLowerCase();
+    const phone = text(body.phone, 'Phone number', 20);
+    const password = text(body.password, 'Password', 100);
+
+    const existing = await this.prisma.user.findFirst({
+      where: { OR: [{ email }, { phone }] },
+    });
+    if (existing) {
+      throw new BadRequestException('A user with this email or phone number already exists');
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    return this.prisma.user.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        passwordHash,
+        role: 'EXECUTIVE',
+        dealerId,
+        isVerified: true,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async deleteStaff(dealerId: string, staffId: string) {
+    const staff = await this.prisma.user.findFirst({
+      where: { id: staffId, dealerId, role: 'EXECUTIVE' },
+    });
+    if (!staff) throw new NotFoundException('Staff member not found');
+    await this.prisma.user.delete({ where: { id: staffId } });
+    return { success: true, message: 'Staff member removed' };
+  }
 }

@@ -7,6 +7,12 @@ export declare class VehiclesController {
             id: string;
             kind: string;
         }[];
+        host: {
+            id: string;
+            firstName: string;
+            lastName: string;
+            role: import("@prisma/client").$Enums.Role;
+        };
         reviews: {
             rating: number;
         }[];
@@ -14,9 +20,6 @@ export declare class VehiclesController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -30,6 +33,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -41,6 +47,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -55,20 +63,16 @@ export declare class VehiclesController {
             bookable: boolean;
             reasons: string[];
         };
-        media: {
-            id: string;
-            kind: string;
-        }[];
         documents: {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            mediaId: string | null;
-            source: string;
-            vehicleId: string | null;
             status: string;
             reviewNote: string | null;
+            vehicleId: string | null;
             kind: string;
+            mediaId: string | null;
+            source: string;
             userId: string;
             documentNumberMasked: string | null;
             documentFrontUrl: string | null;
@@ -78,12 +82,13 @@ export declare class VehiclesController {
             verifiedById: string | null;
             verifiedAt: Date | null;
         }[];
+        media: {
+            id: string;
+            kind: string;
+        }[];
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -97,6 +102,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -108,6 +116,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -139,9 +149,6 @@ export declare class VehiclesController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -155,6 +162,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -166,6 +176,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -201,10 +213,10 @@ export declare class VehiclesController {
         }[];
         bookings: {
             id: string;
-            bookingRef: string;
+            status: import("@prisma/client").$Enums.BookingStatus;
             startDate: Date;
             endDate: Date;
-            status: import("@prisma/client").$Enums.BookingStatus;
+            bookingRef: string;
         }[];
     }>;
     hostAgreement(req: any, id: string): Promise<{
@@ -270,9 +282,6 @@ export declare class VehiclesController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -286,6 +295,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -297,6 +309,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -319,12 +333,12 @@ export declare class VehiclesController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            mediaId: string | null;
-            source: string;
-            vehicleId: string | null;
             status: string;
             reviewNote: string | null;
+            vehicleId: string | null;
             kind: string;
+            mediaId: string | null;
+            source: string;
             userId: string;
             documentNumberMasked: string | null;
             documentFrontUrl: string | null;
@@ -337,9 +351,6 @@ export declare class VehiclesController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -353,6 +364,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -364,6 +378,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -377,9 +393,6 @@ export declare class VehiclesController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -393,6 +406,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -404,6 +420,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -422,9 +440,6 @@ export declare class VehiclesController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -438,6 +453,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -449,6 +467,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -462,9 +482,6 @@ export declare class VehiclesController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        serviceType: string;
-        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
-        status: import("@prisma/client").$Enums.VehicleStatus;
         hostId: string;
         modelSpecId: string | null;
         currentHubId: string | null;
@@ -478,6 +495,9 @@ export declare class VehiclesController {
         pricePerDay: import("@prisma/client-runtime-utils").Decimal;
         extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
         includedKilometresPerDay: number;
+        securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+        status: import("@prisma/client").$Enums.VehicleStatus;
+        serviceType: string;
         locationCity: string;
         pickupAddress: string | null;
         dropAddress: string | null;
@@ -489,6 +509,8 @@ export declare class VehiclesController {
         gpsDeviceImei: string | null;
         fuelLevelPercent: number;
         registrationNumber: string | null;
+        chassisNumber: string | null;
+        engineNumber: string | null;
         odometer: number;
         reviewNote: string | null;
         approvalStatus: string;
@@ -497,5 +519,176 @@ export declare class VehiclesController {
         approvedById: string | null;
         approvedAt: Date | null;
         rejectedReason: string | null;
+    }>;
+    ledger(req: any, id: string): Promise<{
+        vehicle: {
+            documents: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                status: string;
+                reviewNote: string | null;
+                vehicleId: string | null;
+                kind: string;
+                mediaId: string | null;
+                source: string;
+                userId: string;
+                documentNumberMasked: string | null;
+                documentFrontUrl: string | null;
+                documentBackUrl: string | null;
+                providerSessionId: string | null;
+                validUntil: Date | null;
+                verifiedById: string | null;
+                verifiedAt: Date | null;
+            }[];
+            host: {
+                id: string;
+                email: string;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+            };
+            currentHub: {
+                id: string;
+                createdAt: Date;
+                city: string;
+                latitude: number;
+                longitude: number;
+                hubName: string;
+                address: string;
+                isActive: boolean;
+            } | null;
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            hostId: string;
+            modelSpecId: string | null;
+            currentHubId: string | null;
+            make: string;
+            model: string;
+            year: number;
+            category: string;
+            transmission: string;
+            fuelType: string;
+            seats: number;
+            pricePerDay: import("@prisma/client-runtime-utils").Decimal;
+            extraKmCharge: import("@prisma/client-runtime-utils").Decimal;
+            includedKilometresPerDay: number;
+            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.VehicleStatus;
+            serviceType: string;
+            locationCity: string;
+            pickupAddress: string | null;
+            dropAddress: string | null;
+            latitude: number | null;
+            longitude: number | null;
+            images: string;
+            features: string | null;
+            vinNumber: string | null;
+            gpsDeviceImei: string | null;
+            fuelLevelPercent: number;
+            registrationNumber: string | null;
+            chassisNumber: string | null;
+            engineNumber: string | null;
+            odometer: number;
+            reviewNote: string | null;
+            approvalStatus: string;
+            availability: string;
+            availabilityReason: string | null;
+            approvedById: string | null;
+            approvedAt: Date | null;
+            rejectedReason: string | null;
+        };
+        metrics: {
+            totalBookingsCount: number;
+            completedTripsCount: number;
+            totalDaysRented: number;
+            grossRevenue: number;
+            platformCommission: number;
+            netHostRevenue: number;
+            securityDepositsHeld: number;
+        };
+        bookings: ({
+            customer: {
+                id: string;
+                email: string;
+                phone: string | null;
+                firstName: string;
+                lastName: string;
+            };
+            payment: {
+                id: string;
+                createdAt: Date;
+                status: string;
+                bookingId: string;
+                transactionId: string;
+                gatewayProvider: string;
+                paymentType: string;
+                amount: import("@prisma/client-runtime-utils").Decimal;
+                currency: string;
+            } | null;
+            settlement: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                status: string;
+                bookingId: string;
+                depositHeld: import("@prisma/client-runtime-utils").Decimal;
+                automaticCharges: import("@prisma/client-runtime-utils").Decimal;
+                damageCharges: import("@prisma/client-runtime-utils").Decimal;
+                fuelCharges: import("@prisma/client-runtime-utils").Decimal;
+                tollCharges: import("@prisma/client-runtime-utils").Decimal;
+                fineCharges: import("@prisma/client-runtime-utils").Decimal;
+                cleaningCharges: import("@prisma/client-runtime-utils").Decimal;
+                otherCharges: import("@prisma/client-runtime-utils").Decimal;
+                totalDeduction: import("@prisma/client-runtime-utils").Decimal;
+                refundAmount: import("@prisma/client-runtime-utils").Decimal;
+                additionalAmountDue: import("@prisma/client-runtime-utils").Decimal;
+                note: string | null;
+                reviewedById: string | null;
+            } | null;
+        } & {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            securityDeposit: import("@prisma/client-runtime-utils").Decimal;
+            status: import("@prisma/client").$Enums.BookingStatus;
+            serviceType: string;
+            vehicleId: string;
+            startDate: Date;
+            endDate: Date;
+            bookingRef: string;
+            customerId: string;
+            driverId: string | null;
+            pickupHubId: string | null;
+            dropoffHubId: string | null;
+            tenureHours: number;
+            baseFare: import("@prisma/client-runtime-utils").Decimal;
+            insuranceFee: import("@prisma/client-runtime-utils").Decimal;
+            discountAmount: import("@prisma/client-runtime-utils").Decimal;
+            taxAmount: import("@prisma/client-runtime-utils").Decimal;
+            platformFee: import("@prisma/client-runtime-utils").Decimal;
+            hostRevenue: import("@prisma/client-runtime-utils").Decimal;
+            totalAmount: import("@prisma/client-runtime-utils").Decimal;
+            expiresAt: Date | null;
+            requestKey: string | null;
+            dailyRate: import("@prisma/client-runtime-utils").Decimal;
+            rentalDays: number;
+            includedKilometres: number | null;
+            agreementVersion: string;
+            agreementSnapshot: string | null;
+            agreementAcceptedAt: Date | null;
+            startOtp: string | null;
+            endOtp: string | null;
+            handoverExecutiveId: string | null;
+            returnExecutiveId: string | null;
+        })[];
+    }>;
+    bulkImport(req: any, body: any): Promise<{
+        importedCount: number;
+        failedCount: number;
+        created: any[];
+        errors: any[];
     }>;
 }

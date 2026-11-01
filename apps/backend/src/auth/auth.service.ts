@@ -51,7 +51,7 @@ export class AuthService {
     }
     data.firstName = text(data.firstName, 'First name', 60);
     data.lastName = text(data.lastName, 'Last name', 60);
-    data.role = choice(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST', 'DEALER']);
+    data.role = choice(data.role || 'CUSTOMER', 'Account type', ['CUSTOMER', 'HOST', 'DEALER', 'EXECUTIVE']);
     if (data.phone) {
       data.phone = this.msg91.normalizePhone(text(data.phone, 'Phone', 20));
     }
@@ -110,7 +110,7 @@ export class AuthService {
       console.log(`[SAFAR OTP] Mobile Verification OTP for ${user.phone || user.email}: ${otpCode}`);
     }
 
-    const payload = { id: user.id, email: user.email, role: user.role };
+    const payload = { id: user.id, email: user.email, role: user.role, dealerId: user.dealerId };
     const token = this.jwtService.sign(payload);
 
     return {
@@ -138,7 +138,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { id: user.id, email: user.email, role: user.role };
+    const payload = { id: user.id, email: user.email, role: user.role, dealerId: user.dealerId };
     const token = this.jwtService.sign(payload);
 
     return { user: this.sanitizeUser(user), token };
@@ -177,7 +177,7 @@ export class AuthService {
       if (!valid) throw new BadRequestException('Invalid or expired OTP code. Please try again.');
     }
     const updated = await this.prisma.user.update({ where: { id: user.id }, data: { phone, phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null }, include: { wallet: true, profile: true } });
-    const token = this.jwtService.sign({ id: updated.id, email: updated.email, role: updated.role });
+    const token = this.jwtService.sign({ id: updated.id, email: updated.email, role: updated.role, dealerId: updated.dealerId });
     return { user: this.sanitizeUser(updated), token };
   }
 

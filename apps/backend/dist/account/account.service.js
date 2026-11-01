@@ -304,6 +304,66 @@ let AccountService = class AccountService {
         });
         return { ok: true };
     }
+    async listStaff(dealerId) {
+        return this.prisma.user.findMany({
+            where: { dealerId, role: 'EXECUTIVE' },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                role: true,
+                isVerified: true,
+                createdAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+    async createStaff(dealerId, body) {
+        const firstName = (0, validation_1.text)(body.firstName, 'First name', 60);
+        const lastName = (0, validation_1.text)(body.lastName || '', 'Last name', 60);
+        const email = (0, validation_1.text)(body.email, 'Email', 120).toLowerCase();
+        const phone = (0, validation_1.text)(body.phone, 'Phone number', 20);
+        const password = (0, validation_1.text)(body.password, 'Password', 100);
+        const existing = await this.prisma.user.findFirst({
+            where: { OR: [{ email }, { phone }] },
+        });
+        if (existing) {
+            throw new common_1.BadRequestException('A user with this email or phone number already exists');
+        }
+        const passwordHash = await bcrypt.hash(password, 10);
+        return this.prisma.user.create({
+            data: {
+                firstName,
+                lastName,
+                email,
+                phone,
+                passwordHash,
+                role: 'EXECUTIVE',
+                dealerId,
+                isVerified: true,
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                role: true,
+                createdAt: true,
+            },
+        });
+    }
+    async deleteStaff(dealerId, staffId) {
+        const staff = await this.prisma.user.findFirst({
+            where: { id: staffId, dealerId, role: 'EXECUTIVE' },
+        });
+        if (!staff)
+            throw new common_1.NotFoundException('Staff member not found');
+        await this.prisma.user.delete({ where: { id: staffId } });
+        return { success: true, message: 'Staff member removed' };
+    }
 };
 exports.AccountService = AccountService;
 exports.AccountService = AccountService = __decorate([

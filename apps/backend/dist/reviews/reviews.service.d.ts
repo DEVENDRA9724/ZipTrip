@@ -37,10 +37,10 @@ export declare class ReviewsService {
         } & {
             id: string;
             createdAt: Date;
-            targetId: string;
             authorId: string;
             rating: number;
             comment: string | null;
+            targetId: string;
             bookingId: string;
             targetRole: string;
         })[];
@@ -76,10 +76,10 @@ export declare class ReviewsService {
         } & {
             id: string;
             createdAt: Date;
-            targetId: string;
             authorId: string;
             rating: number;
             comment: string | null;
+            targetId: string;
             bookingId: string;
             targetRole: string;
         })[];
@@ -96,10 +96,10 @@ export declare class ReviewsService {
     } & {
         id: string;
         createdAt: Date;
-        targetId: string;
         authorId: string;
         rating: number;
         comment: string | null;
+        targetId: string;
         bookingId: string;
         targetRole: string;
     }>;

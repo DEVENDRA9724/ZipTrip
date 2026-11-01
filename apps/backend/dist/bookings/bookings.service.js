@@ -119,6 +119,8 @@ let BookingsService = BookingsService_1 = class BookingsService {
                     securityDeposit,
                     bookingRef: 'SF-' + (0, node_crypto_1.randomUUID)().toUpperCase(),
                     status: 'PENDING',
+                    startOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+                    endOtp: Math.floor(1000 + Math.random() * 9000).toString(),
                     expiresAt: new Date(Math.min(Date.now() + 30 * 60000, +start)),
                     agreementVersion: car_sharing_agreement_1.CAR_SHARING_AGREEMENT_VERSION,
                     agreementSnapshot: JSON.stringify({ policy: policySnapshot, terms: termsSnapshot, createdAt: new Date().toISOString() }),
@@ -175,6 +177,8 @@ let BookingsService = BookingsService_1 = class BookingsService {
                 data: {
                     status: 'CONFIRMED',
                     agreementAcceptedAt: new Date(),
+                    startOtp: booking.startOtp || Math.floor(1000 + Math.random() * 9000).toString(),
+                    endOtp: booking.endOtp || Math.floor(1000 + Math.random() * 9000).toString(),
                 },
             });
             if (!booking.payment) {
@@ -266,12 +270,26 @@ let BookingsService = BookingsService_1 = class BookingsService {
             take: 200,
         });
     }
-    getHostBookings(hostId) {
+    async getHostBookings(userId) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        const targetHostId = user?.role === 'EXECUTIVE' && user?.dealerId ? user.dealerId : userId;
         return this.prisma.booking.findMany({
-            where: { vehicle: { hostId } },
+            where: { vehicle: { hostId: targetHostId } },
             include: {
-                vehicle: { include: { currentHub: true } },
-                customer: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, isVerified: true, profileImage: true, profile: true } },
+                vehicle: { include: { currentHub: true, media: true, documents: true } },
+                customer: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                        isVerified: true,
+                        profileImage: true,
+                        profile: true,
+                        documents: true,
+                    },
+                },
                 payment: true,
                 invoice: true,
                 trip: true,
@@ -279,7 +297,7 @@ let BookingsService = BookingsService_1 = class BookingsService {
                 settlement: true,
             },
             orderBy: { createdAt: 'desc' },
-            take: 200,
+            take: 500,
         });
     }
     async agreement(user, id) {
@@ -362,6 +380,8 @@ let BookingsService = BookingsService_1 = class BookingsService {
                 model: booking.vehicle.model,
                 year: booking.vehicle.year,
                 registrationNumber: booking.vehicle.registrationNumber,
+                chassisNumber: booking.vehicle.chassisNumber || booking.vehicle.vinNumber || 'N/A',
+                engineNumber: booking.vehicle.engineNumber || 'N/A',
                 vinNumber: booking.vehicle.vinNumber,
                 category: booking.vehicle.category,
                 transmission: booking.vehicle.transmission,
@@ -572,7 +592,7 @@ let BookingsService = BookingsService_1 = class BookingsService {
             });
             if (!booking)
                 throw new common_1.NotFoundException('Booking not found');
-            const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN';
+            const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN' || (user.role === 'EXECUTIVE' && user.dealerId === booking.vehicle.hostId);
             const isCustomer = booking.customerId === user.id;
             if (!isCustomer && !isHost)
                 throw new common_1.ForbiddenException('Booking customer, host or administrator required');
@@ -594,6 +614,20 @@ let BookingsService = BookingsService_1 = class BookingsService {
                 }
                 catch (error) {
                     throw new common_1.BadRequestException(error.message);
+                }
+                if (stage === 'PICKUP') {
+                    const expectedOtp = booking.startOtp || '1234';
+                    const submittedOtp = body.otp ? String(body.otp).trim() : '';
+                    if (!submittedOtp || submittedOtp !== expectedOtp) {
+                        throw new common_1.BadRequestException('Delivery Start OTP is mandatory and must match the customer OTP displayed on their screen');
+                    }
+                }
+                if (stage === 'RETURN') {
+                    const expectedOtp = booking.endOtp || '1234';
+                    const submittedOtp = body.otp ? String(body.otp).trim() : '';
+                    if (!submittedOtp || submittedOtp !== expectedOtp) {
+                        throw new common_1.BadRequestException('Return End OTP is mandatory and must match the customer OTP');
+                    }
                 }
             }
             const pickupInspection = booking.inspections.find(i => i.stage === 'PICKUP');
@@ -807,6 +841,26 @@ let BookingsService = BookingsService_1 = class BookingsService {
             this.notifications.create(booking.customerId, { type, title, message, bookingId: booking.id }),
             this.notifications.create(booking.vehicle.hostId, { type, title, message, bookingId: booking.id }),
         ]);
+    }
+    async verifyCustomerDocs(user, id) {
+        const booking = await this.prisma.booking.findUnique({
+            where: { id },
+            include: { vehicle: true, customer: true },
+        });
+        if (!booking)
+            throw new common_1.NotFoundException('Booking not found');
+        const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN' || (user.role === 'EXECUTIVE' && user.dealerId === booking.vehicle.hostId);
+        if (!isHost)
+            throw new common_1.ForbiddenException('Dealer or host authorization required');
+        await this.prisma.auditLog.create({
+            data: {
+                actorId: user.id,
+                action: 'DEALER_CUSTOMER_DOCS_VERIFIED',
+                targetId: booking.customerId,
+                detail: `Dealer ${user.firstName || user.id} verified customer documents for booking ${booking.bookingRef}`,
+            },
+        });
+        return { verified: true, message: 'Customer documents verified successfully for handover' };
     }
 };
 exports.BookingsService = BookingsService;

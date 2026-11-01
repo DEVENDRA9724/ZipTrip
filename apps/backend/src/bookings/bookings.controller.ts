@@ -52,6 +52,11 @@ export class BookingsController {
   }
 
   @Post(':id/inspection')
+  @Post(':id/verify-customer-docs')
+  verifyCustomerDocs(@Request() req: any, @Param('id') id: string) {
+    return this.bookingsService.verifyCustomerDocs(req.user, id);
+  }
+
   inspect(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     return this.bookingsService.inspect(req.user, id, body);
   }

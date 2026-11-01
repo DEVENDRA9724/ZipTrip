@@ -294,9 +294,35 @@ dialog::backdrop { background: rgba(33, 27, 36, .45); }
   .header { gap: 12px; }
   .ds-head-right { margin-left: 0; }
 }
-.ds-drawer { position: fixed; inset: 74px 0 auto 0; background: #fff; border-bottom: 1px solid var(--line); box-shadow: var(--shadow-md); padding: 12px 20px 20px; display: grid; gap: 4px; z-index: 49; }
-.ds-drawer a { padding: 12px 8px; color: var(--ink); font-weight: 500; border-bottom: 1px solid var(--line); text-decoration: none; }
-.ds-drawer[hidden] { display: none; }
+.ds-drawer {
+  position: fixed;
+  inset: 74px 0 auto 0;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  padding: 14px 20px 24px;
+  display: grid;
+  gap: 6px;
+  z-index: 999;
+  max-height: calc(100dvh - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ds-drawer a {
+  padding: 12px 14px;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14.5px;
+  border-radius: 8px;
+  border-bottom: 1px solid var(--line-soft, #f1f5f9);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.ds-drawer a:hover, .ds-drawer a.active {
+  background: rgba(244, 122, 32, 0.08);
+  color: #F47A20;
+}
+.ds-drawer[hidden] { display: none !important; }
 
 /* ── Footer ─────────────────────────────────────────────────────── */
 footer.footer { display: block !important; background: var(--brand); color: #E9DDEA; padding: 56px max(24px, calc((100vw - 1240px) / 2 + 24px)) 28px; margin-top: auto; border: 0; }
@@ -1374,9 +1400,9 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
 
 /* Landing page search bar layout with unified date/time cells */
 .lp-search {
-  grid-template-columns: 0.85fr 1.45fr 1.45fr auto !important;
+  grid-template-columns: 0.9fr 1.55fr 1.55fr auto !important;
   align-items: stretch !important;
-  gap: 12px !important;
+  gap: 10px !important;
   padding: 16px !important;
 }
 .lp-search > button[type="submit"] {
@@ -2117,7 +2143,7 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   border: 1.5px solid #CBD5E1 !important;
   border-radius: 10px !important;
   height: 44px !important;
-  padding: 0 6px !important;
+  padding: 0 4px !important;
   box-sizing: border-box !important;
   overflow: visible !important;
   transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
@@ -2130,14 +2156,15 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
 
 .dt-cell-combined input.dt-combined-date,
 .trip-field-box .dt-cell-combined input[type="date"].dt-combined-date {
-  flex: 1 1 auto !important;
-  min-width: 95px !important;
-  width: 110px !important;
+  flex: 1 1 92px !important;
+  min-width: 86px !important;
+  width: 96px !important;
+  max-width: 105px !important;
   height: 100% !important;
   border: none !important;
   background: transparent !important;
   color: #0F172A !important;
-  font-size: 13px !important;
+  font-size: 12.5px !important;
   font-weight: 700 !important;
   padding: 0 !important;
   margin: 0 !important;
@@ -2146,11 +2173,20 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   cursor: pointer !important;
 }
 
+.dt-cell-combined input.dt-combined-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  opacity: 0.75;
+  width: 15px;
+  height: 15px;
+}
+
 .dt-cell-divider {
   width: 1px !important;
   height: 22px !important;
   background: #CBD5E1 !important;
-  margin: 0 4px !important;
+  margin: 0 3px !important;
   flex-shrink: 0 !important;
 }
 
@@ -2166,23 +2202,23 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   border: none !important;
   background: transparent !important;
   color: #0F172A !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   padding: 0 1px !important;
   margin: 0 !important;
   cursor: pointer !important;
   outline: none !important;
-  appearance: auto !important;
   text-align: center !important;
-  min-width: 38px !important;
+  width: 32px !important;
+  min-width: 30px !important;
   flex-shrink: 0 !important;
 }
 
 .dt-combined-time .time-sep {
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 800 !important;
   color: #64748B !important;
-  margin: 0 1px !important;
+  margin: 0 !important;
   user-select: none;
   flex-shrink: 0 !important;
 }
@@ -2204,9 +2240,10 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   border: none !important;
   background: transparent !important;
   color: #64748B !important;
-  font-size: 12px !important;
+  font-size: 11px !important;
   font-weight: 800 !important;
-  padding: 0 7px !important;
+  padding: 0 5px !important;
+  min-width: 24px !important;
   height: 100% !important;
   border-radius: 7px !important;
   cursor: pointer !important;

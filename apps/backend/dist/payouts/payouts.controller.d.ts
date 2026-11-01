@@ -65,15 +65,15 @@ export declare class PayoutsController {
     }[]>;
     accounts(req: any): Promise<{
         verificationCurrent: boolean;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
         user: {
             email: string;
             firstName: string;
             lastName: string;
             role: import("@prisma/client").$Enums.Role;
         };
-        id: string;
-        createdAt: Date;
-        updatedAt: Date;
         status: string;
         userId: string;
         reviewedById: string | null;

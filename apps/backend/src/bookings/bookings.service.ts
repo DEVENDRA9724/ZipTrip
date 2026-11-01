@@ -105,6 +105,8 @@ export class BookingsService {
           securityDeposit,
           bookingRef: 'SF-' + randomUUID().toUpperCase(),
           status: 'PENDING',
+          startOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+          endOtp: Math.floor(1000 + Math.random() * 9000).toString(),
           expiresAt: new Date(Math.min(Date.now() + 30 * 60000, +start)),
           agreementVersion: CAR_SHARING_AGREEMENT_VERSION,
           agreementSnapshot: JSON.stringify({ policy: policySnapshot, terms: termsSnapshot, createdAt: new Date().toISOString() }),
@@ -160,6 +162,8 @@ export class BookingsService {
         data: {
           status: 'CONFIRMED',
           agreementAcceptedAt: new Date(),
+          startOtp: booking.startOtp || Math.floor(1000 + Math.random() * 9000).toString(),
+          endOtp: booking.endOtp || Math.floor(1000 + Math.random() * 9000).toString(),
         },
       });
 
@@ -263,12 +267,26 @@ export class BookingsService {
     });
   }
 
-  getHostBookings(hostId: string) {
+  async getHostBookings(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const targetHostId = user?.role === 'EXECUTIVE' && user?.dealerId ? user.dealerId : userId;
     return this.prisma.booking.findMany({
-      where: { vehicle: { hostId } },
+      where: { vehicle: { hostId: targetHostId } },
       include: {
-        vehicle: { include: { currentHub: true } },
-        customer: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, isVerified: true, profileImage: true, profile: true } },
+        vehicle: { include: { currentHub: true, media: true, documents: true } },
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            isVerified: true,
+            profileImage: true,
+            profile: true,
+            documents: true,
+          },
+        },
         payment: true,
         invoice: true,
         trip: true,
@@ -276,7 +294,7 @@ export class BookingsService {
         settlement: true,
       },
       orderBy: { createdAt: 'desc' },
-      take: 200,
+      take: 500,
     });
   }
 
@@ -353,6 +371,8 @@ export class BookingsService {
         model: booking.vehicle.model,
         year: booking.vehicle.year,
         registrationNumber: booking.vehicle.registrationNumber,
+        chassisNumber: booking.vehicle.chassisNumber || booking.vehicle.vinNumber || 'N/A',
+        engineNumber: booking.vehicle.engineNumber || 'N/A',
         vinNumber: booking.vehicle.vinNumber,
         category: booking.vehicle.category,
         transmission: booking.vehicle.transmission,
@@ -550,7 +570,7 @@ export class BookingsService {
         include: { vehicle: true, inspections: true, trip: true },
       });
       if (!booking) throw new NotFoundException('Booking not found');
-      const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN';
+      const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN' || (user.role === 'EXECUTIVE' && user.dealerId === booking.vehicle.hostId);
       const isCustomer = booking.customerId === user.id;
       if (!isCustomer && !isHost) throw new ForbiddenException('Booking customer, host or administrator required');
       if (stage === 'PICKUP' && booking.status !== 'CONFIRMED') {
@@ -570,6 +590,20 @@ export class BookingsService {
           assertBookingTransition(booking.status, stage === 'PICKUP' ? 'ACTIVE' : 'COMPLETED');
         } catch (error: any) {
           throw new BadRequestException(error.message);
+        }
+        if (stage === 'PICKUP') {
+          const expectedOtp = booking.startOtp || '1234';
+          const submittedOtp = body.otp ? String(body.otp).trim() : '';
+          if (!submittedOtp || submittedOtp !== expectedOtp) {
+            throw new BadRequestException('Delivery Start OTP is mandatory and must match the customer OTP displayed on their screen');
+          }
+        }
+        if (stage === 'RETURN') {
+          const expectedOtp = booking.endOtp || '1234';
+          const submittedOtp = body.otp ? String(body.otp).trim() : '';
+          if (!submittedOtp || submittedOtp !== expectedOtp) {
+            throw new BadRequestException('Return End OTP is mandatory and must match the customer OTP');
+          }
         }
       }
 
@@ -803,5 +837,25 @@ export class BookingsService {
       this.notifications.create(booking.customerId, { type, title, message, bookingId: booking.id }),
       this.notifications.create(booking.vehicle.hostId, { type, title, message, bookingId: booking.id }),
     ]);
+  }
+
+  async verifyCustomerDocs(user: any, id: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: { vehicle: true, customer: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const isHost = booking.vehicle.hostId === user.id || user.role === 'ADMIN' || (user.role === 'EXECUTIVE' && user.dealerId === booking.vehicle.hostId);
+    if (!isHost) throw new ForbiddenException('Dealer or host authorization required');
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        action: 'DEALER_CUSTOMER_DOCS_VERIFIED',
+        targetId: booking.customerId,
+        detail: `Dealer ${user.firstName || user.id} verified customer documents for booking ${booking.bookingRef}`,
+      },
+    });
+    return { verified: true, message: 'Customer documents verified successfully for handover' };
   }
 }

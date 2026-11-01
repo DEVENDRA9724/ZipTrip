@@ -44,6 +44,12 @@ let VehiclesController = class VehiclesController {
     async create(req, body) {
         return this.vehiclesService.create(req.user.id, body);
     }
+    ledger(req, id) {
+        return this.vehiclesService.ledger(req.user.id, id);
+    }
+    bulkImport(req, body) {
+        return this.vehiclesService.bulkImport(req.user.id, Array.isArray(body) ? body : body.cars || []);
+    }
 };
 exports.VehiclesController = VehiclesController;
 __decorate([
@@ -161,6 +167,24 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], VehiclesController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)(':id/ledger'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], VehiclesController.prototype, "ledger", null);
+__decorate([
+    (0, common_1.Post)('bulk-import'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], VehiclesController.prototype, "bulkImport", null);
 exports.VehiclesController = VehiclesController = __decorate([
     (0, common_1.Controller)('vehicles'),
     __metadata("design:paramtypes", [vehicles_service_1.VehiclesService])
