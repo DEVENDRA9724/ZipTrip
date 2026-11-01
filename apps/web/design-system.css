@@ -2099,7 +2099,141 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
    AND MOBILE-FIRST LOGIN / SIGN UP PAGE
    ========================================================================== */
 
-/* 1. Distinct Two-Box Time Control (1st Box HR, 2nd Box MIN, and AM/PM Toggle Buttons - No Slider) */
+/* 1. Unified Single-Row Date & Time Selection (Date + HR:MIN in SAME cell, AM/PM Separate) */
+.dt-unified-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.dt-cell-combined {
+  display: flex !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid #CBD5E1 !important;
+  border-radius: 10px !important;
+  height: 44px !important;
+  padding: 0 8px !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.dt-cell-combined:focus-within {
+  border-color: #F47A20 !important;
+  box-shadow: 0 0 0 3px rgba(244, 122, 32, 0.15) !important;
+}
+
+.dt-cell-combined input.dt-combined-date,
+.trip-field-box .dt-cell-combined input[type="date"].dt-combined-date {
+  flex: 1 1 auto !important;
+  min-width: 105px !important;
+  width: auto !important;
+  height: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  color: #0F172A !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  padding: 0 2px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.dt-cell-divider {
+  width: 1px !important;
+  height: 24px !important;
+  background: #CBD5E1 !important;
+  margin: 0 6px !important;
+  flex-shrink: 0 !important;
+}
+
+.dt-combined-time {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  flex-shrink: 0 !important;
+}
+
+.dt-combined-time .time-part-select {
+  border: none !important;
+  background: transparent !important;
+  color: #0F172A !important;
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  padding: 0 2px !important;
+  cursor: pointer !important;
+  outline: none !important;
+  appearance: auto !important;
+  text-align: center !important;
+}
+
+.dt-combined-time .time-sep {
+  font-size: 14.5px !important;
+  font-weight: 800 !important;
+  color: #64748B !important;
+  margin: 0 1px !important;
+  user-select: none;
+}
+
+.ampm-toggle-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #F1F5F9 !important;
+  border: 1.5px solid #CBD5E1 !important;
+  border-radius: 10px !important;
+  padding: 2px !important;
+  gap: 2px !important;
+  height: 44px !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
+
+.ampm-btn {
+  border: none !important;
+  background: transparent !important;
+  color: #64748B !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  padding: 0 10px !important;
+  height: 100% !important;
+  border-radius: 7px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.ampm-btn:hover {
+  color: #0F172A !important;
+}
+
+.ampm-btn.active,
+.ampm-btn.is-active {
+  background: #F47A20 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 4px rgba(244, 122, 32, 0.3) !important;
+}
+
+@media (max-width: 768px) {
+  .dt-unified-row {
+    flex-wrap: wrap !important;
+  }
+  .dt-cell-combined {
+    width: 100% !important;
+  }
+  .ampm-toggle-group {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
 .dt-split-row {
   display: flex !important;
   flex-direction: column !important;

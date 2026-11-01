@@ -462,6 +462,34 @@ function renderClockPicker(prefix, selected24 = '10:00', ariaPrefix = 'Time') {
     </div>`;
 }
 
+/* Unified Date & Time in the SAME cell with separate AM/PM toggle */
+function renderDateTimeCell(dateId, dateValue = '', minDate = '', timePrefix, selected24 = '10:00', ariaPrefix = 'Time', required = false) {
+  const p = parse24TimeParts(selected24);
+  const hours = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const mins = ['00','30'];
+  return `
+    <div class="dt-unified-row safar-time-widget" data-clock-prefix="${esc(timePrefix)}">
+      <div class="dt-cell-combined">
+        <input type="date" id="${esc(dateId)}" name="${esc(dateId)}" value="${esc(dateValue)}" ${minDate ? `min="${esc(minDate)}"` : ''} class="dt-combined-date" aria-label="${esc(ariaPrefix)} Date"${required ? ' required' : ''}>
+        <div class="dt-cell-divider" aria-hidden="true"></div>
+        <div class="dt-combined-time">
+          <select id="${esc(timePrefix)}-hr" class="time-part-select" aria-label="${esc(ariaPrefix)} Hour">
+            ${hours.map(hr => `<option value="${hr}" ${hr === p.h12 ? 'selected' : ''}>${hr}</option>`).join('')}
+          </select>
+          <span class="time-sep">:</span>
+          <select id="${esc(timePrefix)}-min" class="time-part-select" aria-label="${esc(ariaPrefix)} Minute">
+            ${mins.map(m => `<option value="${m}" ${m === p.min ? 'selected' : ''}>${m}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
+        <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active is-active' : ''}" data-period="AM">AM</button>
+        <button type="button" class="ampm-btn ${p.period === 'PM' ? 'active is-active' : ''}" data-period="PM">PM</button>
+      </div>
+      <input type="hidden" id="${esc(timePrefix)}" value="${esc(p.h24)}">
+    </div>`;
+}
+
 function bindClockPickers(root = document) {
   root.querySelectorAll('.safar-time-widget').forEach(group => {
     if (group.dataset.boundClock === '1') return;
@@ -1552,18 +1580,12 @@ async function home() {
             <select name="city" id="lp-city" aria-label="Pickup Location">${['', ...DEFAULT_CITIES].map(c => `<option value="${esc(c)}" ${c === city ? 'selected' : ''}>${c || 'All Cities (Gujarat)'}</option>`).join('')}</select>
           </div>
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time (HH:MM AM/PM)</span>
-            <div class="dt-split-row">
-              <input type="date" id="lp-start-date" value="${startParts.date}" min="${todayStr}" aria-label="Pickup Date">
-              ${renderClockPicker('lp-start-time', startParts.time, 'Pickup Time')}
-            </div>
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            ${renderDateTimeCell('lp-start-date', startParts.date, todayStr, 'lp-start-time', startParts.time, 'Pickup')}
           </div>
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time (HH:MM AM/PM)</span>
-            <div class="dt-split-row">
-              <input type="date" id="lp-end-date" value="${endParts.date}" min="${startParts.date}" aria-label="Return Date">
-              ${renderClockPicker('lp-end-time', endParts.time, 'Return Time')}
-            </div>
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            ${renderDateTimeCell('lp-end-date', endParts.date, startParts.date, 'lp-end-time', endParts.time, 'Drop-off')}
           </div>
           <button type="submit" class="btn-orange">${icon('search')} Find Available Cars</button>
           <p id="lp-search-err" class="error" role="alert" hidden style="grid-column:1/-1;margin:0"></p>
@@ -1990,19 +2012,13 @@ async function cars() {
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time (HH:MM AM/PM)</span>
-            <div class="dt-split-row">
-              <input type="date" id="cars-start-date" name="startDatePart" value="${startParts.date}" min="${todayStr}" aria-label="Pick-up Date">
-              ${renderClockPicker('cars-start-time', startParts.time, 'Pick-up Time')}
-            </div>
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            ${renderDateTimeCell('cars-start-date', startParts.date, todayStr, 'cars-start-time', startParts.time, 'Pick-up')}
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time (HH:MM AM/PM)</span>
-            <div class="dt-split-row">
-              <input type="date" id="cars-end-date" name="endDatePart" value="${endParts.date}" min="${startParts.date}" aria-label="Drop-off Date">
-              ${renderClockPicker('cars-end-time', endParts.time, 'Drop-off Time')}
-            </div>
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            ${renderDateTimeCell('cars-end-date', endParts.date, startParts.date, 'cars-end-time', endParts.time, 'Drop-off')}
           </div>
 
           <button type="submit" class="button btn-orange">${icon('search')} Apply Schedule</button>
@@ -2683,19 +2699,13 @@ async function carDetails(id) {
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time (HH:MM AM/PM)</span>
-            <div class="dt-split-row">
-              <input type="date" id="bp-start-date" aria-label="Pick-up Date" required>
-              ${renderClockPicker('bp-start-time', '10:00', 'Pick-up Time')}
-            </div>
+            <span class="trip-field-lbl">${icon('calendar', 'ic-xs')} Pick-up Date &amp; Time</span>
+            ${renderDateTimeCell('bp-start-date', '', todayStr, 'bp-start-time', '10:00', 'Pick-up', true)}
           </div>
 
           <div class="trip-field-box">
-            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time (HH:MM AM/PM)</span>
-            <div class="dt-split-row">
-              <input type="date" id="bp-end-date" aria-label="Drop-off Date" required>
-              ${renderClockPicker('bp-end-time', '10:00', 'Drop-off Time')}
-            </div>
+            <span class="trip-field-lbl">${icon('clock', 'ic-xs')} Drop-off Date &amp; Time</span>
+            ${renderDateTimeCell('bp-end-date', '', '', 'bp-end-time', '10:00', 'Drop-off', true)}
           </div>
 
           <input type="hidden" name="startDate">
