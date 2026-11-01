@@ -462,31 +462,37 @@ function renderClockPicker(prefix, selected24 = '10:00', ariaPrefix = 'Time') {
     </div>`;
 }
 
-/* Unified Date & Time in the SAME cell with separate AM/PM toggle */
+const STANDARD_TIME_SLOTS = [
+  ['06:00', '06:00 AM'], ['06:30', '06:30 AM'],
+  ['07:00', '07:00 AM'], ['07:30', '07:30 AM'],
+  ['08:00', '08:00 AM'], ['08:30', '08:30 AM'],
+  ['09:00', '09:00 AM'], ['09:30', '09:30 AM'],
+  ['10:00', '10:00 AM'], ['10:30', '10:30 AM'],
+  ['11:00', '11:00 AM'], ['11:30', '11:30 AM'],
+  ['12:00', '12:00 PM'], ['12:30', '12:30 PM'],
+  ['13:00', '01:00 PM'], ['13:30', '01:30 PM'],
+  ['14:00', '02:00 PM'], ['14:30', '02:30 PM'],
+  ['15:00', '03:00 PM'], ['15:30', '03:30 PM'],
+  ['16:00', '04:00 PM'], ['16:30', '04:30 PM'],
+  ['17:00', '05:00 PM'], ['17:30', '05:30 PM'],
+  ['18:00', '06:00 PM'], ['18:30', '06:30 PM'],
+  ['19:00', '07:00 PM'], ['19:30', '07:30 PM'],
+  ['20:00', '08:00 PM'], ['20:30', '08:30 PM'],
+  ['21:00', '09:00 PM'], ['21:30', '09:30 PM'],
+  ['22:00', '10:00 PM'], ['22:30', '10:30 PM'],
+  ['23:00', '11:00 PM'], ['23:30', '11:30 PM'],
+];
+
+/* Single clean Date & Time cell: Date on left, Time dropdown on right */
 function renderDateTimeCell(dateId, dateValue = '', minDate = '', timePrefix, selected24 = '10:00', ariaPrefix = 'Time', required = false) {
-  const p = parse24TimeParts(selected24);
-  const hours = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-  const mins = ['00','30'];
+  const normTime = selected24 && selected24.includes(':') ? selected24.slice(0, 5) : '10:00';
   return `
-    <div class="dt-unified-row safar-time-widget" data-clock-prefix="${esc(timePrefix)}">
-      <div class="dt-cell-combined">
-        <input type="date" id="${esc(dateId)}" name="${esc(dateId)}" value="${esc(dateValue)}" ${minDate ? `min="${esc(minDate)}"` : ''} class="dt-combined-date" aria-label="${esc(ariaPrefix)} Date"${required ? ' required' : ''}>
-        <div class="dt-cell-divider" aria-hidden="true"></div>
-        <div class="dt-combined-time">
-          <select id="${esc(timePrefix)}-hr" class="time-part-select" aria-label="${esc(ariaPrefix)} Hour">
-            ${hours.map(hr => `<option value="${hr}" ${hr === p.h12 ? 'selected' : ''}>${hr}</option>`).join('')}
-          </select>
-          <span class="time-sep">:</span>
-          <select id="${esc(timePrefix)}-min" class="time-part-select" aria-label="${esc(ariaPrefix)} Minute">
-            ${mins.map(m => `<option value="${m}" ${m === p.min ? 'selected' : ''}>${m}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-      <div class="ampm-toggle-group" role="group" aria-label="${esc(ariaPrefix)} AM or PM">
-        <button type="button" class="ampm-btn ${p.period === 'AM' ? 'active is-active' : ''}" data-period="AM">AM</button>
-        <button type="button" class="ampm-btn ${p.period === 'PM' ? 'active is-active' : ''}" data-period="PM">PM</button>
-      </div>
-      <input type="hidden" id="${esc(timePrefix)}" value="${esc(p.h24)}">
+    <div class="dt-cell-combined">
+      <input type="date" id="${esc(dateId)}" name="${esc(dateId)}" value="${esc(dateValue)}" ${minDate ? `min="${esc(minDate)}"` : ''} class="dt-combined-date" aria-label="${esc(ariaPrefix)} Date"${required ? ' required' : ''}>
+      <div class="dt-cell-divider" aria-hidden="true"></div>
+      <select id="${esc(timePrefix)}" name="${esc(timePrefix)}" class="dt-time-select" aria-label="${esc(ariaPrefix)} Time">
+        ${STANDARD_TIME_SLOTS.map(([val, label]) => `<option value="${val}" ${val === normTime ? 'selected' : ''}>${label}</option>`).join('')}
+      </select>
     </div>`;
 }
 

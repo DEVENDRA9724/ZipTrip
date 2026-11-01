@@ -3102,3 +3102,87 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
     justify-content: center;
   }
 }
+
+/* ── UNIFIED CLEAN DATE & TIME CELL (NO SEPARATE BOXES, NO CLIPPING) ── */
+.dt-cell-combined {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  background: #FFFFFF !important;
+  border: 1.5px solid #CBD5E1 !important;
+  border-radius: 10px !important;
+  height: 44px !important;
+  padding: 0 10px !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.dt-cell-combined:focus-within {
+  border-color: #F47A20 !important;
+  box-shadow: 0 0 0 3px rgba(244, 122, 32, 0.15) !important;
+}
+
+.dt-cell-combined input,
+.dt-cell-combined select,
+.lp-search .dt-cell-combined input,
+.lp-search .dt-cell-combined select,
+.availability-search .dt-cell-combined input,
+.availability-search .dt-cell-combined select,
+.trip-field-box .dt-cell-combined input,
+.trip-field-box .dt-cell-combined select {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  height: 100% !important;
+}
+
+.dt-cell-combined input.dt-combined-date,
+.lp-search input.dt-combined-date,
+.trip-field-box input.dt-combined-date {
+  flex: 1 1 auto !important;
+  min-width: 100px !important;
+  color: #0F172A !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.dt-cell-combined input.dt-combined-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  opacity: 0.8;
+  width: 16px;
+  height: 16px;
+}
+
+.dt-cell-divider {
+  width: 1.5px !important;
+  height: 22px !important;
+  background: #CBD5E1 !important;
+  margin: 0 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.dt-time-select,
+.lp-search select.dt-time-select,
+.trip-field-box select.dt-time-select {
+  flex: 0 0 auto !important;
+  width: 110px !important;
+  color: #0F172A !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  text-align: right !important;
+}
+
+.lp-search {
+  grid-template-columns: 1fr 1.35fr 1.35fr auto !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  padding: 16px !important;
+}
