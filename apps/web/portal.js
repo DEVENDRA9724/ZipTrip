@@ -3439,7 +3439,6 @@ async function host(tab, focusVehicleId) {
     <section id="host-section-fleet" hidden>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
         <p class="text-muted" style="margin:0">Manage your active fleet, availability calendar, and individual vehicle financial ledgers.</p>
-        <button type="button" class="button btn-outline btn-sm" id="fleet-bulk-import-btn" style="border-color:var(--brand);color:var(--brand);font-weight:700;">📥 Bulk Import Vehicles (CSV)</button>
       </div>
       ${vehicles.length ? `<div class="admin-vehicle-grid">` + vehicles.map(v => {
         return `
@@ -6587,81 +6586,7 @@ async function openVehicleLedgerModal(vehicleId) {
   }
 }
 
-function openBulkImportModal() {
-  showDialog(`
-    <div style="max-width:540px;">
-      <span class="badge brand">BULK VEHICLE ONBOARDING</span>
-      <h3 style="margin:8px 0 4px;">Bulk Import Vehicles (CSV)</h3>
-      <p class="text-muted" style="margin:0 0 16px;">Upload a CSV file containing your dealership fleet specifications.</p>
-      <div style="background:var(--bg-subtle);padding:14px;border-radius:10px;border:1px solid var(--border-main);margin-bottom:14px;">
-        <strong>Need the CSV Template?</strong>
-        <p class="text-muted" style="font-size:12px;margin:4px 0 10px;">Download our pre-formatted spreadsheet template with required columns.</p>
-        <button type="button" class="button btn-outline btn-sm" id="download-csv-template-btn">📥 Download Template CSV</button>
-      </div>
-      <form id="bulk-import-form" class="form-stack">
-        <label>Select CSV File
-          <input type="file" id="bulk-csv-input" accept=".csv,text/csv" required>
-        </label>
-        <div id="bulk-preview-box" hidden style="margin-top:10px;padding:12px;background:rgba(240,120,24,0.06);border-radius:8px;font-size:13px;"></div>
-        <button type="submit" class="button btn-orange" id="submit-bulk-btn" style="width:100%;justify-content:center;margin-top:12px;">Import Vehicles</button>
-      </form>
-    </div>
-  `);
 
-  $('#download-csv-template-btn').onclick = () => {
-    const csvContent = "make,model,year,registrationNumber,category,transmission,fuelType,seats,pricePerDay,odometer,chassisNumber,engineNumber,locationCity\n" +
-      "Hyundai,Creta SX,2024,GJ01AB1001,SUV,Automatic,Petrol,5,2800,12000,MALBA51BLM123456,G4LA123456,Ahmedabad\n" +
-      "Maruti,Swift ZXi,2023,GJ01CD2002,Hatchback,Manual,Petrol,5,1500,24000,MA3EW71S00123456,K12M123456,Ahmedabad";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = "safar-vehicles-template.csv";
-    a.click();
-  };
-
-  let parsedCars = [];
-  $('#bulk-csv-input').onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target.result;
-      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      if (lines.length < 2) {
-        toast('CSV must contain a header row and at least one vehicle row', true);
-        return;
-      }
-      const headers = lines[0].split(',').map(h => h.trim());
-      parsedCars = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim());
-        if (cols.length < headers.length) continue;
-        const car = {};
-        headers.forEach((h, idx) => { car[h] = cols[idx]; });
-        parsedCars.push(car);
-      }
-      const pbox = $('#bulk-preview-box');
-      pbox.hidden = false;
-      pbox.innerHTML = `<strong>Ready to import ${parsedCars.length} vehicle(s).</strong><br><span class="text-muted">Columns recognized: ${headers.join(', ')}</span>`;
-    };
-    reader.readAsText(file);
-  };
-
-  bindForm('#bulk-import-form', async () => {
-    if (!parsedCars.length) throw new Error('Please select a valid CSV with vehicle rows.');
-    $('#submit-bulk-btn').disabled = true;
-    try {
-      const res = await post('/vehicles/bulk-import', { cars: parsedCars });
-      $('dialog').close();
-      toast(`Successfully imported ${res.imported} vehicles! Now upload their photos and RC in My Fleet.`);
-      await host('fleet');
-    } catch (err) {
-      $('#submit-bulk-btn').disabled = false;
-      toast(err.message, true);
-    }
-  });
-}
 
 // Global hook: bind buttons when host page renders
 document.addEventListener('click', (e) => {
@@ -6673,11 +6598,6 @@ document.addEventListener('click', (e) => {
   const dossierBtn = e.target.closest('.customer-dossier-btn');
   if (dossierBtn) {
     openCustomerDossierModal(dossierBtn.dataset.id);
-    return;
-  }
-  const bulkBtn = e.target.closest('#fleet-bulk-import-btn');
-  if (bulkBtn) {
-    openBulkImportModal();
     return;
   }
   const addStaffBtn = e.target.closest('#open-add-staff-btn');

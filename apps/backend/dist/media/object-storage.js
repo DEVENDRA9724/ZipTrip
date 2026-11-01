@@ -52,7 +52,7 @@ const common_1 = require("@nestjs/common");
 const client_s3_1 = require("@aws-sdk/client-s3");
 function s3Settings(env = process.env) {
     return {
-        bucket: env.S3_BUCKET || env.AWS_S3_BUCKET || '',
+        bucket: env.S3_BUCKET || env.AWS_S3_BUCKET || 'zip-trip-s3-bucket',
         region: env.S3_REGION || env.AWS_REGION || 'ap-south-1',
         endpoint: env.S3_ENDPOINT || env.AWS_S3_ENDPOINT || undefined,
         forcePathStyle: env.S3_FORCE_PATH_STYLE === 'true',

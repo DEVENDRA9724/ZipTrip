@@ -11,6 +11,7 @@ enum Role {
   HOST
   DEALER
   ADMIN
+  EXECUTIVE
 }
 
 enum BookingStatus {
@@ -40,6 +41,7 @@ model User {
   firstName       String
   lastName        String
   role            Role      @default(CUSTOMER)
+  dealerId        String?
   isVerified      Boolean   @default(false)
   isBlocked       Boolean   @default(false)
   profileImage    String?
@@ -150,6 +152,8 @@ model Vehicle {
   images                   String      
   features                 String?
   vinNumber                String?       @unique
+  chassisNumber            String?
+  engineNumber             String?
   gpsDeviceImei            String?       @unique
   fuelLevelPercent         Int           @default(100)
   createdAt                DateTime      @default(now())
@@ -229,6 +233,11 @@ model Booking {
   dailyRate           Decimal       @default(0)
   rentalDays          Int           @default(1)
   includedKilometres  Int?
+  startOtp            String?
+  endOtp              String?
+  customerDocsVerifiedByHost Boolean @default(false)
+  handoverExecutiveId String?
+  returnExecutiveId   String?
   agreementVersion    String        @default("safarcars-car-sharing-v2")
   agreementSnapshot   String?
   agreementAcceptedAt DateTime?
