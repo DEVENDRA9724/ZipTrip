@@ -3186,3 +3186,168 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   gap: 12px !important;
   padding: 16px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PREMIUM ATTRACTIVE FOOTER & BIGGER BRAND LOGO ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* 1. Bigger & More Visible Brand Logo */
+.ds-brand-logo {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+  padding: 2px !important;
+  object-fit: contain !important;
+  transition: transform 0.2s ease !important;
+}
+.ds-brand:hover .ds-brand-logo {
+  transform: scale(1.06) !important;
+}
+.ds-brand-word {
+  font-size: 23px !important;
+  font-weight: 800 !important;
+}
+.ds-brand-word small {
+  font-size: 11px !important;
+  letter-spacing: 0.18em !important;
+}
+
+/* 2. Premium Attractive Footer Styling */
+footer.footer {
+  display: block !important;
+  background: linear-gradient(180deg, #2D0F44 0%, #1A0529 100%) !important;
+  color: #E9DDEA !important;
+  padding: 48px max(24px, calc((100vw - 1240px) / 2 + 24px)) 30px !important;
+  margin-top: auto !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Footer Trust Highlights Bar */
+.ds-foot-trust-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding-bottom: 34px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.foot-trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+.foot-trust-badge:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(232, 119, 34, 0.4);
+  transform: translateY(-2px);
+}
+.foot-trust-badge .trust-icon {
+  font-size: 26px;
+  flex: none;
+  line-height: 1;
+}
+.foot-trust-badge strong {
+  display: block;
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.foot-trust-badge small {
+  display: block;
+  font-size: 11.5px;
+  color: #CDB9CF;
+  font-weight: 500;
+}
+
+/* Footer Brand Lockup - Extra Prominent & High Contrast */
+.ds-foot-brand .ds-brand-logo {
+  width: 64px !important;
+  height: 64px !important;
+  border: 2.5px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+}
+.ds-foot-brand .ds-brand-word {
+  font-size: 27px !important;
+  color: #ffffff !important;
+}
+.ds-foot-brand .ds-brand-word small {
+  color: #F5D9A8 !important;
+  font-size: 11.5px !important;
+}
+
+/* Footer Link Columns */
+.ds-foot-grid {
+  display: grid !important;
+  grid-template-columns: 1.4fr repeat(3, 1fr) !important;
+  gap: 36px !important;
+}
+.ds-foot-grid h4 {
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  margin-bottom: 16px !important;
+  letter-spacing: -0.01em !important;
+}
+.ds-foot-grid a {
+  display: block !important;
+  color: #D8C8DA !important;
+  padding: 6px 0 !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+.ds-foot-grid a:hover {
+  color: #ffffff !important;
+  transform: translateX(4px) !important;
+  text-decoration: none !important;
+}
+
+/* Footer Bottom Bar */
+.ds-foot-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  margin-top: 38px !important;
+  padding-top: 20px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  flex-wrap: wrap !important;
+  font-size: 13px !important;
+  color: #CDB9CF !important;
+}
+.ds-foot-bottom a {
+  color: #D8C8DA !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease !important;
+}
+.ds-foot-bottom a:hover {
+  color: #ffffff !important;
+  text-decoration: underline !important;
+}
+
+@media (max-width: 820px) {
+  .ds-foot-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+  }
+  .ds-foot-brand {
+    grid-column: 1 / -1 !important;
+  }
+}
+@media (max-width: 520px) {
+  .ds-foot-trust-row {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .ds-foot-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

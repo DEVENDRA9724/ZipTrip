@@ -823,8 +823,8 @@ function bindTripScheduleStudioTriggers(root = document) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'open-studio-link';
-        btn.innerHTML = `${icon('calendar', 'ic-xs')} 2-Month View`;
-        btn.title = 'Open 2-Month Interactive Calendar & Time Slider';
+        btn.innerHTML = `${icon('calendar', 'ic-xs')} Calendar View`;
+        btn.title = 'Open Interactive Calendar & Time Slider';
         btn.addEventListener('click', () => openTripScheduleModal(cfg));
         lbl.appendChild(btn);
       }
@@ -1486,17 +1486,23 @@ function renderFooter() {
     COMPANY.address ? `<p style="margin:4px 0 0;font-size:12.5px">${esc(COMPANY.address)}</p>` : '',
   ].join('') || '<a href="contact.html">Contact Us</a>';
   footer.innerHTML = `
+    <div class="ds-foot-trust-row">
+      <div class="foot-trust-badge"><span class="trust-icon">🛡️</span><div><strong>100% Verified Fleet</strong><small>DigiLocker KYC & Handover Docs</small></div></div>
+      <div class="foot-trust-badge"><span class="trust-icon">⚡</span><div><strong>Instant Booking</strong><small>Zero Hidden Charges & Fast Refund</small></div></div>
+      <div class="foot-trust-badge"><span class="trust-icon">📍</span><div><strong>Doorstep Delivery</strong><small>Airport, Railway Station & Hubs</small></div></div>
+      <div class="foot-trust-badge"><span class="trust-icon">📞</span><div><strong>24/7 Roadside Support</strong><small>Dedicated Gujarat Assistance</small></div></div>
+    </div>
     <div class="ds-foot-grid">
       <div class="ds-foot-brand">
         ${brandLockup(true)}
-        <p style="margin-top:14px;max-width:320px">Verified self-drive car rentals with transparent pricing, documented vehicle handovers, and digital lease agreements.</p>
+        <p style="margin-top:16px;max-width:320px;line-height:1.6;font-size:13.5px;color:#D8C8DA">Gujarat's trusted self-drive car rental platform. Transparent daily pricing, documented 8-angle vehicle inspection, and instant digital lease agreements.</p>
       </div>
-      <div><h4>Book &amp; Drive</h4><a href="cars.html">Browse Fleet</a><a href="index.html#how-it-works">How It Works</a><a href="index.html#faq">Frequently Asked Questions</a></div>
-      <div><h4>Company &amp; Hosts</h4><a href="about.html">About Safar</a><a href="host-onboarding.html">List Your Car</a><a href="services.html">Mobility Services</a><a href="contact.html">Contact Us</a></div>
+      <div><h4>Book &amp; Drive</h4><a href="cars.html">Browse Fleet</a><a href="index.html#how-it-works">How It Works</a><a href="index.html#faq">Frequently Asked Questions</a><a href="calculator.html">Fare Calculator</a></div>
+      <div><h4>Company &amp; Hosts</h4><a href="about.html">About Safar</a><a href="host-onboarding.html">List Your Car (Host)</a><a href="services.html">Mobility Services</a><a href="contact.html">Contact &amp; Hubs</a></div>
       <div><h4>Customer Support</h4>${contact}</div>
     </div>
     <div class="ds-foot-bottom">
-      <span>© ${new Date().getFullYear()} ${esc(COMPANY.name)}. All rights reserved.</span>
+      <span>© ${new Date().getFullYear()} ${esc(COMPANY.name)}. All rights reserved. Crafted for smooth self-drive experiences.</span>
       <span><a href="index.html#policies" style="color:inherit">Terms &amp; Conditions</a> · <a href="index.html#policies" style="color:inherit">Privacy Policy</a> · <a href="index.html#policies" style="color:inherit">Cancellation &amp; Refund Policy</a></span>
     </div>`;
 }
@@ -1727,8 +1733,21 @@ async function home() {
     location.assign('cars.html?' + p);
   });
 
+  let all = [];
   try {
-    const all = await api('/vehicles');
+    all = await api('/vehicles');
+  } catch (e) {
+    if (PREVIEW_MODE && typeof PREVIEW_CARS !== 'undefined') {
+      all = PREVIEW_CARS.map(car => ({ ...car, status: 'ACTIVE', includedKilometresPerDay: 300, extraKmCharge: 12 }));
+    } else {
+      $('#fleet').innerHTML = loadError('Fleet unavailable', e.message, 'Reload fleet');
+      $('.retry-load-btn')?.addEventListener('click', () => home());
+      return;
+    }
+  }
+
+  try {
+    const _loaded = true;
     const listedCities = [...new Set(all.map(c => (c.locationCity || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     if (all.length) {
       $('#stat-cars').textContent = all.length >= 100 ? '100+' : String(all.length);
@@ -2394,9 +2413,17 @@ async function carDetails(id) {
       api('/vehicles').catch(() => []),
     ]);
   } catch (e) {
-    $('#app').innerHTML = `<p class="error">${esc(e.message)}</p>`;
-    return;
+    if (PREVIEW_MODE && typeof PREVIEW_CARS !== 'undefined') {
+      car = PREVIEW_CARS.find(c => String(c.id) === String(id)) || PREVIEW_CARS[0];
+      car = { ...car, status: 'ACTIVE', includedKilometresPerDay: 300, extraKmCharge: 12 };
+      similarCars = PREVIEW_CARS.filter(c => String(c.id) !== String(car.id));
+    } else {
+      $('#app').innerHTML = `<p class="error">${esc(e.message)}</p>`;
+      return;
+    }
   }
+
+  const todayStr = toLocalDateStr(new Date());
 
   const mediaList = (car.media || []).filter(m => PHOTO_ANGLES.includes(m.kind));
   const fallbackPhoto = photoUrl(car);
@@ -2839,7 +2866,6 @@ async function carDetails(id) {
     const bpEndParts = splitDateTimeParts(selectedDates.get('endDate'), 2, '10:00');
     const bpStartDate = $('#bp-start-date', form), bpStartTime = $('#bp-start-time', form);
     const bpEndDate = $('#bp-end-date', form), bpEndTime = $('#bp-end-time', form);
-    const todayStr = toLocalDateStr(new Date());
     bpStartDate.min = todayStr;
     bpStartDate.value = bpStartParts.date;
     bpStartTime.value = bpStartParts.time;
@@ -6621,3 +6647,5 @@ showHostSection = function(tab, vehicleId) {
     loadHostStaffList();
   }
 };
+
+
