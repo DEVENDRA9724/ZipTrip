@@ -1729,7 +1729,7 @@ async function home() {
   try {
     all = await api('/vehicles');
   } catch (e) {
-    if (PREVIEW_MODE && typeof PREVIEW_CARS !== 'undefined') {
+    if (typeof PREVIEW_CARS !== 'undefined' && PREVIEW_CARS.length) {
       all = PREVIEW_CARS.map(car => ({ ...car, status: 'ACTIVE', includedKilometresPerDay: 300, extraKmCharge: 12 }));
     } else {
       $('#fleet').innerHTML = loadError('Fleet unavailable', e.message, 'Reload fleet');
@@ -2389,7 +2389,7 @@ function applyCarFilters() {
       : `Showing ${list.length} Verified Self-Drive Car${list.length !== 1 ? 's' : ''}${citySuffix}`;
   const banner = preview ? `<div class="preview-banner" role="note" data-testid="preview-banner"><strong>Preview mode (local only).</strong> No cars are listed yet, so these sample cars show how the page will look. They aren't real listings and can't be booked; real cars appear here once an administrator approves them.</div>` : '';
   $('#fleet-grid').innerHTML = banner + (list.length
-    ? list.map(car => car.preview ? previewCard(car) : carCard(car)).join('')
+    ? list.map(car => carCard(car)).join('')
     : empty('No cars match your current filters', 'Click "Reset All" in the filter panel or switch city to see all available vehicles.'));
 }
 
@@ -6113,27 +6113,45 @@ async function main() {
   await Promise.all([api('/auth/profile').then(u => { user = u; }).catch(() => {}), loadCompany()]);
   shell();
 
-  const routes = {
-    'index.html': home,
-    'auth.html': auth,
-    'cars.html': cars,
-    'host-onboarding.html': host,
-    'dashboard.html': dashboard,
-    'kyc.html': kyc,
-    'admin.html': adminPage,
-    'invoice.html': invoice,
-    'payment.html': dashboard,
-    'agreement.html': agreement,
-    'host-agreement.html': hostAgreement,
-    // No GPS/telematics provider or tracking API exists, so this page states that plainly instead of promising it.
-    'tracking.html': () => {
-      $('#app').innerHTML = sectionHead('Vehicle Tracking', 'Live vehicle tracking is not available.') +
-        '<div class="notice" data-testid="tracking-unavailable">Safar does not offer live location tracking. Trip start and end are recorded through the pickup and return inspections on your bookings.</div>' +
-        '<div class="actions"><a class="button" href="dashboard.html">Go to my bookings</a></div>';
-    },
+  const trackingPage = () => {
+    $('#app').innerHTML = sectionHead('Vehicle Tracking', 'Live vehicle tracking is not available.') +
+      '<div class="notice" data-testid="tracking-unavailable">Safar does not offer live location tracking. Trip start and end are recorded through the pickup and return inspections on your bookings.</div>' +
+      '<div class="actions"><a class="button" href="dashboard.html">Go to my bookings</a></div>';
   };
 
-  try { await (routes[page] || home)(); }
+  const routes = {
+    '': home,
+    'index': home,
+    'index.html': home,
+    'auth': auth,
+    'auth.html': auth,
+    'cars': cars,
+    'cars.html': cars,
+    'host-onboarding': host,
+    'host-onboarding.html': host,
+    'dashboard': dashboard,
+    'dashboard.html': dashboard,
+    'kyc': kyc,
+    'kyc.html': kyc,
+    'admin': adminPage,
+    'admin.html': adminPage,
+    'invoice': invoice,
+    'invoice.html': invoice,
+    'payment': dashboard,
+    'payment.html': dashboard,
+    'agreement': agreement,
+    'agreement.html': agreement,
+    'host-agreement': hostAgreement,
+    'host-agreement.html': hostAgreement,
+    'tracking': trackingPage,
+    'tracking.html': trackingPage,
+  };
+
+  const cleanPageName = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  const basePageName = cleanPageName.replace(/\.html$/, '');
+  const activeRoute = routes[cleanPageName] || routes[basePageName] || home;
+
+  try { await activeRoute(); }
   catch (e) {
     $('#app').innerHTML = `
       <div class="error" role="alert">${esc(e.message)}</div>
