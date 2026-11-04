@@ -3351,3 +3351,5 @@ footer.footer {
     grid-template-columns: 1fr !important;
   }
 }
+
+.open-studio-link { display: none !important; }

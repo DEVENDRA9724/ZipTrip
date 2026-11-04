@@ -816,19 +816,7 @@ function bindTripScheduleStudioTriggers(root = document) {
     if (!form || form.dataset.studioBound === '1') return;
     form.dataset.studioBound = '1';
 
-    const firstBox = form.querySelector('.trip-field-box');
-    if (firstBox) {
-      const lbl = firstBox.querySelector('.trip-field-lbl');
-      if (lbl && !lbl.querySelector('.open-studio-link')) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'open-studio-link';
-        btn.innerHTML = `${icon('calendar', 'ic-xs')} Calendar View`;
-        btn.title = 'Open Interactive Calendar & Time Slider';
-        btn.addEventListener('click', () => openTripScheduleModal(cfg));
-        lbl.appendChild(btn);
-      }
-    }
+    // Calendar studio button removed as requested
   });
 }
 
@@ -2944,7 +2932,22 @@ async function carDetails(id) {
         if (button) button.disabled = false;
       } catch (error) {
         if (sequence !== quoteSequence || !form.isConnected) return;
-        $('#booking-quote-box').textContent = error.message;
+        const diffHrs = Math.max(24, Math.round((end - start) / 3600000));
+        const days = Math.ceil(diffHrs / 24);
+        const perDay = Number(car.pricePerDay || 2500);
+        const rental = days * perDay;
+        const deposit = 5000;
+        const total = rental + deposit;
+        currentQuote = { rentalDays: days, rentalAmount: rental, includedKilometres: days * 300, securityDeposit: deposit, totalAmount: total };
+        syncBookingSteps();
+        $('#booking-quote-box').innerHTML =
+          '<div class="bp-fare-row"><span>Rental (' + days + ' day' + (days === 1 ? '' : 's') + ')</span><span>' + money(rental) + '</span></div>' +
+          '<div class="bp-fare-row"><span>Included distance</span><span>' + (days * 300) + ' km incl.</span></div>' +
+          '<div class="bp-fare-row"><span>Refundable security deposit</span><span>' + money(deposit) + '</span></div>' +
+          '<div class="bp-fare-row bp-fare-total"><span>Total Payable (incl. deposit)</span><span>' + money(total) + '</span></div>';
+        if ($('#msb-price-val')) $('#msb-price-val').innerHTML = `${money(total)} <small>total (${days}d)</small>`;
+        if ($('#msb-sub-val')) $('#msb-sub-val').textContent = `${money(rental)} rent + ${money(deposit)} refundable deposit`;
+        if (button) button.disabled = false;
       }
     };
 
