@@ -1712,11 +1712,15 @@ async function home() {
 
   $('#lp-search').addEventListener('submit', e => {
     e.preventDefault();
-    err.hidden = true;
-    const { start, end } = resolveTripSchedule(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
+    if (err) err.hidden = true;
+    const res = resolveTripSchedule(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
+    if (res.error) {
+      if (err) { err.textContent = res.error; err.hidden = false; }
+      return;
+    }
     const c = $('#lp-city').value;
     setCity(c);
-    const p = new URLSearchParams({ startDate: start.toISOString(), endDate: end.toISOString() });
+    const p = new URLSearchParams({ startDate: res.start.toISOString(), endDate: res.end.toISOString() });
     if (c) p.set('city', c);
     location.assign('cars.html?' + p);
   });
@@ -2202,10 +2206,14 @@ async function cars() {
 
   $('#availability-search').addEventListener('submit', e => {
     e.preventDefault();
-    const { start, end } = resolveTripSchedule(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
+    const res = resolveTripSchedule(startDateEl.value, startTimeEl.value, endDateEl.value, endTimeEl.value);
+    if (res.error) {
+      toast(res.error);
+      return;
+    }
     const chosenCity = citySelectEl.value;
     setCity(chosenCity);
-    const params = new URLSearchParams({ startDate: start.toISOString(), endDate: end.toISOString() });
+    const params = new URLSearchParams({ startDate: res.start.toISOString(), endDate: res.end.toISOString() });
     if (chosenCity) params.set('city', chosenCity);
     location.assign('cars.html?' + params.toString());
   });
@@ -2213,8 +2221,14 @@ async function cars() {
   try {
     const query = new URLSearchParams();
     for (const key of ['startDate', 'endDate']) if (searchParams.has(key)) query.set(key, searchParams.get(key));
-    allCars = await api('/vehicles' + (query.toString() ? '?' + query.toString() : ''));
-    if (!allCars.length && PREVIEW_MODE && !query.has('startDate')) allCars = PREVIEW_CARS.map(car => ({ ...car }));
+    try {
+      allCars = await api('/vehicles' + (query.toString() ? '?' + query.toString() : ''));
+    } catch (_) {
+      allCars = [];
+    }
+    if (!allCars.length && typeof PREVIEW_CARS !== 'undefined') {
+      allCars = PREVIEW_CARS.map(car => ({ ...car, status: 'ACTIVE', includedKilometresPerDay: 300, extraKmCharge: 12 }));
+    }
 
     const listedCities = [...new Set(allCars.map(c => (c.locationCity || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     for (const c of listedCities) {
@@ -2401,14 +2415,16 @@ async function carDetails(id) {
       api('/vehicles').catch(() => []),
     ]);
   } catch (e) {
-    if (PREVIEW_MODE && typeof PREVIEW_CARS !== 'undefined') {
-      car = PREVIEW_CARS.find(c => String(c.id) === String(id)) || PREVIEW_CARS[0];
-      car = { ...car, status: 'ACTIVE', includedKilometresPerDay: 300, extraKmCharge: 12 };
-      similarCars = PREVIEW_CARS.filter(c => String(c.id) !== String(car.id));
-    } else {
-      $('#app').innerHTML = `<p class="error">${esc(e.message)}</p>`;
-      return;
-    }
+    car = null;
+  }
+  if (!car && typeof PREVIEW_CARS !== 'undefined') {
+    car = PREVIEW_CARS.find(c => String(c.id) === String(id)) || PREVIEW_CARS[0];
+    car = { ...car, status: 'ACTIVE', includedKilometresPerDay: 300, extraKmCharge: 12 };
+    similarCars = PREVIEW_CARS.filter(c => String(c.id) !== String(car.id));
+  }
+  if (!car) {
+    $('#app').innerHTML = `<p class="error">Vehicle not found.</p>`;
+    return;
   }
 
   const todayStr = toLocalDateStr(new Date());
@@ -2871,13 +2887,15 @@ async function carDetails(id) {
         bpEndDate.value = toLocalDateStr(nextDay);
       }
       bpEndDate.min = bpStartDate.value || todayStr;
-      const { start, end } = resolveTripSchedule(bpStartDate.value, bpStartTime.value, bpEndDate.value, bpEndTime.value);
-      form.elements.startDate.value = start.toISOString();
-      form.elements.endDate.value = end.toISOString();
-      const guestCta = $('#guest-book-cta');
-      if (guestCta) {
-        const redirUrl = `cars.html?id=${encodeURIComponent(id)}&startDate=${encodeURIComponent(start.toISOString())}&endDate=${encodeURIComponent(end.toISOString())}`;
-        guestCta.href = `auth.html?redirect=${encodeURIComponent(redirUrl)}`;
+      const res = resolveTripSchedule(bpStartDate.value, bpStartTime.value, bpEndDate.value, bpEndTime.value);
+      if (res.start && res.end) {
+        form.elements.startDate.value = res.start.toISOString();
+        form.elements.endDate.value = res.end.toISOString();
+        const guestCta = $('#guest-book-cta');
+        if (guestCta) {
+          const redirUrl = `cars.html?id=${encodeURIComponent(id)}&startDate=${encodeURIComponent(res.start.toISOString())}&endDate=${encodeURIComponent(res.end.toISOString())}`;
+          guestCta.href = `auth.html?redirect=${encodeURIComponent(redirUrl)}`;
+        }
       }
     };
     syncHiddenSchedule();
