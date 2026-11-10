@@ -230,6 +230,35 @@ async function seed() {
     },
   });
 
+  const dealerPasswordHash = await bcrypt.hash('Dealer@12345678', 12);
+  const dealerUser = await prisma.user.upsert({
+    where: { email: 'dealer@safar.com' },
+    update: { username: 'maru_dealer_fleet', isVerified: true, role: 'DEALER', passwordHash: dealerPasswordHash },
+    create: {
+      username: 'maru_dealer_fleet',
+      email: 'dealer@safar.com',
+      firstName: 'Maru',
+      lastName: 'Dealership Fleet',
+      phone: '+919876543299',
+      role: 'DEALER',
+      isVerified: true,
+      passwordHash: dealerPasswordHash,
+      wallet: { create: { balance: 45000.0 } },
+      profile: {
+        create: {
+          firstName: 'Maru',
+          lastName: 'Dealership Fleet',
+          city: 'Ahmedabad',
+          state: 'Gujarat',
+          postalCode: '380015',
+          panNumberHash: sha256Hex('ABCDE5678G'),
+          panNumberMasked: 'XXXXXX678G',
+          isKycVerified: true,
+        },
+      },
+    },
+  });
+
   const custPasswordHash = await bcrypt.hash('Customer@12345678', 12);
   const dlExpiry = new Date('2029-12-31T23:59:59Z');
   const customer = await prisma.user.upsert({
@@ -804,6 +833,7 @@ async function seed() {
   console.log('  ✅ ENTERPRISE POSTGRESQL + S3 DATABASE READY!       ');
   console.log('======================================================');
   console.log('  Admin Login:    admin@safar.com    / Admin@12345678');
+  console.log('  Dealer Login:   dealer@safar.com   / Dealer@12345678');
   console.log('  Host Login:     host@safar.com     / Host@12345678');
   console.log('  Customer Login: customer@safar.com / Customer@12345678');
   console.log('======================================================\n');

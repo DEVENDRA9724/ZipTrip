@@ -49,11 +49,25 @@ async function bootstrap() {
   }
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
   app.setGlobalPrefix('api');
+  app.set('trust proxy', true);
   // Payment gateways sign the exact raw JSON body. Parse this callback before
   // the normal JSON middleware so the webhook can verify the signature.
   app.use('/api/payments/webhook', raw({ type: 'application/json', limit: '100kb' }));
   app.use(json({ limit: '100kb' }));
-  const origins = (process.env.WEB_ORIGIN || 'http://localhost:3000').split(',').map(v => v.trim());
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://safarselfdrive.com',
+    'http://safarselfdrive.com',
+    'https://www.safarselfdrive.com',
+    'http://www.safarselfdrive.com',
+    'http://65.0.61.233',
+    'https://65.0.61.233'
+  ];
+  const origins = Array.from(new Set([
+    ...defaultOrigins,
+    ...(process.env.WEB_ORIGIN ? process.env.WEB_ORIGIN.split(',').map(v => v.trim()) : [])
+  ]));
   app.enableCors({ origin: origins, credentials: true });
   const attempts = new Map<string, { count: number; until: number }>();
   app.use((req: any, res: any, next: any) => {
@@ -69,8 +83,18 @@ async function bootstrap() {
     if (req.path.startsWith('/api') || req.path.endsWith('.css') || req.path.endsWith('.js') || req.path.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
-    const reqHostOrigin = req.headers.host ? `${req.headers['x-forwarded-proto'] || req.protocol || 'http'}://${req.headers.host}` : '';
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers.origin && !origins.includes(req.headers.origin) && req.headers.origin !== reqHostOrigin) return res.status(403).json({ message: 'Origin not allowed' });
+    const reqHost = (req.headers.host || '').split(':')[0].toLowerCase();
+    let originHost = '';
+    if (req.headers.origin) {
+      try { originHost = new URL(req.headers.origin).hostname.toLowerCase(); } catch {}
+    }
+    const isAllowedOrigin = !req.headers.origin ||
+      origins.includes(req.headers.origin) ||
+      (originHost && (originHost === reqHost || originHost === 'safarselfdrive.com' || originHost.endsWith('.safarselfdrive.com') || originHost === 'localhost' || originHost === '127.0.0.1'));
+
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !isAllowedOrigin) {
+      return res.status(403).json({ message: 'Origin not allowed' });
+    }
     if (/^\/api\/(auth|kyc|media)/.test(req.path) && req.method === 'POST') {
       const now = Date.now();
       for (const [key, value] of attempts) if (value.until < now) attempts.delete(key);
