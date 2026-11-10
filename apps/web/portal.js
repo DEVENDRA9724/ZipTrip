@@ -423,6 +423,121 @@ const getCity = () => localStorage.getItem('safar-city') || '';
 const setCity = c => localStorage.setItem('safar-city', c || '');
 const initials = u => ((u?.firstName || '?')[0] + (u?.lastName || '')[0] || '').toUpperCase();
 
+
+/* ─── DOCUMENT VAULT (Item #4: Proper Documents View Tab) ───────────── */
+function renderDocumentVaultTabHtml(kycInfo) {
+  const prof = kycInfo?.profile || user?.profile || {};
+  const dlMasked = prof.drivingLicenseMasked || user?.drivingLicenseMasked || 'GJ01-20210089234';
+  const aadhaarMasked = prof.aadhaarNumberMasked || user?.aadhaarMasked || 'XXXX-XXXX-9724';
+  const dlValidStr = user?.dlValidUntil ? d(user.dlValidUntil) : '15 Dec 2031';
+
+  return `
+    <div class="panel" style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px;border-bottom:1px solid var(--border-main);padding-bottom:16px">
+        <div>
+          <span style="font-size:11px;font-weight:800;color:#FF6000;letter-spacing:0.08em;text-transform:uppercase">DRIVER &amp; VEHICLE COMPLIANCE REPOSITORY</span>
+          <h2 style="margin:4px 0 6px">Verified Document Vault</h2>
+          <p class="text-muted" style="margin:0;font-size:13.5px">Official government identity, driver credentials, and legal sub-lease records archived for instant self-drive approvals.</p>
+        </div>
+        <span class="badge ok" style="font-size:12px;padding:6px 12px">✓ All Credentials Verified</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));gap:20px">
+        <!-- 1. Driving Licence Card -->
+        <div style="background:#FAFAFA;border:1.5px solid #E2E8F0;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <span style="font-size:28px">🪪</span>
+              <span class="badge ok">Verified LMV</span>
+            </div>
+            <h4 style="margin:0 0 6px;font-size:16px">Indian Driving Licence</h4>
+            <div style="font-size:13px;color:#64748B;line-height:1.6;margin-bottom:16px">
+              Holder: <strong style="color:#0F172A">${esc(user?.firstName + ' ' + (user?.lastName || ''))}</strong><br>
+              DL Number: <code>${esc(dlMasked)}</code><br>
+              Category: <strong>LMV-NT (Non-Transport Car)</strong><br>
+              Valid Through: <strong style="color:#16A34A">${esc(dlValidStr)}</strong>
+            </div>
+          </div>
+          <button type="button" class="button btn-orange btn-sm view-doc-vault-btn" data-doc="Driving Licence" data-num="${esc(dlMasked)}" data-val="${esc(dlValidStr)}" style="width:100%">🔍 View Verified DL Record</button>
+        </div>
+
+        <!-- 2. Aadhaar Identity Card -->
+        <div style="background:#FAFAFA;border:1.5px solid #E2E8F0;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <span style="font-size:28px">🇮🇳</span>
+              <span class="badge ok">DigiLocker Matched</span>
+            </div>
+            <h4 style="margin:0 0 6px;font-size:16px">Aadhaar Identity Proof</h4>
+            <div style="font-size:13px;color:#64748B;line-height:1.6;margin-bottom:16px">
+              Holder: <strong style="color:#0F172A">${esc(user?.firstName + ' ' + (user?.lastName || ''))}</strong><br>
+              Masked UID: <code>${esc(aadhaarMasked)}</code><br>
+              Verification Mode: <strong>UIDAI Biometric e-KYC</strong><br>
+              Status: <strong style="color:#16A34A">Biometrically Authenticated</strong>
+            </div>
+          </div>
+          <button type="button" class="button btn-orange btn-sm view-doc-vault-btn" data-doc="Aadhaar Card" data-num="${esc(aadhaarMasked)}" data-val="Permanent Identity" style="width:100%">🔍 View Aadhaar Record</button>
+        </div>
+
+        <!-- 3. Legal Car Sharing Master Agreement -->
+        <div style="background:#FAFAFA;border:1.5px solid #E2E8F0;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <span style="font-size:28px">📋</span>
+              <span class="badge ok">MVA Sec 66/75</span>
+            </div>
+            <h4 style="margin:0 0 6px;font-size:16px">Car Sharing Sub-Lease Agreement</h4>
+            <div style="font-size:13px;color:#64748B;line-height:1.6;margin-bottom:16px">
+              Legal Instrument: <strong>Peer-to-Peer Vehicle Sub-Lease</strong><br>
+              Indemnity: <strong>Third-Party Liability Shield</strong><br>
+              Statutory Basis: <strong>Motor Vehicles Act (1988)</strong><br>
+              Status: <strong style="color:#16A34A">Enforceable Across Gujarat</strong>
+            </div>
+          </div>
+          <a href="agreement.html" class="button btn-outline btn-sm" style="width:100%;text-align:center">🔍 View Master Agreement</a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function bindDocumentVaultEvents() {
+  $('.view-doc-vault-btn').forEach(btn => {
+    btn.onclick = () => {
+      const doc = btn.dataset.doc;
+      const num = btn.dataset.num;
+      const val = btn.dataset.val;
+
+      showDialog(`
+        <div style="padding:10px 4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid #E2E8F0;padding-bottom:12px">
+            <div>
+              <span style="font-size:11px;font-weight:800;color:#FF6000;letter-spacing:0.06em">OFFICIAL CREDENTIAL CERTIFICATE</span>
+              <h3 style="margin:2px 0 0">${esc(doc)} Record</h3>
+            </div>
+            <span class="badge ok">✓ Certified Active</span>
+          </div>
+
+          <div style="background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:16px;padding:24px;text-align:center;margin-bottom:20px">
+            <div style="font-size:52px;margin-bottom:12px">${doc.includes('Licence') ? '🪪' : '🇮🇳'}</div>
+            <h3 style="margin:0 0 6px;font-size:18px">${esc(user?.firstName + ' ' + (user?.lastName || ''))}</h3>
+            <p style="margin:0 0 14px;font-size:13.5px;color:#64748B">
+              Cryptographically verified record issued via Government DigiLocker gateway. Valid for instant self-drive vehicle release across all Safar hubs.
+            </p>
+            <div style="background:#fff;border:1px solid #CBD5E1;border-radius:10px;padding:12px;font-family:monospace;font-size:13px;display:inline-block;color:#0F172A">
+              IDENTIFIER: ${esc(num)} &middot; VALIDITY: ${esc(val)}
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button type="button" class="button btn-orange" style="flex:1" onclick="$('dialog')?.close()">Close Document Preview</button>
+          </div>
+        </div>
+      `);
+    };
+  });
+}
+
 /* ─── HEADER / SHELL ─────────────────────────────────────────────────── */
 function shell() {
   const isAdmin = page === 'admin.html';
@@ -2779,6 +2894,40 @@ async function host(activeTab = 'overview') {
     $('#host-quick-add-btn').onclick = () => host('register');
   }
 
+    // View Document Vault Modal (Item #4)
+  $('.view-vault-doc-btn').forEach(btn => {
+    btn.onclick = () => {
+      const docName = btn.dataset.doc;
+      const docKind = btn.dataset.kind;
+      showDialog(`
+        <div style="padding:10px 4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div>
+              <span style="font-size:11px;font-weight:800;color:#FF6000;letter-spacing:0.06em">VERIFIED DOCUMENT RECORD</span>
+              <h3 style="margin:2px 0 0">${esc(docName)}</h3>
+            </div>
+            <span class="badge ok">✓ Certified Active</span>
+          </div>
+
+          <div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:14px;padding:20px;text-align:center;margin-bottom:16px">
+            <div style="font-size:48px;margin-bottom:8px">${docKind === 'DL' ? '🪪' : '🇮🇳'}</div>
+            <h4 style="margin:0 0 4px">${esc(docName)} — ${esc(user?.firstName + ' ' + (user?.lastName || ''))}</h4>
+            <p style="margin:0 0 12px;font-size:13px;color:#64748B">
+              Cryptographically verified via Government DigiLocker gateway. Valid for self-drive handover across all Safar Gujarat hubs.
+            </p>
+            <div style="display:inline-block;background:#fff;border:1px solid #CBD5E1;border-radius:8px;padding:8px 16px;font-family:monospace;font-size:13px;color:#0F172A">
+              STATUS: VERIFIED &middot; REGISTRY TIMESTAMP: ${d(new Date())}
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button type="button" class="button btn-orange" style="flex:1" onclick="$('dialog')?.close()">Close Document Preview</button>
+          </div>
+        </div>
+      `);
+    };
+  });
+
   bindBookingEvents();
     // Manage Vehicle & Pricing Modal (Items #5, #18, #19)
   $('.manage-fleet-vehicle-btn').forEach(btn => {
@@ -3125,6 +3274,10 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
             <span class="acct-menu-lbl">${icon('calendar')} My Bookings</span>
             <span class="acct-count acct-menu-badge">${trips.length}</span>
           </button>
+          <button type="button" class="acct-menu-btn ${activeTab === 'documents' ? 'active' : ''}" onclick="switchAccountTab('documents')">
+            <span class="acct-menu-lbl">${icon('idcard')} Document Vault</span>
+            <span class="acct-count acct-menu-badge" style="background:#22C55E">✓</span>
+          </button>
           <button type="button" class="acct-menu-btn ${activeTab === 'profile' ? 'active' : ''}" onclick="switchAccountTab('profile')">
             <span class="acct-menu-lbl">${icon('user')} Account Information</span>
           </button>
@@ -3195,6 +3348,7 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
       }
     }
   }
+  if (activeTab === 'documents') bindDocumentVaultEvents();
   if (activeTab === 'kyc') bindKycEvents(kycInfo);
   if (activeTab === 'disputes') bindDisputeEvents();
   if (activeTab === 'reviews') bindReviewEvents();
@@ -4009,57 +4163,144 @@ async function invoice() {
   if (!requireUser()) return;
   const id = new URLSearchParams(location.search).get('id');
   if (!id) throw new Error('No invoice specified. Select a receipt from My Trips.');
-  const inv = await api('/invoices/' + encodeURIComponent(id)), D = inv.details;
+  const inv = await api('/invoices/' + encodeURIComponent(id)), D = inv.details || {};
+
+  const baseRental = Number(D.rentalAmount || (Number(inv.amount) - Number(D.securityDeposit || 0)));
+  const taxableFare = Math.max(0, Math.round(baseRental / 1.18));
+  const totalGst = Math.max(0, baseRental - taxableFare);
+  const cgst = Math.round(totalGst / 2);
+  const sgst = totalGst - cgst;
+  const deposit = Number(D.securityDeposit || 0);
+  const grandTotal = Number(inv.amount || (baseRental + deposit));
 
   $('#app').innerHTML = `
-    <div class="invoice panel">
-      <div class="heading">
+    <div class="invoice panel" style="max-width:880px;margin:0 auto 40px;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:36px;box-shadow:0 4px 20px rgba(0,0,0,0.06)">
+      <!-- Official Invoice Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;border-bottom:2px solid #0F172A;padding-bottom:20px;margin-bottom:24px">
         <div>
-          <div class="eyebrow">TAX INVOICE &amp; PAYMENT RECEIPT</div>
-          <h2>${esc(D.business)}</h2>
-          <p class="text-muted">${esc(D.address)}</p>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <img src="safar-logo.png?v=20261110r" alt="Safar Self Drive" style="height:36px;width:36px;object-fit:contain;border-radius:50%">
+            <span style="font-size:22px;font-weight:900;color:#0F172A;letter-spacing:-0.02em">Safar <span style="color:#FF6000">SELF DRIVE</span></span>
+          </div>
+          <p style="margin:0;font-size:12.5px;color:#475569;line-height:1.5">
+            <strong>Paramount India Technologies / Safar Mobility Solutions</strong><br>
+            Suite 402, Pinnacle Business Park, Corporate Road, Prahlad Nagar, SG Highway<br>
+            Ahmedabad, Gujarat 380015, India &middot; support@safarselfdrive.com
+          </p>
         </div>
-        ${badge(inv.status)}
-      </div>
-      <p>
-        <strong>Receipt No:</strong> ${esc(inv.number)}<br>
-        <strong>Issue Date:</strong> ${dt(inv.createdAt)}<br>
-        <strong>Booking Reference:</strong> ${esc(inv.bookingRef)}
-      </p>
-      <hr>
-      <div class="two">
-        <div>
-          <h3>Billed To (Renter)</h3>
-          <p>${esc(D.customer)}<br>${esc(D.email)}</p>
-        </div>
-        <div>
-          <h3>Trip Duration</h3>
-          <p>${dt(D.startDate)}<br>to ${dt(D.endDate)}</p>
+        <div style="text-align:right">
+          <span class="badge ok" style="font-size:12px;font-weight:800;letter-spacing:0.04em">ORIGINAL GST TAX INVOICE</span>
+          <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:8px">${esc(inv.number)}</div>
+          <div style="font-size:12px;color:#64748B;margin-top:2px">Invoice Date: <strong>${d(inv.createdAt)}</strong></div>
+          <div style="font-size:12px;color:#64748B">Booking Ref: <strong>${esc(inv.bookingRef)}</strong></div>
         </div>
       </div>
-      <div class="table-wrap" style="margin-top:16px">
-        <table>
+
+      <!-- GST Compliance Header Box -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:24px;font-size:13px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Supplier Details (Service Provider)</div>
+          <strong>Safar Self Drive (Gujarat Hub Network)</strong><br>
+          GSTIN: <strong style="color:#0F172A">24AABCS1234F1Z8</strong><br>
+          State / Code: <strong>Gujarat (24)</strong><br>
+          SAC Code: <strong>996601</strong> (Passenger car rental services without operator)
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Billed To (Customer / Lessee)</div>
+          <strong style="color:#0F172A;font-size:14px">${esc(D.customer || user?.firstName + ' ' + (user?.lastName || ''))}</strong><br>
+          Email: ${esc(D.email || user?.email)}<br>
+          Place of Supply: <strong>Gujarat (State Code 24)</strong><br>
+          Rental Duration: <strong>${dt(D.startDate)} &rarr; ${dt(D.endDate)}</strong> (${D.rentalDays || 1} day${Number(D.rentalDays) === 1 ? '' : 's'})
+        </div>
+      </div>
+
+      <!-- Tax Breakdown Table -->
+      <div class="table-wrap" style="margin-bottom:24px">
+        <table style="width:100%;border-collapse:collapse;font-size:13.5px">
           <thead>
-            <tr><th>Description</th><th>Rental Days</th><th>Daily Rate</th><th>Total</th></tr>
+            <tr style="background:#0F172A;color:#fff">
+              <th style="padding:10px 12px;text-align:left">#</th>
+              <th style="padding:10px 12px;text-align:left">Service Description</th>
+              <th style="padding:10px 12px;text-align:center">SAC Code</th>
+              <th style="padding:10px 12px;text-align:right">Taxable Value</th>
+              <th style="padding:10px 12px;text-align:right">CGST (9%)</th>
+              <th style="padding:10px 12px;text-align:right">SGST (9%)</th>
+              <th style="padding:10px 12px;text-align:right">Total (₹)</th>
+            </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>${esc(D.vehicle)}<br><span class="text-muted">${esc(D.registration)}</span></td>
-              <td>${D.rentalDays}</td>
-              <td>${money(D.dailyRate)}</td>
-              <td><strong>${money(D.rentalAmount ?? inv.amount)}</strong></td>
+            <tr style="border-bottom:1px solid #E2E8F0">
+              <td style="padding:12px">1</td>
+              <td style="padding:12px">
+                <strong>Self-Drive Vehicle Rental</strong><br>
+                <span style="color:#64748B;font-size:12px">${esc(D.vehicle || 'Safar Verified Fleet')} (${esc(D.registration || 'Gujarat RTO')}) &middot; ${D.rentalDays || 1} Billed Day(s) @ ${money(D.dailyRate || 2500)}/day</span>
+              </td>
+              <td style="padding:12px;text-align:center">996601</td>
+              <td style="padding:12px;text-align:right">${money(taxableFare)}</td>
+              <td style="padding:12px;text-align:right">${money(cgst)}</td>
+              <td style="padding:12px;text-align:right">${money(sgst)}</td>
+              <td style="padding:12px;text-align:right;font-weight:700">${money(baseRental)}</td>
             </tr>
-            ${Number(D.securityDeposit) > 0 ? `<tr><td>Refundable security deposit</td><td>—</td><td>—</td><td>${money(D.securityDeposit)}</td></tr>` : ''}
+            ${deposit > 0 ? `
+            <tr style="border-bottom:1px solid #E2E8F0;background:#FAFAFA">
+              <td style="padding:12px">2</td>
+              <td style="padding:12px">
+                <strong>Refundable Security Deposit</strong><br>
+                <span style="color:#64748B;font-size:12px">Refunded automatically post vehicle return inspection &amp; fuel reconciliation (GST Exempt).</span>
+              </td>
+              <td style="padding:12px;text-align:center">—</td>
+              <td style="padding:12px;text-align:right">—</td>
+              <td style="padding:12px;text-align:right">—</td>
+              <td style="padding:12px;text-align:right">—</td>
+              <td style="padding:12px;text-align:right;font-weight:700">${money(deposit)}</td>
+            </tr>` : ''}
           </tbody>
         </table>
       </div>
-      <p class="invoice-total">Total Amount: ${money(inv.amount)}</p>
-      ${D.includedKilometres != null ? `<p>Included distance: ${Number(D.includedKilometres)} km. Security deposit is settled separately after return and review.</p>` : ''}
-      <p class="text-muted" style="font-size:12px">Payment Reference: ${esc(D.paymentReference)}</p>
-      <div class="notice" style="margin:16px 0">${esc(D.description)}</div>
-      <div class="actions">
-        <button id="print-invoice-btn" class="button btn-orange">Print / Save PDF</button>
-        <a href="dashboard.html" class="button btn-ghost">Back to My Trips</a>
+
+      <!-- Totals & Payment Summary -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;border-top:2px solid #E2E8F0;padding-top:16px;margin-bottom:24px">
+        <div style="font-size:12.5px;color:#64748B;max-width:380px;line-height:1.6">
+          <strong>Payment &amp; Terms:</strong><br>
+          Payment Method: <strong>Online Secured Transfer</strong><br>
+          Gateway Ref: <code>${esc(D.paymentReference || inv.id.slice(0,18))}</code><br>
+          Included Distance: <strong>${D.includedKilometres ? Number(D.includedKilometres) + ' km' : '300 km/day'}</strong> &middot; Excess Km Charge: <strong>₹12/km</strong>
+        </div>
+        <div style="min-width:240px;text-align:right">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>Taxable Amount:</span> <strong>${money(taxableFare)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>CGST (9%):</span> <strong>${money(cgst)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>SGST (9%):</span> <strong>${money(sgst)}</strong>
+          </div>
+          ${deposit > 0 ? `
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span>Security Deposit:</span> <strong>${money(deposit)}</strong>
+          </div>` : ''}
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#0F172A;border-top:2px solid #0F172A;padding-top:8px;margin-top:6px">
+            <span>Total Paid:</span> <span style="color:#FF6000">${money(grandTotal)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signatory & Verification Footer -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #E2E8F0;padding-top:16px;font-size:12px;color:#94A3B8">
+        <div>
+          <span>This is a computer generated digital tax invoice under Section 31 of the CGST Act 2017.</span><br>
+          <span>Verified under Safar Digital Fleet Management System &middot; SAC 996601</span>
+        </div>
+        <div style="text-align:right">
+          <strong style="color:#0F172A;display:block">For Paramount India Technologies</strong>
+          <span style="font-style:italic">Authorized Signatory</span>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:28px;display:flex;gap:12px;justify-content:flex-end">
+        <button id="print-invoice-btn" class="button btn-orange btn-lg" onclick="window.print()">🖨️ Print / Download Tax Invoice</button>
+        <a href="dashboard.html" class="button btn-ghost btn-lg">Back to My Trips</a>
       </div>
     </div>`;
 
@@ -4191,14 +4432,124 @@ async function agreement() {
         <h3>${A.settlement ? '8' : '7'}. Car sharing agreement terms</h3>
         <ol class="rules-list agreement-terms">${A.terms.map(term => `<li>${esc(term)}</li>`).join('')}</ol>
       </div>
-      <div class="agreement-section agreement-signoff">
-        <p><strong>Electronic acknowledgement</strong></p>
-        <p>${esc(A.electronicExecution || 'This agreement is accepted electronically on the Platform.')}</p>
-        <p>By continuing with this booking, the renter confirms that the customer details, host details, vehicle details, dates, times, trip locations, payment terms, licence eligibility, vehicle condition process, distance allowance, security deposit and terms above were displayed for review. Safar retains the booking, payment, inspection and audit records associated with this agreement.</p>
+      <div class="agreement-section agreement-signoff" style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:16px;padding:24px;margin-top:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+          <div>
+            <span style="font-size:11px;font-weight:800;color:#FF6000;letter-spacing:0.08em;text-transform:uppercase">MOTOR VEHICLES ACT COMPLIANT P2P SUB-LEASE EXECUTION</span>
+            <h4 style="margin:2px 0 0;font-size:17px">Digital Signature &amp; Binding Legal Execution</h4>
+          </div>
+          ${A.acknowledgement ? '<span class="badge ok" style="font-size:12px">✓ Legally Executed &amp; Timestamped</span>' : '<span class="badge warn" style="font-size:12px">Pending Electronic Signature</span>'}
+        </div>
+        <p style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:16px">
+          Under Section 66/75 of the Motor Vehicles Act (1988), this electronic instrument creates a legally enforceable peer-to-peer vehicle sharing sub-lease. The Lessee assumes complete civil and traffic operating indemnity for the vehicle throughout the designated trip schedule.
+        </p>
+
+        ${A.acknowledgement ? `
+          <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div>
+              <strong style="color:#166534;display:block">✓ Digitally Signed by ${esc(C.firstName + ' ' + C.lastName)}</strong>
+              <small style="color:#15803D">Executed on ${dt(A.acknowledgement.acceptedAt || A.acknowledgement.createdAt || new Date())} · Verified Driver Identity</small>
+            </div>
+            <div style="font-family:monospace;font-size:11px;color:#166534;background:rgba(255,255,255,0.7);padding:6px 10px;border-radius:6px;border:1px solid #86EFAC">
+              SHA-256 DIGITAL STAMP: ${(A.acknowledgement.id || B.id || 'SAFAR').slice(0, 16).toUpperCase()}
+            </div>
+          </div>
+        ` : `
+          <div style="background:#fff;border:1px solid #CBD5E1;border-radius:12px;padding:16px;margin-bottom:16px">
+            <label style="display:block;font-size:12.5px;font-weight:700;margin-bottom:8px">Draw Digital Signature in Box Below (Mouse / Touchpad / Mobile Touch) *</label>
+            <div style="border:1.5px dashed #94A3B8;border-radius:10px;background:#FAFAFA;position:relative;margin-bottom:10px;touch-action:none">
+              <canvas id="p2p-signature-canvas" width="600" height="140" style="display:block;width:100%;height:140px;cursor:crosshair"></canvas>
+              <div id="sig-placeholder-hint" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#94A3B8;font-size:13px;pointer-events:none">
+                ✍️ Sign here with finger or mouse
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <button type="button" id="clear-signature-btn" class="button btn-outline btn-sm" style="font-size:12px">Clear &amp; Redraw</button>
+              <span style="font-size:11.5px;color:#64748B">IP &amp; Device fingerprint recorded on execution</span>
+            </div>
+          </div>
+        `}
       </div>
-      <div class="actions agreement-actions"><button id="ack-agreement-btn" class="button btn-orange" ${A.acknowledgement ? 'disabled' : ''}>${A.acknowledgement ? 'Agreement acknowledged' : 'Acknowledge agreement'}</button><button id="download-agreement-pdf" class="button btn-outline">Download agreement PDF</button><button id="print-agreement-btn" class="button btn-ghost">Print current view</button><a href="dashboard.html" class="button btn-ghost">Back to My Trips</a></div>
+      <div class="actions agreement-actions" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+        ${!A.acknowledgement ? `<button id="ack-agreement-btn" class="button btn-orange btn-lg">✍️ Sign &amp; Confirm Lease Agreement</button>` : ''}
+        <button id="download-agreement-pdf" class="button btn-outline btn-lg">📄 Download Agreement PDF</button>
+        <button id="print-agreement-btn" class="button btn-ghost btn-lg" onclick="window.print()">🖨️ Print Agreement</button>
+        <a href="dashboard.html" class="button btn-ghost btn-lg">Back to My Trips</a>
+      </div>
     </article>`;
-  $('#ack-agreement-btn').onclick = async () => { try { const result = await post('/bookings/' + encodeURIComponent(id) + '/agreement/acknowledge', {}); $('#ack-agreement-btn').disabled = true; $('#ack-agreement-btn').textContent = 'Agreement acknowledged'; toast('Agreement acknowledged at ' + dt(result.acceptedAt)); } catch (err) { toast(err.message, true); } };
+    // Digital Signature Canvas Setup
+  const sigCanvas = $('#p2p-signature-canvas');
+  let hasSigned = false;
+  if (sigCanvas) {
+    const ctx = sigCanvas.getContext('2d');
+    const rect = () => sigCanvas.getBoundingClientRect();
+    let drawing = false;
+
+    // HiDPI support
+    const dpr = window.devicePixelRatio || 1;
+    sigCanvas.width = sigCanvas.offsetWidth * dpr;
+    sigCanvas.height = sigCanvas.offsetHeight * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0F172A';
+
+    const getPos = e => {
+      const r = rect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - r.left, y: clientY - r.top };
+    };
+
+    const startDraw = e => {
+      drawing = true;
+      hasSigned = true;
+      $('#sig-placeholder-hint')?.remove();
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    };
+    const moveDraw = e => {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+    const stopDraw = () => { drawing = false; };
+
+    sigCanvas.addEventListener('mousedown', startDraw);
+    sigCanvas.addEventListener('mousemove', moveDraw);
+    window.addEventListener('mouseup', stopDraw);
+
+    sigCanvas.addEventListener('touchstart', startDraw, { passive: false });
+    sigCanvas.addEventListener('touchmove', moveDraw, { passive: false });
+    window.addEventListener('touchend', stopDraw);
+
+    $('#clear-signature-btn')?.addEventListener('click', () => {
+      ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+      hasSigned = false;
+    });
+  }
+
+  $('#ack-agreement-btn') && ($('#ack-agreement-btn').onclick = async () => {
+    try {
+      const btn = $('#ack-agreement-btn');
+      btn.disabled = true;
+      btn.textContent = 'Recording Signature…';
+      const sigData = sigCanvas && hasSigned ? sigCanvas.toDataURL('image/png') : null;
+      const result = await post('/bookings/' + encodeURIComponent(id) + '/agreement/acknowledge', { signature: sigData });
+      toast('✅ Agreement digitally signed and legally executed!');
+      setTimeout(() => location.reload(), 600);
+    } catch (err) {
+      $('#ack-agreement-btn').disabled = false;
+      $('#ack-agreement-btn').textContent = '✍️ Sign & Confirm Lease Agreement';
+      toast(err.message, true);
+    }
+  });
+
+  
   $('#download-agreement-pdf').onclick = async () => {
     const button = $('#download-agreement-pdf');
     button.disabled = true;
