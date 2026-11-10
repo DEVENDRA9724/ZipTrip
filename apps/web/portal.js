@@ -195,14 +195,14 @@ function getCarStockPhoto(car) {
 
 function getVehicleCover(v) {
   const stock = getCarStockPhoto(v);
-  if (stock) return stock + '?v=20261110k';
+  if (stock) return stock + '?v=20261110L';
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
     if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
   const front = v.media?.find(m => m.kind === 'FRONT');
   if (front?.id) return `/api/media/${front.id}`;
-  return 'cars/thar.jpg?v=20261110k';
+  return 'cars/thar.jpg?v=20261110L';
 }
 
 const badge = s => {
@@ -273,7 +273,7 @@ function brandMark(size = 34, light = false) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
 }
 function brandLockup(light = false) {
-  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261110k" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
+  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261110L" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
 }
 
 const page = location.pathname.split('/').pop() || 'index.html';
@@ -352,7 +352,7 @@ async function uploadFile(file, kind) {
 }
 function photoUrl(car) {
   const stock = getCarStockPhoto(car);
-  if (stock) return stock + '?v=20261110k';
+  if (stock) return stock + '?v=20261110L';
   if (car.images) {
     try {
       const p = JSON.parse(car.images);
@@ -364,7 +364,7 @@ function photoUrl(car) {
   }
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
   if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
-  return 'cars/thar.jpg?v=20261110k';
+  return 'cars/thar.jpg?v=20261110L';
 }
 function requireUser(roles) {
   if (!user) { location.replace('auth.html?redirect=' + encodeURIComponent(page + location.search)); return false; }
@@ -464,7 +464,7 @@ function shell() {
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=20261110k').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=20261110L').catch(() => {});
     });
   }
 
@@ -531,7 +531,7 @@ function shell() {
       <div class="ds-foot-brand">
         <a href="index.html" style="text-decoration:none">
           <span class="ds-brand">
-            <img class="ds-brand-logo" src="safar-logo.png?v=20261110k" alt="Safar Self Drive">
+            <img class="ds-brand-logo" src="safar-logo.png?v=20261110L" alt="Safar Self Drive">
             <span class="ds-brand-word" style="color:#0F172A">Safar<small style="color:#FF6000">SELF DRIVE</small></span>
           </span>
         </a>
@@ -651,12 +651,7 @@ function carCard(car) {
             <div class="vcard-price">${money(perDay)}<small> / day</small></div>
             <div class="vcard-price-note">${kmDay} km/day incl. · ${money(extraKm)}/km extra</div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <a class="btn-wa-card" href="https://wa.me/919909031177?text=${encodeURIComponent(`Hi Safar Self Drive, I want to inquire about renting the ${title} (${car.fuelType || ''}, ${car.transmission || ''}) in ${pickup}. Please share availability and rates.`)}" target="_blank" rel="noopener" title="Quick WhatsApp Inquiry" onclick="event.stopPropagation()">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.34C9.33 7.34 9 7.41 8.73 7.71C8.45 8.01 7.68 8.73 7.68 10.2C7.68 11.67 8.75 13.08 8.9 13.28C9.05 13.48 11 16.65 14.03 17.84C16.39 18.76 16.87 18.57 17.37 18.52C17.87 18.48 18.99 17.86 19.22 17.21C19.45 16.56 19.45 16.01 19.38 15.89C19.31 15.77 19.13 15.7 18.86 15.57C18.59 15.43 17.28 14.79 17.03 14.7C16.78 14.62 16.6 14.58 16.42 14.85C16.24 15.13 15.73 15.73 15.58 15.91C15.43 16.08 15.28 16.11 15.01 15.97C14.74 15.84 13.88 15.56 12.86 14.65C12.06 13.94 11.53 13.06 11.38 12.8C11.23 12.54 11.36 12.4 11.5 12.27C11.62 12.15 11.77 11.95 11.91 11.79C12.05 11.62 12.1 11.5 12.19 11.33C12.28 11.16 12.24 11.01 12.17 10.87C12.1 10.74 11.58 9.47 11.37 8.95C11.16 8.45 10.95 8.51 10.79 8.51C10.64 8.5 10.46 8.5 10.28 8.5C10.1 8.5 9.81 8.57 9.56 8.84"/></svg>
-            </a>
-            <span class="button btn-orange">View Details</span>
-          </div>
+          <span class="button btn-orange">View Details</span>
         </div>
       </div>
     </a>`;
@@ -977,7 +972,7 @@ function auth(forceRegister, loginMode = 'password') {
     <div class="auth-box">
       <aside class="auth-banner">
         <div>
-          <img src="safar-logo.png?v=20261110k" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
+          <img src="safar-logo.png?v=20261110L" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
           <h1>Your Journey.<br>Your Rules.</h1>
           <p>Sign in to manage trips, verify documents, and explore self-drive rentals across India.</p>
         </div>
@@ -1508,7 +1503,7 @@ async function carDetails(id) {
         <!-- Photo Gallery Card -->
         <div class="details-gallery" id="sec-gallery">
           <div class="details-main-img-box">
-            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261110k';">
+            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261110L';">
             ${mediaList.length > 1 ? `<span class="gallery-counter" id="gallery-counter-lbl">1 / ${mediaList.length}</span>` : ''}
           </div>
 
@@ -1548,22 +1543,6 @@ async function carDetails(id) {
             <div class="spec-box"><span class="spec-box-lbl">Model Year</span><span class="spec-box-val">${car.year}</span></div>
             <div class="spec-box"><span class="spec-box-lbl">Odometer</span><span class="spec-box-val">${Number(car.odometer).toLocaleString('en-IN')} km</span></div>
             <div class="spec-box"><span class="spec-box-lbl">FASTag</span><span class="spec-box-val" style="color:var(--ok)">Active</span></div>
-          </div>
-
-          <!-- Vehicle Amenities & Inclusions -->
-          <div class="details-amenities-box">
-            <span class="eyebrow" style="color:var(--cta);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">INCLUDED AMENITIES &amp; COMFORT</span>
-            <h3 style="margin:4px 0 12px;font-size:16px;">What Comes With This ${esc(car.make + ' ' + car.model)}</h3>
-            <div class="amenities-grid">
-              <div class="amenity-item"><span class="am-ico">❄️</span><span>Dual Climate Control A/C</span></div>
-              <div class="amenity-item"><span class="am-ico">📱</span><span>Apple CarPlay &amp; Android Auto</span></div>
-              <div class="amenity-item"><span class="am-ico">🛣️</span><span>Active FASTag (All NH/SH Tolls)</span></div>
-              <div class="amenity-item"><span class="am-ico">🛡️</span><span>DigiLocker Verified Handover</span></div>
-              <div class="amenity-item"><span class="am-ico">🛞</span><span>Sanitized Cabin Guarantee</span></div>
-              <div class="amenity-item"><span class="am-ico">📍</span><span>GPS Live Route Assistance</span></div>
-              <div class="amenity-item"><span class="am-ico">🧰</span><span>24/7 Gujarat Roadside Support</span></div>
-              <div class="amenity-item"><span class="am-ico">🔑</span><span>Doorstep or Airport Delivery</span></div>
-            </div>
           </div>
 
           <!-- Car Location Hub Card -->
@@ -1770,11 +1749,6 @@ async function carDetails(id) {
 
           <p id="booking-kyc-status" style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">Checking e-KYC eligibility…</p>
         `}
-
-        <a class="btn-wa-booking" href="https://wa.me/919909031177?text=${encodeURIComponent(`Hi Safar Self Drive, I want to book the ${car.make} ${car.model} (${car.year}, ${car.fuelType}, ${car.transmission}) in ${car.locationCity}. Please confirm availability and reservation.`)}" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.34C9.33 7.34 9 7.41 8.73 7.71C8.45 8.01 7.68 8.73 7.68 10.2C7.68 11.67 8.75 13.08 8.9 13.28C9.05 13.48 11 16.65 14.03 17.84C16.39 18.76 16.87 18.57 17.37 18.52C17.87 18.48 18.99 17.86 19.22 17.21C19.45 16.56 19.45 16.01 19.38 15.89C19.31 15.77 19.13 15.7 18.86 15.57C18.59 15.43 17.28 14.79 17.03 14.7C16.78 14.62 16.6 14.58 16.42 14.85C16.24 15.13 15.73 15.73 15.58 15.91C15.43 16.08 15.28 16.11 15.01 15.97C14.74 15.84 13.88 15.56 12.86 14.65C12.06 13.94 11.53 13.06 11.38 12.8C11.23 12.54 11.36 12.4 11.5 12.27C11.62 12.15 11.77 11.95 11.91 11.79C12.05 11.62 12.1 11.5 12.19 11.33C12.28 11.16 12.24 11.01 12.17 10.87C12.1 10.74 11.58 9.47 11.37 8.95C11.16 8.45 10.95 8.51 10.79 8.51C10.64 8.5 10.46 8.5 10.28 8.5C10.1 8.5 9.81 8.57 9.56 8.84"/></svg>
-          Instant WhatsApp Reservation
-        </a>
 
         <div class="bp-perks-box">
           <div class="bp-perk-line">
