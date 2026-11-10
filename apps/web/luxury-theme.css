@@ -739,9 +739,5 @@ body {
   box-shadow: var(--clay-card-hover) !important;
 }
 
-/* Floating WhatsApp */
-.wa-float {
-  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
-  border-radius: 50% !important;
-}
+
 
