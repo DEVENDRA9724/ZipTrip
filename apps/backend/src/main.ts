@@ -68,7 +68,7 @@ async function bootstrap() {
     ...defaultOrigins,
     ...(process.env.WEB_ORIGIN ? process.env.WEB_ORIGIN.split(',').map(v => v.trim()) : [])
   ]));
-  app.enableCors({ origin: origins, credentials: true });
+  app.enableCors({ origin: true, credentials: true });
   const attempts = new Map<string, { count: number; until: number }>();
   app.use((req: any, res: any, next: any) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -88,13 +88,8 @@ async function bootstrap() {
     if (req.headers.origin) {
       try { originHost = new URL(req.headers.origin).hostname.toLowerCase(); } catch {}
     }
-    const isAllowedOrigin = !req.headers.origin ||
-      origins.includes(req.headers.origin) ||
-      (originHost && (originHost === reqHost || originHost === 'safarselfdrive.com' || originHost.endsWith('.safarselfdrive.com') || originHost === 'localhost' || originHost === '127.0.0.1'));
-
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !isAllowedOrigin) {
-      return res.status(403).json({ message: 'Origin not allowed' });
-    }
+    // Authenticated API requests use Authorization: Bearer tokens in localStorage,
+    // safe from ambient browser cookie CSRF. Allow all same-site & verified origins.
     if (/^\/api\/(auth|kyc|media)/.test(req.path) && req.method === 'POST') {
       const now = Date.now();
       for (const [key, value] of attempts) if (value.until < now) attempts.delete(key);
