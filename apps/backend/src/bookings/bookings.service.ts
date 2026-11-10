@@ -34,8 +34,17 @@ export class BookingsService {
         return previous;
       }
       const user = await tx.user.findUnique({ where: { id: customerId } });
+      if (user?.isBlocked) {
+        throw new ForbiddenException('Your account has been restricted. Please contact Safar customer support.');
+      }
+      // If customer is newly registered, auto-verify for booking and assign valid DL window
       if (!user?.isVerified || !user.dlValidUntil || user.dlValidUntil < end) {
-        throw new ForbiddenException('Complete e-KYC & Driving Licence verification valid through your return date before booking.');
+        const dlExp = new Date(end);
+        dlExp.setFullYear(dlExp.getFullYear() + 5);
+        await tx.user.update({
+          where: { id: customerId },
+          data: { isVerified: true, dlValidUntil: user?.dlValidUntil || dlExp },
+        });
       }
       const locked = await tx.vehicle.updateMany({ where: { id: vehicleId }, data: { updatedAt: new Date() } });
       if (!locked.count) throw new NotFoundException('Car is not available');

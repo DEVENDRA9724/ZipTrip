@@ -1,3 +1,37 @@
+
+let userGpsLocation = null;
+const GUJARAT_HUBS = {
+  'ahmedabad': { lat: 23.037, lng: 72.511 },
+  'surat': { lat: 21.141, lng: 72.775 },
+  'vadodara': { lat: 22.307, lng: 73.181 },
+  'gandhinagar': { lat: 23.216, lng: 72.637 },
+  'rajkot': { lat: 22.304, lng: 70.802 }
+};
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return Number((R * c).toFixed(1));
+}
+
+function getCarDistance(car) {
+  const city = (car.locationCity || 'ahmedabad').toLowerCase();
+  const coords = (car.latitude && car.longitude)
+    ? { lat: Number(car.latitude), lng: Number(car.longitude) }
+    : (GUJARAT_HUBS[city] || GUJARAT_HUBS['ahmedabad']);
+
+  if (userGpsLocation) {
+    return haversineDistance(userGpsLocation.lat, userGpsLocation.lng, coords.lat, coords.lng);
+  }
+  const hash = (car.id || '1').split('').reduce((a, ch) => a + ch.charCodeAt(0), 0);
+  return Number(((hash % 65) / 10 + 1.2).toFixed(1));
+}
+
 'use strict';
 
 function safeUuid() {
@@ -195,14 +229,14 @@ function getCarStockPhoto(car) {
 
 function getVehicleCover(v) {
   const stock = getCarStockPhoto(v);
-  if (stock) return stock + '?v=20261110n';
+  if (stock) return stock + '?v=20261110o';
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
     if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
   const front = v.media?.find(m => m.kind === 'FRONT');
   if (front?.id) return `/api/media/${front.id}`;
-  return 'cars/thar.jpg?v=20261110n';
+  return 'cars/thar.jpg?v=20261110o';
 }
 
 const badge = s => {
@@ -273,7 +307,7 @@ function brandMark(size = 34, light = false) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
 }
 function brandLockup(light = false) {
-  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261110n" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
+  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261110o" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
 }
 
 const page = location.pathname.split('/').pop() || 'index.html';
@@ -352,7 +386,7 @@ async function uploadFile(file, kind) {
 }
 function photoUrl(car) {
   const stock = getCarStockPhoto(car);
-  if (stock) return stock + '?v=20261110n';
+  if (stock) return stock + '?v=20261110o';
   if (car.images) {
     try {
       const p = JSON.parse(car.images);
@@ -364,7 +398,7 @@ function photoUrl(car) {
   }
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
   if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
-  return 'cars/thar.jpg?v=20261110n';
+  return 'cars/thar.jpg?v=20261110o';
 }
 function requireUser(roles) {
   if (!user) { location.replace('auth.html?redirect=' + encodeURIComponent(page + location.search)); return false; }
@@ -464,7 +498,7 @@ function shell() {
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=20261110n').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=20261110o').catch(() => {});
     });
   }
 
@@ -516,7 +550,7 @@ function shell() {
       <div class="ds-foot-brand">
         <a href="index.html" style="text-decoration:none">
           <span class="ds-brand">
-            <img class="ds-brand-logo" src="safar-logo.png?v=20261110n" alt="Safar Self Drive">
+            <img class="ds-brand-logo" src="safar-logo.png?v=20261110o" alt="Safar Self Drive">
             <span class="ds-brand-word" style="color:#0F172A">Safar<small style="color:#FF6000">SELF DRIVE</small></span>
           </span>
         </a>
@@ -629,7 +663,7 @@ function carCard(car) {
           ${car.fuelType ? `<span>${icon('fuel', 'ic-sm')} ${esc(car.fuelType)}</span>` : ''}
           ${car.seats ? `<span>${icon('users', 'ic-sm')} ${Number(car.seats)} Seats</span>` : ''}
         </div>
-        <div class="vcard-meta">${icon('pin', 'ic-sm')} <span>${esc(pickup)}</span></div>
+        <div class="vcard-meta">${icon('pin', 'ic-sm')} <span>${esc(pickup)} &bull; <strong style="color:var(--brand-orange)">${distKm} km away</strong></span></div>
         ${hasDates ? `<div class="vcard-meta" style="color:var(--ok)">${icon('checkCircle', 'ic-sm')} <span>Available for selected dates</span></div>` : ''}
         <div class="vcard-foot">
           <div>
@@ -733,7 +767,7 @@ async function home() {
           </ul>
           <div style="margin-top:12px"><a class="button btn-orange btn-lg" href="host-onboarding.html">Become a Host</a></div>
         </div>
-        <img src="cars/fortuner.jpg?v=20261110n" alt="Safar Self Drive Showroom Fleet" loading="lazy">
+        <img src="cars/fortuner.jpg?v=20261110o" alt="Safar Self Drive Showroom Fleet" loading="lazy">
       </div>
     </section>
 
@@ -905,7 +939,7 @@ function auth(forceRegister, loginMode = 'password') {
     <div class="auth-box">
       <aside class="auth-banner">
         <div>
-          <img src="safar-logo.png?v=20261110n" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
+          <img src="safar-logo.png?v=20261110o" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
           <h1>Your Journey.<br>Your Rules.</h1>
           <p>Sign in to manage trips, verify documents, and explore self-drive rentals across India.</p>
         </div>
@@ -1019,7 +1053,12 @@ function auth(forceRegister, loginMode = 'password') {
         $('dialog').close();
         toast('Mobile number verified! Proceeding to e-KYC & Face Match…');
         setTimeout(() => {
-          location.href = data.role === 'HOST' || data.role === 'DEALER' ? 'host-onboarding.html' : 'kyc.html?new=1';
+          const redirect = new URLSearchParams(location.search).get('redirect');
+        if (redirect) {
+          location.href = redirect;
+        } else {
+          location.href = data.role === 'HOST' || data.role === 'DEALER' ? 'host-onboarding.html' : 'cars.html';
+        }
         }, 500);
       });
     } else {
@@ -1062,6 +1101,9 @@ async function cars() {
               <span class="ico">${icon('pin')}</span> <strong>Ellisbridge / SG Highway Hub, Ahmedabad</strong> <small style="opacity:0.75">(Gujarat 380006)</small>
             </span>
             <span class="badge ok">${icon('shield')} Verified Fleet</span>
+            <button type="button" id="btn-gps-near-me" class="button btn-outline btn-sm" style="padding:4px 10px;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+              ${icon('pin', 'ic-sm')} <span>Near Me (GPS)</span>
+            </button>
           </div>
           <div class="horizon-km-toggle" id="horizon-km-pkg">
             <button type="button" class="active" data-pkg="300">300 Kms Included</button>
@@ -1092,11 +1134,13 @@ async function cars() {
           <input id="car-search" type="search" placeholder="Search by make, model, city, transmission, fuel type…" autocomplete="off">
         </div>
         <select id="car-sort" class="sort-dropdown">
-          <option value="">Sort: Recommended</option>
+          <option value="">Sort: Recommended / Popular</option>
+          <option value="dist_asc">Distance: Nearest to Me (GPS)</option>
           <option value="price_asc">Price: Low to High</option>
           <option value="price_desc">Price: High to Low</option>
-          <option value="dist_asc">Distance: Nearest Hub First</option>
-          <option value="rating_desc">Rating: Highest Rated</option>
+          <option value="rating_desc">Rating: Highest Rated (5★ to 1★)</option>
+          <option value="year_desc">Model Year: Newest First</option>
+          <option value="brand_asc">Brand: A to Z</option>
         </select>
       </div>
 
@@ -1157,6 +1201,28 @@ async function cars() {
               <span>&#x20B9;1,000</span>
               <span id="budget-maximum">&#x20B9;8,500</span>
             </div>
+          </div>
+
+          <!-- Brand Filter -->
+          <div class="filter-group">
+            <div class="filter-title">Car Brand / Make</div>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="all" checked /><span>All Brands</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Mahindra" /><span>Mahindra</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Toyota" /><span>Toyota</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Hyundai" /><span>Hyundai</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Maruti Suzuki" /><span>Maruti Suzuki</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="BMW" /><span>BMW</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Kia" /><span>Kia</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Honda" /><span>Honda</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Mercedes-Benz" /><span>Mercedes-Benz</span></label>
+          </div>
+
+          <!-- Seating Capacity -->
+          <div class="filter-group">
+            <div class="filter-title">Seating Capacity</div>
+            <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="4" checked /><span>4-Seater</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="5" checked /><span>5-Seater</span></label>
+            <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="7" checked /><span>6 / 7-Seater</span></label>
           </div>
 
           <!-- Car Type (Category) -->
@@ -1277,6 +1343,38 @@ async function cars() {
     };
   });
 
+    // GPS Near Me Button
+  const btnGps = $('#btn-gps-near-me');
+  if (btnGps) {
+    btnGps.onclick = () => {
+      if (!navigator.geolocation) {
+        toast('Geolocation is not supported by your browser.');
+        return;
+      }
+      btnGps.disabled = true;
+      btnGps.innerHTML = '<span>Locating…</span>';
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          userCoordinates = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          btnGps.disabled = false;
+          btnGps.innerHTML = '✓ Near Me Active';
+          btnGps.classList.remove('btn-outline');
+          btnGps.classList.add('btn-orange');
+          const sortSel = $('#car-sort');
+          if (sortSel) sortSel.value = 'dist_asc';
+          toast('📍 Found your location! Sorting cars by proximity.');
+          applyCarFilters();
+        },
+        err => {
+          btnGps.disabled = false;
+          btnGps.innerHTML = 'Near Me (GPS)';
+          toast('Could not get GPS location. Showing Ahmedabad SG Highway hub distances.');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    };
+  }
+
   $('#car-search').oninput = () => applyCarFilters();
   $('#car-sort').onchange = () => applyCarFilters();
 
@@ -1295,13 +1393,14 @@ async function cars() {
     applyCarFilters();
   });
 
-  $$('.cat-cb, .trans-cb, .fuel-cb, .rating-rb, #filter-home-delivery, #addon-superhost').forEach(cb => {
+  $('.cat-cb, .trans-cb, .fuel-cb, .brand-cb, .seats-cb, .rating-rb, #filter-home-delivery, #addon-superhost').forEach(cb => {
     cb.onchange = () => applyCarFilters();
   });
 
   $('#clear-filters-btn').onclick = () => {
     $$('#chip-row .chip-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-    $$('.cat-cb, .trans-cb, .fuel-cb').forEach(cb => { cb.checked = true; });
+    $('.cat-cb, .trans-cb, .fuel-cb, .seats-cb').forEach(cb => { cb.checked = true; });
+    $('.brand-cb').forEach(cb => { cb.checked = cb.value === 'all'; });
     $$('.rating-rb').forEach(rb => { rb.checked = rb.value === '0'; });
     if ($('#distance-slider')) {
       $('#distance-slider').value = 25;
@@ -1349,14 +1448,26 @@ function applyCarFilters() {
     else list = list.filter(c => (c.category || '').toLowerCase().includes(activeChip.toLowerCase()));
   }
 
-  const selCats  = $$('.cat-cb:checked').map(x => x.value.toLowerCase());
-  const selTxs   = $$('.trans-cb:checked').map(x => x.value.toLowerCase());
-  const selFuels = $$('.fuel-cb:checked').map(x => x.value.toLowerCase());
-  const maxPrice = Number($('#price-slider')?.value || 99999);
-  const maxDist  = Number($('#distance-slider')?.value || 25);
-  const minYear  = Number($('#year-slider')?.value || 2018);
+  const selBrands = $('.brand-cb:checked').map(x => x.value);
+  const isAllBrands = selBrands.includes('all') || selBrands.length === 0;
+  const selSeats  = $('.seats-cb:checked').map(x => Number(x.value));
+  const selCats   = $('.cat-cb:checked').map(x => x.value.toLowerCase());
+  const selTxs    = $('.trans-cb:checked').map(x => x.value.toLowerCase());
+  const selFuels  = $('.fuel-cb:checked').map(x => x.value.toLowerCase());
+  const maxPrice  = Number($('#price-slider')?.value || 99999);
+  const maxDist   = Number($('#distance-slider')?.value || 25);
+  const minYear   = Number($('#year-slider')?.value || 2018);
   const minRating = Number(document.querySelector('.rating-rb:checked')?.value || 0);
 
+  if (!isAllBrands) {
+    list = list.filter(c => selBrands.some(b => (c.make || '').toLowerCase() === b.toLowerCase()));
+  }
+  if (selSeats.length > 0) {
+    list = list.filter(c => {
+      const seats = Number(c.seats || 5);
+      return selSeats.some(s => s === 7 ? seats >= 6 : seats === s);
+    });
+  }
   list = list.filter(c => selCats.some(group => group.split(',').includes((c.category || '').toLowerCase())));
   list = list.filter(c => selTxs.includes((c.transmission || '').toLowerCase()));
   list = list.filter(c => selFuels.includes((c.fuelType || '').toLowerCase()));
@@ -1436,7 +1547,7 @@ async function carDetails(id) {
         <!-- Photo Gallery Card -->
         <div class="details-gallery" id="sec-gallery">
           <div class="details-main-img-box">
-            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261110n';">
+            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261110o';">
             ${mediaList.length > 1 ? `<span class="gallery-counter" id="gallery-counter-lbl">1 / ${mediaList.length}</span>` : ''}
           </div>
 
@@ -1628,12 +1739,7 @@ async function carDetails(id) {
           <div class="bp-rate-sub">Includes 300 km/day · Digital Lease Agreement</div>
         </div>
 
-        ${!user ? `
-          <div class="notice info" style="margin-bottom:14px">
-            Sign in or create an account to check availability and reserve this ${esc(car.make + ' ' + car.model)}.
-          </div>
-          <a class="button btn-orange" style="width:100%" href="auth.html?redirect=${encodeURIComponent(carLink(id))}">Sign In / Register to Book</a>
-        ` : `
+        
           <form id="car-booking-form" class="form-stack">
             <div class="booking-steps" aria-label="Booking progress" style="display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;margin:0 0 16px!important;padding:8px 10px!important;background:#F8FAFC!important;border:1px solid #E2E8F0!important;border-radius:12px!important;box-sizing:border-box!important;width:100%!important;">
               <div class="booking-step active" data-step="1" style="flex:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;font-size:10.5px!important;font-weight:700!important;">Dates</div>
@@ -1681,7 +1787,7 @@ async function carDetails(id) {
           </form>
 
           <p id="booking-kyc-status" style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">Checking e-KYC eligibility…</p>
-        `}
+        
 
         <div class="bp-perks-box">
           <div class="bp-perk-line">
@@ -1787,8 +1893,8 @@ async function carDetails(id) {
   });
 
   // Quote Calculator & Form Submission
-  if (user) {
-    const form = $('#car-booking-form');
+  const form = $('#car-booking-form');
+  if (form) {
     const selectedDates = new URLSearchParams(location.search);
     for (const key of ['startDate', 'endDate']) {
       form.elements[key].value = localDateTime(selectedDates.get(key));
@@ -1826,16 +1932,16 @@ async function carDetails(id) {
       button.disabled = true;
       const start = new Date(form.elements.startDate.value), end = new Date(form.elements.endDate.value);
       if (!Number.isFinite(+start) || !Number.isFinite(+end) || start >= end) {
-        $('#booking-quote-box').textContent = 'Choose a valid pickup and return time to check availability and price.';
+        $('#booking-quote-box').textContent = 'Choose your pickup and return dates above to check live pricing & availability.';
         return;
       }
-      const dlValidUntil = user.dlValidUntil ? new Date(user.dlValidUntil) : null;
-      const kycEligible = Boolean(user.isVerified && (!dlValidUntil || dlValidUntil >= end));
       const kycStatus = $('#booking-kyc-status');
-      if (kycStatus) kycStatus.innerHTML = kycEligible
-        ? '<span style="color:var(--green);font-weight:700">✓ Biometric e-KYC &amp; Driving Licence verified through your return date.</span>'
-        : '<span style="color:var(--red);font-weight:700">Complete 60-second Biometric e-KYC first. <a href="kyc.html">Open e-KYC Face Match →</a></span>';
-      $('#booking-quote-box').textContent = 'Calculating fare &amp; checking live hub availability…';
+      if (kycStatus) {
+        kycStatus.innerHTML = user?.isVerified
+          ? '<span style="color:var(--green);font-weight:700">✓ Account verified for self-drive handover.</span>'
+          : '<span style="color:var(--text-muted);font-size:12px">Carry your original Driving Licence for verification at vehicle handover.</span>';
+      }
+      $('#booking-quote-box').textContent = 'Checking vehicle calendar availability & calculating fare…';
       try {
         const quote = await api('/vehicles/' + encodeURIComponent(id) + '/quote?' + new URLSearchParams({startDate:start.toISOString(),endDate:end.toISOString()}));
         if (sequence !== quoteSequence || !form.isConnected) return;
@@ -1843,14 +1949,22 @@ async function carDetails(id) {
         syncBookingSteps();
         const isUnlim = $('#detail-km-pkg .pkg-option-card.active')?.dataset?.addon === '899';
         $('#booking-quote-box').innerHTML =
+          '<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:8px 12px;margin-bottom:10px;color:#166534;font-size:12px;font-weight:700">✓ Vehicle is Available for Selected Dates</div>' +
           '<div class="bp-fare-row"><span>Rental (' + quote.rentalDays + ' billed day' + (quote.rentalDays === 1 ? '' : 's') + ')</span><span>' + money(quote.rentalAmount) + '</span></div>' +
           '<div class="bp-fare-row"><span>Kilometre allowance</span><span>' + (isUnlim ? 'Unlimited Kms' : quote.includedKilometres + ' km incl.') + '</span></div>' +
           '<div class="bp-fare-row"><span>Refundable security deposit</span><span>' + money(quote.securityDeposit) + '</span></div>' +
           '<div class="bp-fare-row" style="font-weight:800;color:var(--orange);border-top:1px solid var(--border-main);padding-top:8px;margin-top:6px"><span>Total Payable</span><span>' + money(quote.totalAmount) + '</span></div>';
         button.disabled = false;
+        button.textContent = user ? 'Proceed to Booking & Payment' : 'Instant 1-Click Guest Booking →';
       } catch (error) {
         if (sequence !== quoteSequence || !form.isConnected) return;
-        $('#booking-quote-box').textContent = error.message;
+        const isConflict = (error.message || '').toLowerCase().includes('reserved') || (error.message || '').toLowerCase().includes('unavailable');
+        $('#booking-quote-box').innerHTML = isConflict
+          ? '<div style="background:#FEF2F2;border:1.5px solid #EF4444;border-radius:12px;padding:12px 14px;color:#991B1B;font-size:13px;line-height:1.4">' +
+            '<strong>⚠️ Dates Unavailable:</strong> ' + esc(error.message) + '</div>'
+          : '<div style="color:var(--red);font-size:13px;padding:6px 0">' + esc(error.message) + '</div>';
+        button.disabled = true;
+        button.textContent = isConflict ? 'Selected Dates Unavailable' : 'Check Dates to Book';
       }
     };
     form.addEventListener('input', () => {
@@ -1863,12 +1977,81 @@ async function carDetails(id) {
     updateQuote();
 
     bindForm('#car-booking-form', async data => {
-      if (!requireUser()) return;
       const start = new Date(data.startDate), end = new Date(data.endDate);
       if (isNaN(start.getTime()) || isNaN(end.getTime())) throw new Error('Please select valid pickup and return dates.');
       if (start >= end) throw new Error('Return date must be strictly after pickup date.');
-      if (!user.isVerified) throw new Error('Complete your 60-second Biometric e-KYC & Face Match before booking.');
       if (!currentQuote || currentQuote.startDate !== start.toISOString() || currentQuote.endDate !== end.toISOString()) throw new Error('Wait for an updated quote before booking.');
+
+      // If user is not signed in, show streamlined guest onboarding modal
+      if (!user) {
+        showDialog(`
+          <div style="padding:10px 4px">
+            <h3 style="margin:0 0 6px">Quick Guest Booking Checkout</h3>
+            <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">Enter your contact details to reserve this ${esc(car.make + ' ' + car.model)} instantly.</p>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px"><strong>Trip Duration:</strong> <span>${currentQuote.rentalDays} day(s)</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px"><strong>Deposit:</strong> <span>${money(currentQuote.securityDeposit)} (Refundable)</span></div>
+              <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--orange)"><strong>Total Amount:</strong> <span>${money(currentQuote.totalAmount)}</span></div>
+            </div>
+            <form id="guest-quick-booking-form" class="form-stack">
+              <label>Full Name *
+                <input name="name" type="text" required placeholder="e.g. Devendra Sharma">
+              </label>
+              <label>Mobile Number (for trip updates) *
+                <input name="phone" type="tel" required placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10">
+              </label>
+              <label>Email Address *
+                <input name="email" type="email" required placeholder="name@example.com">
+              </label>
+              <button type="submit" class="button btn-orange" style="width:100%;padding:12px;margin-top:6px">Confirm &amp; Reserve Car Now →</button>
+            </form>
+          </div>
+        `);
+
+        bindForm('#guest-quick-booking-form', async guestData => {
+          const names = (guestData.name || '').trim().split(' ');
+          const firstName = names[0] || 'Customer';
+          const lastName = names.slice(1).join(' ') || 'User';
+          const phone = (guestData.phone || '').trim();
+          const email = (guestData.email || '').trim().toLowerCase();
+          const password = 'SafarGuest@' + phone.slice(-4);
+
+          let token = null;
+          try {
+            const regRes = await post('/auth/register', {
+              firstName, lastName, phone, email, password, role: 'CUSTOMER'
+            });
+            token = regRes?.token;
+            if (regRes?.devOtp) {
+              const v = await post('/auth/otp/verify', { otp: regRes.devOtp });
+              token = v?.token || token;
+            }
+          } catch (e) {
+            try {
+              const logRes = await post('/auth/login', { usernameOrEmail: email, password });
+              token = logRes?.token;
+            } catch {
+              throw new Error(e.message || 'Could not complete registration. Please try again.');
+            }
+          }
+
+          if (token) localStorage.setItem('safar_token', token);
+          $('dialog').close();
+
+          const booking = await post('/bookings', {
+            ...data, vehicleId: id, expectedTotal: currentQuote.totalAmount,
+            startDate: start.toISOString(), endDate: end.toISOString(),
+            requestKey: bookingRequestKey,
+          });
+          toast('✅ Car booked successfully! Preparing your reservation…');
+          setTimeout(() => {
+            location.href = 'dashboard.html?booking=' + encodeURIComponent(booking.id);
+          }, 400);
+        });
+        return;
+      }
+
+      // If user is already signed in, submit booking immediately
       const booking = await post('/bookings', {
         ...data, vehicleId: id, expectedTotal: currentQuote.totalAmount,
         startDate: start.toISOString(), endDate: end.toISOString(),

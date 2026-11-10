@@ -11,3 +11,6 @@ uploads/
 .portal-pids.json
 *.log
 test-results/
+*.tsbuildinfo
+dist/
+.DS_Store

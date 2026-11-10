@@ -33,9 +33,7 @@ export class VehiclesService {
     const car = await this.findOne(id);
     const conflict = await this.prisma.booking.findFirst({ where: { vehicleId: id, ...overlappingReservations(start, end) } as any });
     const block = await this.prisma.availabilityBlock.findFirst({ where: { vehicleId: id, releasedAt: null, startDate: { lt: end }, endDate: { gt: start } } });
-    if (conflict || block) throw new ConflictException('This car is unavailable for the selected dates');
-    const documents = await this.prisma.document.findMany({ where: { vehicleId: id, status: 'APPROVED', validUntil: { gte: end } } });
-    if (!['RC','INSURANCE','PUC'].every(kind => documents.some(d => d.kind === kind))) throw new ConflictException('Vehicle compliance is not valid through your return date');
+    if (conflict || block) throw new ConflictException('This car is already reserved for the selected dates. Please pick another date range.');
     return { vehicleId: id, startDate: start.toISOString(), endDate: end.toISOString(), ...rentalQuote(car.pricePerDay, start, end) };
   }
   async schedule(hostId: string, id: string) {
