@@ -1,0 +1,25 @@
+{
+  "name": "Safar Self Drive — Car Rentals Gujarat",
+  "short_name": "Safar",
+  "description": "Verified self-drive car rentals with transparent pricing, instant DigiLocker eKYC, and documented vehicle handovers across Gujarat.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0C0F1D",
+  "theme_color": "#3B1259",
+  "categories": ["travel", "mobility", "automotive"],
+  "icons": [
+    {
+      "src": "safar-logo.png?v=20261110k",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "safar-logo.png?v=20261110k",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
