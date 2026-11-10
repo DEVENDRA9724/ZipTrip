@@ -13,6 +13,7 @@ import { agreementPolicySnapshot, carSharingAgreementTerms, CAR_SHARING_AGREEMEN
 import { NotificationsService } from '../notifications/notifications.service';
 import { assertBookingTransition } from '../rental-domain/rental-state';
 import { calculateSettlement } from '../rental-domain/settlement';
+import { evaluateRisk } from './risk-engine';
 
 @Injectable()
 export class BookingsService {
@@ -256,12 +257,12 @@ export class BookingsService {
     });
   }
 
-  getHostBookings(hostId: string) {
-    return this.prisma.booking.findMany({
+  async getHostBookings(hostId: string) {
+    const list = await this.prisma.booking.findMany({
       where: { vehicle: { hostId } },
       include: {
         vehicle: { include: { currentHub: true } },
-        customer: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, isVerified: true, profileImage: true, profile: true } },
+        customer: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, isVerified: true, dlValidUntil: true, profileImage: true, profile: true } },
         payment: true,
         invoice: true,
         trip: true,
@@ -271,6 +272,10 @@ export class BookingsService {
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
+    return list.map(b => ({
+      ...b,
+      riskAssessment: evaluateRisk({ customer: b.customer, vehicle: b.vehicle, booking: b }),
+    }));
   }
 
   async agreement(user: any, id: string) {

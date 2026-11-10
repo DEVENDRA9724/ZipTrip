@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import * as bcrypt from 'bcryptjs';
 import { rentalPolicy, lateReturnCharge } from '../bookings/rental-policy';
 import { calculateSettlement } from '../rental-domain/settlement';
+import { evaluateRisk } from '../bookings/risk-engine';
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
 export class AdminController {
@@ -38,7 +39,11 @@ export class AdminController {
       this.prisma.payment.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
       this.prisma.booking.aggregate({ where: { status: { in: ['CONFIRMED', 'ACTIVE', 'COMPLETED'] } }, _sum: { platformFee: true, hostRevenue: true, securityDeposit: true } }),
     ]);
-    return { users, vehicles, bookings, documents, audit, metrics: { vehiclePending, documentPending, refunds, activeBookings, todayRevenue: Number(todayRevenue._sum.amount || 0), paidRevenue: Number(paidRevenue._sum.amount || 0), platformRevenue: Number(bookingRevenueAgg._sum.platformFee || 0), hostRevenue: Number(bookingRevenueAgg._sum.hostRevenue || 0), depositEscrow: Number(bookingRevenueAgg._sum.securityDeposit || 0) }, nextOffset: [users, vehicles, bookings, documents, audit].some(rows => rows.length === 200) ? offset + 200 : null };
+    const enrichedBookings = bookings.map(b => ({
+      ...b,
+      riskAssessment: evaluateRisk({ customer: b.customer, vehicle: b.vehicle, booking: b }),
+    }));
+    return { users, vehicles, bookings: enrichedBookings, documents, audit, metrics: { vehiclePending, documentPending, refunds, activeBookings, todayRevenue: Number(todayRevenue._sum.amount || 0), paidRevenue: Number(paidRevenue._sum.amount || 0), platformRevenue: Number(bookingRevenueAgg._sum.platformFee || 0), hostRevenue: Number(bookingRevenueAgg._sum.hostRevenue || 0), depositEscrow: Number(bookingRevenueAgg._sum.securityDeposit || 0) }, nextOffset: [users, vehicles, bookings, documents, audit].some(rows => rows.length === 200) ? offset + 200 : null };
   }
   // Redirect legacy certificate links to the original document after authorization.
   @Get('documents/:id/certificate')

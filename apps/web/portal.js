@@ -545,9 +545,11 @@ function shell() {
   const links = isAdmin ? [
     ['admin.html', 'Admin Console'],
     ['cars.html', 'Live Customer View ↗'],
+    ['blog.html', 'Travel Guides'],
   ] : [
     ['cars.html', 'Explore Cars'],
     ['dealer.html', 'Dealer Fleet'],
+    ['blog.html', 'Travel Guides'],
     ['host-onboarding.html', isPartner ? 'Host Console' : 'Become a Host'],
     ['index.html#how-it-works', 'How It Works'],
     ['index.html#support', 'Help & Support'],
@@ -3890,6 +3892,12 @@ function renderBookingTable(list, isHost) {
               <td>
                 ${badge(st)}
                 ${b.payment ? `<span style="margin-left:4px">${badge(b.payment.status)}</span>` : ''}
+                ${b.riskAssessment ? `
+                  <div style="margin-top:6px;">
+                    <button type="button" class="view-risk-btn" data-id="${b.id}" style="border:1px solid ${b.riskAssessment.color}50;background:${b.riskAssessment.color}15;color:${b.riskAssessment.color};padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                      <span>🛡️</span> ${esc(b.riskAssessment.badgeText)}
+                    </button>
+                  </div>` : ''}
                 ${st === 'PENDING' ? `<p class="text-muted" style="font-size:11px;margin-top:4px;">Complete payment to confirm booking</p>` : ''}
                 ${(() => {
                   if (['CANCELLED','EXPIRED','FAILED'].includes(st)) return '';
@@ -4142,6 +4150,15 @@ function bindBookingEvents() {
         toast(err.message, true);
         btn.disabled = false;
       }
+    };
+  });
+
+  $$('.view-risk-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const allTrips = [...(dashboardCache?.trips || []), ...(dashboardCache?.hosted || []), ...(typeof adminData !== 'undefined' ? adminData?.bookings || [] : [])];
+      const booking = allTrips.find(b => b.id === btn.dataset.id);
+      if (booking) openRiskDetailsModal(booking);
     };
   });
 }
@@ -5200,6 +5217,12 @@ function renderAdminView(tab) {
                   ${badge(st)}
                   ${b.payment ? `<span style="margin-left:4px">${badge(b.payment.status)}</span>` : ''}
                   <p style="margin:4px 0 0;font-size:11.5px;color:var(--text-muted);">Handovers: <strong>${b.inspections?.length || 0} / 2</strong> recorded</p>
+                  ${b.riskAssessment ? `
+                    <div style="margin-top:6px;">
+                      <button type="button" class="view-risk-btn" data-id="${b.id}" style="border:1px solid ${b.riskAssessment.color}50;background:${b.riskAssessment.color}15;color:${b.riskAssessment.color};padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                        <span>🛡️</span> ${esc(b.riskAssessment.badgeText)} (${b.riskAssessment.score}/100)
+                      </button>
+                    </div>` : ''}
                 </td>
                 <td>
                   <div class="actions" style="flex-wrap:wrap;gap:6px;">
@@ -5530,6 +5553,14 @@ function bindAdminActions() {
           `).join('') || '<p class="text-muted">No handover photos submitted yet.</p>'}
         </div>
       `);
+    };
+  });
+
+  $$('.view-risk-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const booking = adminData.bookings.find(b => b.id === btn.dataset.id);
+      if (booking) openRiskDetailsModal(booking);
     };
   });
 
@@ -5930,6 +5961,267 @@ async function dealerPage() {
   });
 }
 
+function openRiskDetailsModal(booking) {
+  const ra = booking?.riskAssessment;
+  if (!ra) {
+    toast('No automated risk score recorded for this booking.');
+    return;
+  }
+  showDialog(`
+    <div style="padding:6px;max-width:540px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-size:11px;font-weight:800;color:#FF6000;letter-spacing:0.06em;text-transform:uppercase">RISK &amp; VERIFICATION ENGINE (ITEM #9)</span>
+          <h3 style="margin:2px 0 0">Driver Risk Evaluation — ${esc(booking.bookingRef)}</h3>
+        </div>
+        <span class="badge" style="background:${ra.color}20;color:${ra.color};border:1px solid ${ra.color}50;font-size:11px;font-weight:700;">${esc(ra.badgeText)}</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="background:var(--bg-subtle,#F8FAFC);border:1px solid var(--border-main,#E2E8F0);border-radius:10px;padding:12px;">
+          <span style="font-size:11.5px;color:var(--text-muted);">Composite Risk Score</span>
+          <div style="font-size:26px;font-weight:800;color:${ra.color};margin:4px 0;">${ra.score} <span style="font-size:13px;color:var(--text-muted);font-weight:400;">/ 100</span></div>
+          <span style="font-size:11.5px;color:var(--text-muted);line-height:1.4;display:block;">${ra.autoApprove ? '✅ Meets safety threshold for instant vehicle handover.' : '⚠️ Manual manager approval required before key release.'}</span>
+        </div>
+        <div style="background:var(--bg-subtle,#F8FAFC);border:1px solid var(--border-main,#E2E8F0);border-radius:10px;padding:12px;">
+          <span style="font-size:11.5px;color:var(--text-muted);">Renter Identity</span>
+          <div style="font-size:15px;font-weight:700;margin:6px 0 2px;">${esc((booking.customer?.firstName || '') + ' ' + (booking.customer?.lastName || ''))}</div>
+          <span style="font-size:11.5px;color:var(--text-muted);word-break:break-all;">${esc(booking.customer?.email || '')}</span>
+          ${booking.customer?.phone ? `<br><small style="color:var(--cta);font-weight:600;">📞 ${esc(booking.customer.phone)}</small>` : ''}
+        </div>
+      </div>
+
+      <h4 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);">Evaluated Heuristic Factors &amp; Flags</h4>
+      ${ra.flags && ra.flags.length ? `
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+          ${ra.flags.map(f => `
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#FFF;border:1px solid ${f.severity === 'HIGH' ? '#FECACA' : f.severity === 'MEDIUM' ? '#FED7AA' : '#E2E8F0'};border-left:4px solid ${f.severity === 'HIGH' ? '#EF4444' : f.severity === 'MEDIUM' ? '#F59E0B' : '#10B981'};border-radius:8px;">
+              <span style="font-size:16px;">${f.severity === 'HIGH' ? '🚩' : f.severity === 'MEDIUM' ? '⚠️' : 'ℹ️'}</span>
+              <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <strong style="font-size:13px;color:var(--ink);">${esc(f.title)}</strong>
+                  <span class="badge ${f.severity === 'HIGH' ? 'err' : f.severity === 'MEDIUM' ? 'warn' : 'ok'}" style="font-size:10px;">${esc(f.severity)}</span>
+                </div>
+                <p style="margin:3px 0 0;font-size:12px;color:var(--text-muted);line-height:1.4;">${esc(f.description)}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div style="padding:16px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;text-align:center;margin-bottom:16px;">
+          <span style="font-size:24px;">🛡️</span>
+          <h4 style="margin:6px 0 2px;color:#065F46;">Zero Risk Flags Detected</h4>
+          <p style="margin:0;font-size:12px;color:#047857;">Customer has a clean DigiLocker identity, valid DL &gt; 1 yr, and zero prior incident reports.</p>
+        </div>
+      `}
+
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="button btn-orange" style="flex:1" onclick="$('dialog')?.close()">Close Risk Breakdown</button>
+      </div>
+    </div>
+  `);
+}
+
+async function blogPage() {
+  const routes = [
+    {
+      id: 'statue-of-unity',
+      category: 'weekend',
+      title: 'Ahmedabad to Statue of Unity (Ekta Nagar)',
+      subtitle: 'The Express NE-1 Weekend Getaway to the World\'s Tallest Monument',
+      badge: 'TOP WEEKEND GETAWAY',
+      distance: '198 km',
+      duration: '3.5 Hours',
+      highway: 'NE-1 Expressway & SH-63',
+      toll: '₹145 (FASTag)',
+      recommendedCar: 'Hyundai Creta SX(O) / Toyota Innova Crysta',
+      idealCategory: 'SUV',
+      image: 'cars/creta.jpg',
+      highlights: [
+        'World’s tallest statue (182 metres) honoring Sardar Vallabhbhai Patel',
+        'Viewing Gallery at 153m with panoramic Sardar Sarovar Dam vistas',
+        'Valley of Flowers & Cactus Garden botanical walkthrough',
+        'Ekta Cruise and evening high-tech Laser Light & Sound Show'
+      ],
+      routeTips: 'Smooth 6-lane NE-1 expressway from Ahmedabad to Vadodara. Cruise control recommended. Follow SH-63 via Dabhoi to Ekta Nagar. Ample EV charging & highway rest stops.'
+    },
+    {
+      id: 'saputara-hills',
+      category: 'nature',
+      title: 'Surat to Saputara Hill Station',
+      subtitle: 'Climbing the Sahyadri Ghats into Gujarat\'s Sole Hill Paradise',
+      badge: 'MONSOON & NATURE TRAIL',
+      distance: '160 km',
+      duration: '4.0 Hours',
+      highway: 'Surat-Bardoli-Waghai Ghat Road',
+      toll: '₹85 (FASTag)',
+      recommendedCar: 'Mahindra Thar 4x4 / Mahindra Scorpio-N',
+      idealCategory: 'SUV',
+      image: 'cars/thar.jpg',
+      highlights: [
+        'Majestic Gira Waterfalls gushing in full glory during monsoon',
+        'Saputara Lake boating surrounded by mist-covered Sahyadri ridges',
+        'Table Top Point ropeway ride and paragliding take-off point',
+        'Historic Hatgadh Fort trek perched at 3,600 ft elevation'
+      ],
+      routeTips: 'Scenic hairpin turns between Waghai and Saputara. Keep headlights on during misty fog. High-torque SUV like Thar or Scorpio offers superior handling on winding ghat climbs.'
+    },
+    {
+      id: 'gir-somnath',
+      category: 'wildlife',
+      title: 'Ahmedabad to Gir National Park & Somnath',
+      subtitle: 'The Asiatic Lion Trail to the Ancient Coastal Jyotirlinga Shrine',
+      badge: 'WILDLIFE & SPIRITUAL CIRCUIT',
+      distance: '410 km',
+      duration: '7.5 Hours',
+      highway: 'NH-47 & NH-151 via Rajkot',
+      toll: '₹310 (FASTag)',
+      recommendedCar: 'Toyota Fortuner Legender / BMW 3 Series',
+      idealCategory: 'LUXURY',
+      image: 'cars/fortuner.jpg',
+      highlights: [
+        'Open-top safari in Sasan Gir, the sole home of Asiatic Lions',
+        'Somnath Jyotirlinga Temple on the shore of the Arabian Sea',
+        'Triveni Sangam confluence where rivers Hiran, Kapila & Saraswati meet',
+        'Bhalka Tirth sacred memorial and Veraval fishing harbour'
+      ],
+      routeTips: 'Start early (5:00 AM) to beat city traffic at Bagodara. The 4-lane NH-47 to Rajkot is fast and smooth. Forest speed limits strictly 30 km/h inside Gir buffer zone.'
+    },
+    {
+      id: 'dwarka-shivrajpur',
+      category: 'spiritual',
+      title: 'Ahmedabad to Dwarka & Shivrajpur Beach',
+      subtitle: 'The Sacred Kingdom of Lord Krishna & Blue Flag Azure Waters',
+      badge: 'COASTAL PILGRIMAGE',
+      distance: '440 km',
+      duration: '8.0 Hours',
+      highway: 'NH-947 Coastal Corridor',
+      toll: '₹275 (FASTag)',
+      recommendedCar: 'Honda City ZX / Maruti Suzuki Swift ZXi+',
+      idealCategory: 'SEDAN',
+      image: 'cars/fortuner.jpg',
+      highlights: [
+        'Dwarkadhish Jagat Mandir with 52-yard sacred flag flutter',
+        'Shivrajpur Blue Flag Certified pristine white-sand beach with scuba diving',
+        'Sudama Setu suspension bridge over the Gomti River',
+        'Bet Dwarka island ferry and ancient coastal temples'
+      ],
+      routeTips: 'Coastal corridor with steady sea breezes. Ample petrol stations and Kathiyawadi highway dhabas serving authentic fresh meals throughout the route.'
+    }
+  ];
+
+  $('#app').innerHTML = `
+    <div style="max-width:1120px;margin:0 auto;padding-bottom:48px;">
+      <!-- Hero Banner -->
+      <div style="background:linear-gradient(135deg,#1E1B4B 0%,#312E81 50%,#FF6000 120%);color:#fff;border-radius:24px;padding:48px 32px;margin-bottom:32px;box-shadow:0 12px 36px rgba(30,27,75,0.18);position:relative;overflow:hidden;">
+        <div style="max-width:680px;position:relative;z-index:2;">
+          <span style="display:inline-block;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px;">SAFAR SELF-DRIVE TRAVEL GUIDES</span>
+          <h1 style="font-size:36px;font-weight:800;line-height:1.2;margin:0 0 12px;color:#fff;">Discover Gujarat at Your Own Pace</h1>
+          <p style="font-size:16px;line-height:1.6;color:rgba(255,255,255,0.85);margin:0 0 20px;">
+            Hand-curated road trip itineraries with verified routes, highway toll estimates, scenic pitstops, and recommended Safar rental cars for ultimate highway comfort.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <a href="cars.html" class="button btn-orange btn-lg">Browse Gujarat Fleet</a>
+            <a href="dealer.html" class="button btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.4);">Dealer Fleet Portal</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Chips -->
+      <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;margin-bottom:24px;">
+        <button type="button" class="chip-btn active" data-blog-cat="all">All Road Trips</button>
+        <button type="button" class="chip-btn" data-blog-cat="weekend">Weekend Getaways</button>
+        <button type="button" class="chip-btn" data-blog-cat="nature">Hills &amp; Waterfalls</button>
+        <button type="button" class="chip-btn" data-blog-cat="wildlife">Wildlife &amp; Safari</button>
+        <button type="button" class="chip-btn" data-blog-cat="spiritual">Coastal &amp; Heritage</button>
+      </div>
+
+      <!-- Itinerary Cards Grid -->
+      <div id="blog-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;margin-bottom:40px;">
+        ${routes.map(r => `
+          <article class="panel blog-route-card" data-cat="${r.category}" style="display:flex;flex-direction:column;overflow:hidden;border-radius:20px;border:1px solid var(--border-main);padding:0;">
+            <div style="position:relative;height:200px;background:#1E1B4B;overflow:hidden;">
+              <img src="${r.image}" alt="${esc(r.title)}" style="width:100%;height:100%;object-fit:cover;opacity:0.9;" onerror="this.src='cars/thar.jpg'">
+              <div style="position:absolute;top:12px;left:12px;">
+                <span class="badge ok" style="font-size:11px;font-weight:700;">${esc(r.badge)}</span>
+              </div>
+              <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.8));padding:12px 16px;color:#fff;display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;">
+                <span>📍 ${esc(r.distance)}</span>
+                <span>⏱️ ${esc(r.duration)}</span>
+                <span>🛣️ ${esc(r.toll)}</span>
+              </div>
+            </div>
+
+            <div style="padding:20px;display:flex;flex-direction:column;flex:1;">
+              <h3 style="margin:0 0 6px;font-size:18px;font-weight:800;color:var(--ink);">${esc(r.title)}</h3>
+              <p style="margin:0 0 14px;font-size:13px;color:var(--text-muted);">${esc(r.subtitle)}</p>
+
+              <div style="background:var(--bg-subtle,#F8FAFC);border:1px solid var(--border-main,#E2E8F0);border-radius:12px;padding:12px;margin-bottom:14px;">
+                <span style="display:block;font-size:11px;font-weight:800;color:#FF6000;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;">RECOMMENDED VEHICLE</span>
+                <strong style="font-size:13.5px;color:var(--ink);display:block;">🚗 ${esc(r.recommendedCar)}</strong>
+                <p style="margin:4px 0 0;font-size:12px;color:var(--text-muted);">Equipped with FASTag, 300 km/day included &amp; 24/7 Roadside Assistance.</p>
+              </div>
+
+              <div style="margin-bottom:14px;">
+                <strong style="display:block;font-size:12px;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.04em;margin-bottom:6px;">Highlights:</strong>
+                <ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--ink);">
+                  ${r.highlights.map(h => `<li>${esc(h)}</li>`).join('')}
+                </ul>
+              </div>
+
+              <div style="margin-top:auto;padding-top:14px;border-top:1px solid var(--border-main,#E2E8F0);display:flex;gap:10px;">
+                <a href="cars.html?cat=${r.idealCategory}" class="button btn-orange btn-sm" style="flex:1;text-align:center;">Book Car for this Route →</a>
+              </div>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+
+      <!-- Essential Highway Driving Checklist (Item #21) -->
+      <section class="panel" style="background:#FFF;border-radius:20px;padding:32px;border:1px solid var(--border-main);">
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:16px;">
+          <span style="font-size:28px;">📋</span>
+          <div>
+            <h3 style="margin:0;">Essential Gujarat Highway Self-Drive Checklist</h3>
+            <p class="text-muted" style="margin:2px 0 0;font-size:13.5px;">Key regulations, toll information, and roadside protocols for smooth road tripping.</p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+          <div style="background:var(--bg-subtle,#F8FAFC);padding:14px;border-radius:12px;border:1px solid var(--border-main);">
+            <strong style="display:block;font-size:13px;color:#FF6000;margin-bottom:4px;">1. DigiLocker KYC Mandate</strong>
+            <p style="margin:0;font-size:12px;color:var(--text-muted);line-height:1.5;">Valid Driving Licence &amp; Aadhaar must be verified prior to key release as per Gujarat Motor Vehicles Department norms.</p>
+          </div>
+          <div style="background:var(--bg-subtle,#F8FAFC);padding:14px;border-radius:12px;border:1px solid var(--border-main);">
+            <strong style="display:block;font-size:13px;color:#FF6000;margin-bottom:4px;">2. Automated FASTag Tolls</strong>
+            <p style="margin:0;font-size:12px;color:var(--text-muted);line-height:1.5;">Every Safar car carries an active windshield FASTag. Toll expenses are reconciled at exact cost during trip settlement.</p>
+          </div>
+          <div style="background:var(--bg-subtle,#F8FAFC);padding:14px;border-radius:12px;border:1px solid var(--border-main);">
+            <strong style="display:block;font-size:13px;color:#FF6000;margin-bottom:4px;">3. Speed Limits &amp; Safety</strong>
+            <p style="margin:0;font-size:12px;color:var(--text-muted);line-height:1.5;">Expressways (NE-1) max 100-120 km/h; National Highways max 80-100 km/h. Fleet vehicles are telematics-monitored.</p>
+          </div>
+          <div style="background:var(--bg-subtle,#F8FAFC);padding:14px;border-radius:12px;border:1px solid var(--border-main);">
+            <strong style="display:block;font-size:13px;color:#FF6000;margin-bottom:4px;">4. 24/7 Roadside Assistance</strong>
+            <p style="margin:0;font-size:12px;color:var(--text-muted);line-height:1.5;">Emergency towing, flat tyre, and battery support active across all 33 Gujarat districts: call <strong>+91 99090 31177</strong>.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+
+  // Bind category filter chips
+  $$('[data-blog-cat]').forEach(btn => {
+    btn.onclick = () => {
+      $$('[data-blog-cat]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat = btn.dataset.blogCat;
+      $$('.blog-route-card').forEach(card => {
+        card.style.display = (cat === 'all' || card.dataset.cat === cat) ? 'flex' : 'none';
+      });
+    };
+  });
+}
+
 /* ─── APPLICATION INITIALIZATION ─────────────────────────────────────── */
 async function main() {
   ['safar_user','safar_bookings','safar_latest_paid_booking'].forEach(k => localStorage.removeItem(k));
@@ -5941,6 +6233,7 @@ async function main() {
     'auth.html': auth,
     'cars.html': cars,
     'dealer.html': dealerPage,
+    'blog.html': blogPage,
     'host-onboarding.html': host,
     'dashboard.html': dashboard,
     'kyc.html': kyc,
