@@ -6337,8 +6337,59 @@ async function blogPage() {
   });
 }
 
+/* ─── BRANDING SPLASH ENTRANCE ANIMATION ──────────────────────────────────── */
+function showBrandSplash() {
+  const isHome = page === 'index.html' || page === '';
+  const hasShown = sessionStorage.getItem('safar_splash_opened');
+  if (!isHome && hasShown) return;
+  sessionStorage.setItem('safar_splash_opened', '1');
+
+  if (document.getElementById('safar-splash-screen')) return;
+
+  const splash = document.createElement('div');
+  splash.id = 'safar-splash-screen';
+  splash.className = 'safar-splash-overlay';
+  splash.setAttribute('aria-hidden', 'true');
+  splash.innerHTML = `
+    <div class="safar-splash-card">
+      <div class="safar-splash-logo-wrap">
+        <img src="safar-logo.png?v=20261110z" alt="Safar Self Drive" class="safar-splash-logo" />
+        <div class="safar-splash-glow"></div>
+      </div>
+      <div class="safar-splash-text">
+        <div class="safar-splash-brand">
+          <span class="safar-splash-name">Safar</span>
+          <span class="safar-splash-badge">SELF DRIVE</span>
+        </div>
+        <p class="safar-splash-tagline">Your Journey. Your Rules.</p>
+      </div>
+      <div class="safar-splash-bar">
+        <div class="safar-splash-progress"></div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(splash);
+
+  const dismiss = () => {
+    if (splash.classList.contains('safar-splash-fadeout')) return;
+    splash.classList.add('safar-splash-fadeout');
+    setTimeout(() => {
+      splash.remove();
+    }, 480);
+  };
+
+  const timer = setTimeout(dismiss, 1150);
+
+  splash.addEventListener('click', () => {
+    clearTimeout(timer);
+    dismiss();
+  }, { once: true });
+}
+
 /* ─── APPLICATION INITIALIZATION ─────────────────────────────────────── */
 async function main() {
+  showBrandSplash();
   ['safar_user','safar_bookings','safar_latest_paid_booking'].forEach(k => localStorage.removeItem(k));
   try { user = await api('/auth/profile'); } catch {}
   shell();

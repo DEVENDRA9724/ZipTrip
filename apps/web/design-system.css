@@ -1808,3 +1808,164 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   font-weight: 700 !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREMIUM LUXURY BRANDING SPLASH SCREEN & LOGO ENTRANCE ANIMATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+.safar-splash-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  background: #FFFFFF !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.45s ease,
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  pointer-events: auto;
+}
+
+.safar-splash-overlay.safar-splash-fadeout {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: scale(1.025) !important;
+}
+
+.safar-splash-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 18px !important;
+  text-align: center !important;
+  max-width: 360px !important;
+  width: 100% !important;
+  animation: safarSplashPop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.safar-splash-logo-wrap {
+  position: relative !important;
+  width: 98px !important;
+  height: 98px !important;
+  border-radius: 50% !important;
+  background: #FFFFFF !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 14px 40px rgba(255, 96, 0, 0.18), 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+  padding: 6px !important;
+  animation: safarSplashLogoIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.safar-splash-glow {
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(255, 96, 0, 0.3) 0%, rgba(255, 122, 26, 0) 70%) !important;
+  animation: safarGlowPulse 1.6s ease-in-out infinite alternate !important;
+  pointer-events: none !important;
+}
+
+.safar-splash-logo {
+  width: 82px !important;
+  height: 82px !important;
+  object-fit: contain !important;
+  border-radius: 50% !important;
+  display: block !important;
+}
+
+.safar-splash-text {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 4px !important;
+  animation: safarSplashTextIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.safar-splash-brand {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.safar-splash-name {
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.02em !important;
+  color: #0F172A !important;
+  font-family: inherit !important;
+}
+
+.safar-splash-badge {
+  background: linear-gradient(135deg, #FF6000 0%, #FF7A1A 100%) !important;
+  color: #FFFFFF !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 2px 8px rgba(255, 96, 0, 0.35) !important;
+}
+
+.safar-splash-tagline {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #64748B !important;
+  margin: 0 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.safar-splash-bar {
+  width: 140px !important;
+  height: 3px !important;
+  background: #E2E8F0 !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  margin-top: 4px !important;
+}
+
+.safar-splash-progress {
+  width: 0% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, #FF6000 0%, #FF8533 100%) !important;
+  border-radius: 999px !important;
+  animation: safarProgress 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+}
+
+@keyframes safarSplashLogoIn {
+  0% { transform: scale(0.65) translateY(18px); opacity: 0; filter: blur(6px); }
+  60% { transform: scale(1.06) translateY(-2px); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); }
+}
+
+@keyframes safarSplashPop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes safarSplashTextIn {
+  0% { transform: translateY(10px); opacity: 0; }
+  40% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes safarGlowPulse {
+  0% { transform: scale(0.92); opacity: 0.4; }
+  100% { transform: scale(1.15); opacity: 0.9; }
+}
+
+@keyframes safarProgress {
+  0% { width: 0%; }
+  60% { width: 75%; }
+  100% { width: 100%; }
+}
+
