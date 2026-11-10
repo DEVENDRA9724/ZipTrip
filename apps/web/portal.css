@@ -141,6 +141,32 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
   color: var(--text-main);
 }
 
+.btn-white-solid {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1.5px solid #FFFFFF !important;
+  font-weight: 700 !important;
+}
+.btn-white-solid:hover {
+  background: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+.btn-white-outline {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.btn-white-outline:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+}
+
 .btn-ghost {
   background: transparent;
   border-color: var(--border-main);

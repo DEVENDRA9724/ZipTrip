@@ -164,8 +164,13 @@ button:focus-visible, .button:focus-visible, a:focus-visible, input:focus-visibl
 .btn-orange:hover, .btn-primary:hover { background: var(--cta-fill-hover) !important; border-color: var(--cta-fill-hover) !important; color: #fff !important; }
 .btn-brand { background: var(--brand) !important; border-color: var(--brand) !important; color: #fff !important; }
 .btn-brand:hover { background: var(--brand-2) !important; }
-.btn-outline, .btn-ghost { background: #fff; color: var(--ink); border-color: var(--line-strong); }
-.btn-ghost { box-shadow: none; border-color: transparent; color: var(--brand); }
+.btn-outline { background: transparent !important; color: var(--ink); border: 1.5px solid var(--line-strong, #CBD5E1) !important; }
+.btn-outline:hover { background: rgba(15, 23, 42, 0.05) !important; }
+.btn-white-solid { background: #FFFFFF !important; color: #0F172A !important; border: 1.5px solid #FFFFFF !important; font-weight: 700 !important; }
+.btn-white-solid:hover { background: #F1F5F9 !important; color: #0F172A !important; }
+.btn-white-outline { background: rgba(255, 255, 255, 0.15) !important; color: #FFFFFF !important; border: 1.5px solid rgba(255, 255, 255, 0.45) !important; font-weight: 700 !important; text-decoration: none !important; }
+.btn-white-outline:hover { background: rgba(255, 255, 255, 0.25) !important; color: #FFFFFF !important; border-color: #FFFFFF !important; }
+.btn-ghost { background: transparent; color: var(--brand); border-color: transparent; box-shadow: none; }
 .btn-ghost:hover { background: var(--brand-soft); border-color: transparent; color: var(--brand); }
 .btn-sm { padding: 7px 12px; font-size: 13px; border-radius: 8px; }
 .btn-lg { padding: 13px 22px; font-size: 15px; }

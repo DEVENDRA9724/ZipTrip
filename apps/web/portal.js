@@ -1976,7 +1976,7 @@ async function carDetails(id) {
       lb.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <strong style="color:#fff;font-size:15px;">${esc(car.make + ' ' + car.model)} — Photo Inspection</strong>
-          <button type="button" class="button btn-outline btn-sm" id="close-lb-btn" style="color:#fff;border-color:rgba(255,255,255,0.25);">✕ Close</button>
+          <button type="button" class="button btn-white-outline btn-sm" id="close-lb-btn">✕ Close</button>
         </div>
         <img src="${esc(heroImg.src)}" alt="${esc(car.make)}" style="width:100%;max-height:76vh;object-fit:contain;border-radius:12px;">`;
       $('#close-lb-btn', lb).onclick = () => lb.close();
@@ -2391,7 +2391,7 @@ function renderKycVerificationWizardHtml(prof, faceScore, info, vehicleId) {
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
           <button type="button" id="btn-start-webcam" class="button btn-orange btn-sm">${icon('camera')} Start Camera</button>
           <button type="button" id="btn-capture-webcam" class="button btn-sm" hidden style="background:#16804A;border-color:#16804A;color:#fff">Capture Selfie</button>
-          <label class="button btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);cursor:pointer;margin:0">
+          <label class="button btn-white-outline btn-sm" style="cursor:pointer;margin:0">
             Upload Photo
             <input type="file" id="kyc-selfie-file" accept="image/jpeg,image/png,image/webp" capture="user" hidden>
           </label>
@@ -5908,7 +5908,7 @@ async function dealerPage() {
           </p>
           <div style="display:flex;gap:14px;flex-wrap:wrap">
             <a href="host-onboarding.html" class="button btn-orange btn-lg">Open Dealer Fleet Console →</a>
-            <a href="#dealer-calc" class="button btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.3)">Estimate Fleet Earnings</a>
+            <a href="#dealer-calc" class="button btn-white-outline btn-lg">Estimate Fleet Earnings</a>
           </div>
         </div>
         <div style="flex:1;min-width:280px;max-width:440px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px">
@@ -6236,8 +6236,8 @@ async function blogPage() {
             Hand-curated road trip itineraries with verified routes, highway toll estimates, scenic pitstops, and recommended Safar rental cars for ultimate highway comfort.
           </p>
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <a href="cars.html" class="button btn-orange btn-lg">Browse Gujarat Fleet</a>
-            <a href="dealer.html" class="button btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.4);">Dealer Fleet Portal</a>
+            <a href="cars.html" class="button btn-orange btn-lg">Browse Gujarat Fleet →</a>
+            <a href="cars.html?cat=SUV" class="button btn-white-outline btn-lg">Explore Highway SUVs</a>
           </div>
         </div>
       </div>
