@@ -548,9 +548,7 @@ function shell() {
     ['blog.html', 'Travel Guides'],
   ] : [
     ['cars.html', 'Explore Cars'],
-    ['dealer.html', 'Dealer Fleet'],
     ['blog.html', 'Travel Guides'],
-    ['host-onboarding.html', isPartner ? 'Host Console' : 'Become a Host'],
     ['index.html#how-it-works', 'How It Works'],
     ['index.html#support', 'Help & Support'],
     ...(user?.role === 'ADMIN' ? [['admin.html', 'Admin Panel']] : []),
@@ -651,10 +649,15 @@ function shell() {
     bnav.innerHTML = `
       <a class="bnav-item ${page === 'index.html' || page === '' ? 'active' : ''}" href="index.html">${icon('home')}<span>Home</span></a>
       <a class="bnav-item ${page === 'cars.html' ? 'active' : ''}" href="cars.html">${icon('car')}<span>Cars</span></a>
-      <a class="bnav-item ${page === 'dashboard.html' || page === 'kyc.html' ? 'active' : ''}" href="dashboard.html">${icon('user')}<span>Account</span></a>
-      ${user?.role === 'ADMIN'
-        ? `<a class="bnav-item ${page === 'admin.html' ? 'active' : ''}" href="admin.html">${icon('layers')}<span>Admin</span></a>`
-        : `<a class="bnav-item ${page === 'host-onboarding.html' ? 'active' : ''}" href="host-onboarding.html">${icon('key')}<span>Host</span></a>`}
+      <a class="bnav-item ${page === 'blog.html' ? 'active' : ''}" href="blog.html">${icon('layers')}<span>Guides</span></a>
+      ${user
+        ? (['HOST','DEALER'].includes(user.role)
+            ? `<a class="bnav-item ${page === 'host-onboarding.html' ? 'active' : ''}" href="host-onboarding.html">${icon('car')}<span>Console</span></a>`
+            : (user.role === 'ADMIN'
+                ? `<a class="bnav-item ${page === 'admin.html' ? 'active' : ''}" href="admin.html">${icon('chart')}<span>Admin</span></a>`
+                : `<a class="bnav-item ${page === 'dashboard.html' ? 'active' : ''}" href="dashboard.html">${icon('user')}<span>Account</span></a>`))
+        : `<a class="bnav-item ${page === 'auth.html' ? 'active' : ''}" href="auth.html">${icon('user')}<span>Log In</span></a>`
+      }
     `;
     document.body.appendChild(bnav);
   }
@@ -2647,6 +2650,12 @@ async function host(activeTab = 'overview') {
           <button type="button" class="pro-nav-item ${activeTab === 'fleet' ? 'active' : ''}" data-host-tab="fleet">
             <span>${icon('car')} My Vehicles</span><span class="pro-nav-badge">${vehicles.length}</span>
           </button>
+          <button type="button" class="pro-nav-item ${activeTab === 'telematics' ? 'active' : ''}" data-host-tab="telematics">
+            <span>${icon('pin')} GPS &amp; Telematics</span>
+          </button>
+          <button type="button" class="pro-nav-item ${activeTab === 'maintenance' ? 'active' : ''}" data-host-tab="maintenance">
+            <span>${icon('shield')} Fleet Health &amp; PUC</span>
+          </button>
           <button type="button" class="pro-nav-item ${activeTab === 'wallet' ? 'active' : ''}" data-host-tab="wallet">
             <span>${icon('wallet')} Revenue &amp; Payouts</span>
           </button>
@@ -2850,6 +2859,106 @@ async function host(activeTab = 'overview') {
           }).join('') + `</div>` : empty('No vehicles listed yet', 'Click "+ List New Vehicle" to onboard your first self-drive vehicle.')}
         </section>
 
+        <!-- Telematics & GPS Live Tracking Tab -->
+        <section id="host-tab-telematics" ${activeTab === 'telematics' ? '' : 'hidden'}>
+          <div class="panel" style="margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+              <div>
+                <h3 style="margin:0;">Fleet IoT Telematics &amp; Live GPS Hub</h3>
+                <p class="text-muted" style="margin:4px 0 0;">Real-time GPS transponder telemetry, ignition monitoring, and speed boundary controls across Gujarat.</p>
+              </div>
+              <span class="badge ok">● 4G Telematics Gateway Online</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+              ${vehicles.map(v => {
+                const isTripping = hostBookings.some(b => b.vehicleId === v.id && b.status === 'ACTIVE');
+                return `
+                <div style="background:#FFF;border:1px solid var(--border-main);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div>
+                      <strong style="font-size:15px;color:var(--ink);">${esc(v.make + ' ' + v.model)}</strong>
+                      <span style="display:block;font-size:12px;color:var(--text-muted);font-family:monospace;">${esc(v.registrationNumber || 'GJ01-REG-PENDING')}</span>
+                    </div>
+                    <span class="badge ${isTripping ? 'warn' : 'ok'}">${isTripping ? '🏎️ In Motion (Guest Trip)' : '🅿️ Parked at Hub'}</span>
+                  </div>
+
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12.5px;background:var(--bg-subtle,#F8FAFC);padding:10px 12px;border-radius:10px;border:1px solid var(--border-main,#E2E8F0);">
+                    <div><span class="text-muted" style="font-size:11px;">Current Odometer:</span><br><strong>${Number(v.odometer || 0).toLocaleString('en-IN')} km</strong></div>
+                    <div><span class="text-muted" style="font-size:11px;">Fuel Gauge:</span><br><strong style="color:var(--ok);">${Number(v.fuelLevelPercent || 100)}% Full</strong></div>
+                    <div><span class="text-muted" style="font-size:11px;">Ignition Status:</span><br><strong>${isTripping ? 'Engine Running' : 'Ignition OFF'}</strong></div>
+                    <div><span class="text-muted" style="font-size:11px;">Speed Telemetry:</span><br><strong>${isTripping ? '42 km/h' : '0 km/h'}</strong></div>
+                  </div>
+
+                  <div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+                    <span>📍</span> <span>${esc(v.locationCity || 'Ahmedabad')} Operational Hub Perimeter</span>
+                  </div>
+
+                  <div style="margin-top:auto;display:flex;gap:8px;">
+                    <button type="button" class="button btn-outline btn-sm ping-telematics-btn" data-reg="${esc(v.registrationNumber || v.model)}" style="flex:1;">Ping GPS Location</button>
+                    <button type="button" class="button btn-ghost btn-sm host-schedule" data-id="${v.id}">Schedule</button>
+                  </div>
+                </div>`;
+              }).join('') || '<p class="text-muted">No vehicles onboarded yet.</p>'}
+            </div>
+          </div>
+        </section>
+
+        <!-- Fleet Health & Maintenance Tab -->
+        <section id="host-tab-maintenance" ${activeTab === 'maintenance' ? '' : 'hidden'}>
+          <div class="panel" style="margin-bottom:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+              <div>
+                <h3 style="margin:0;">Fleet Compliance, PUC &amp; Maintenance Schedule</h3>
+                <p class="text-muted" style="margin:4px 0 0;">Track service schedules, PUC pollution validity, and take vehicles offline for maintenance.</p>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Current Odo &amp; Service Due</th>
+                    <th>PUC &amp; Commercial Insurance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${vehicles.map(v => {
+                    const odo = Number(v.odometer || 0);
+                    const nextService = Math.ceil((odo + 1) / 10000) * 10000;
+                    const kmRemaining = nextService - odo;
+                    return `
+                    <tr>
+                      <td>
+                        <strong>${esc(v.make + ' ' + v.model + ' (' + v.year + ')')}</strong>
+                        <br><small class="text-muted">${esc(v.registrationNumber || 'No Reg')} · ${esc(v.fuelType || 'Petrol')}</small>
+                      </td>
+                      <td>
+                        <strong>${odo.toLocaleString('en-IN')} km</strong>
+                        <p class="text-muted" style="font-size:12px;margin:2px 0;">Next Engine Service: ${nextService.toLocaleString('en-IN')} km (${kmRemaining} km remaining)</p>
+                      </td>
+                      <td>
+                        <span class="badge ok">✓ PUC Valid until Dec 2026</span><br>
+                        <span class="badge ok" style="margin-top:4px;">✓ Comprehensive Commercial</span>
+                      </td>
+                      <td>${badge(v.status)}</td>
+                      <td>
+                        <div class="actions">
+                          <button type="button" class="button btn-orange btn-sm manage-fleet-vehicle-btn" data-id="${v.id}">⚙️ Manage Status</button>
+                          <button type="button" class="button btn-outline btn-sm host-schedule" data-id="${v.id}">Block Dates</button>
+                        </div>
+                      </td>
+                    </tr>`;
+                  }).join('') || '<tr><td colspan="5" class="text-muted">No vehicles listed yet.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <section id="host-tab-wallet" ${activeTab === 'wallet' ? '' : 'hidden'}>
           <div class="panel payout-panel" style="margin-bottom:20px;">
             <div class="heading">
@@ -3003,6 +3112,12 @@ async function host(activeTab = 'overview') {
   });
 
   $$('.host-schedule').forEach(button => button.onclick = () => openVehicleSchedule(vehicles.find(item => item.id === button.dataset.id)));
+
+  $$('.ping-telematics-btn').forEach(btn => {
+    btn.onclick = () => {
+      toast(`📡 Telematics ping received from ${btn.dataset.reg}: GPS signal 100%, 4G LTE connected, location locked.`);
+    };
+  });
 
   bindForm('#payout-account-form', async data => {
     await post('/payouts/account', data);

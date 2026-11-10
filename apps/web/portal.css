@@ -3523,8 +3523,18 @@ textarea:focus-visible, summary:focus-visible {
 .car-grid { align-items: stretch; }
 .car-card { min-width: 0; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
 .car-card:hover { transform: translateY(-4px); box-shadow: var(--card-shadow-hover); border-color: var(--orange-border); }
-.vcard-foot { gap: 10px; }
-.vcard-foot .button { flex: 0 0 auto; }
+.vcard-foot {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+.vcard-foot .button {
+  width: 100% !important;
+  text-align: center !important;
+  justify-content: center !important;
+}
 .booking-steps {
   display: grid !important;
   grid-template-columns: repeat(4, 1fr) !important;
