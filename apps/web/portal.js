@@ -502,7 +502,7 @@ function renderDocumentVaultTabHtml(kycInfo) {
 }
 
 function bindDocumentVaultEvents() {
-  $('.view-doc-vault-btn').forEach(btn => {
+  $$('.view-doc-vault-btn').forEach(btn => {
     btn.onclick = () => {
       const doc = btn.dataset.doc;
       const num = btn.dataset.num;
@@ -2895,7 +2895,7 @@ async function host(activeTab = 'overview') {
   }
 
     // View Document Vault Modal (Item #4)
-  $('.view-vault-doc-btn').forEach(btn => {
+  $$('.view-vault-doc-btn').forEach(btn => {
     btn.onclick = () => {
       const docName = btn.dataset.doc;
       const docKind = btn.dataset.kind;
@@ -2930,7 +2930,7 @@ async function host(activeTab = 'overview') {
 
   bindBookingEvents();
     // Manage Vehicle & Pricing Modal (Items #5, #18, #19)
-  $('.manage-fleet-vehicle-btn').forEach(btn => {
+  $$('.manage-fleet-vehicle-btn').forEach(btn => {
     btn.onclick = () => {
       const v = vehicles.find(item => item.id === btn.dataset.id);
       if (!v) return;
@@ -3000,7 +3000,7 @@ async function host(activeTab = 'overview') {
     };
   });
 
-  $('.host-schedule').forEach(button => button.onclick = () => openVehicleSchedule(vehicles.find(item => item.id === button.dataset.id)));
+  $$('.host-schedule').forEach(button => button.onclick = () => openVehicleSchedule(vehicles.find(item => item.id === button.dataset.id)));
 
   bindForm('#payout-account-form', async data => {
     await post('/payouts/account', data);
