@@ -1393,14 +1393,14 @@ async function cars() {
     applyCarFilters();
   });
 
-  $('.cat-cb, .trans-cb, .fuel-cb, .brand-cb, .seats-cb, .rating-rb, #filter-home-delivery, #addon-superhost').forEach(cb => {
+  $$('.cat-cb, .trans-cb, .fuel-cb, .brand-cb, .seats-cb, .rating-rb, #filter-home-delivery, #addon-superhost').forEach(cb => {
     cb.onchange = () => applyCarFilters();
   });
 
   $('#clear-filters-btn').onclick = () => {
     $$('#chip-row .chip-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-    $('.cat-cb, .trans-cb, .fuel-cb, .seats-cb').forEach(cb => { cb.checked = true; });
-    $('.brand-cb').forEach(cb => { cb.checked = cb.value === 'all'; });
+    $$('.cat-cb, .trans-cb, .fuel-cb, .seats-cb').forEach(cb => { cb.checked = true; });
+    $$('.brand-cb').forEach(cb => { cb.checked = cb.value === 'all'; });
     $$('.rating-rb').forEach(rb => { rb.checked = rb.value === '0'; });
     if ($('#distance-slider')) {
       $('#distance-slider').value = 25;
