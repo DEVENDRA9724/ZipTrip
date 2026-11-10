@@ -195,14 +195,14 @@ function getCarStockPhoto(car) {
 
 function getVehicleCover(v) {
   const stock = getCarStockPhoto(v);
-  if (stock) return stock + '?v=20261110m';
+  if (stock) return stock + '?v=20261110n';
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
     if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
   const front = v.media?.find(m => m.kind === 'FRONT');
   if (front?.id) return `/api/media/${front.id}`;
-  return 'cars/thar.jpg?v=20261110m';
+  return 'cars/thar.jpg?v=20261110n';
 }
 
 const badge = s => {
@@ -273,7 +273,7 @@ function brandMark(size = 34, light = false) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
 }
 function brandLockup(light = false) {
-  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261110m" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
+  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261110n" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
 }
 
 const page = location.pathname.split('/').pop() || 'index.html';
@@ -352,7 +352,7 @@ async function uploadFile(file, kind) {
 }
 function photoUrl(car) {
   const stock = getCarStockPhoto(car);
-  if (stock) return stock + '?v=20261110m';
+  if (stock) return stock + '?v=20261110n';
   if (car.images) {
     try {
       const p = JSON.parse(car.images);
@@ -364,7 +364,7 @@ function photoUrl(car) {
   }
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
   if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
-  return 'cars/thar.jpg?v=20261110m';
+  return 'cars/thar.jpg?v=20261110n';
 }
 function requireUser(roles) {
   if (!user) { location.replace('auth.html?redirect=' + encodeURIComponent(page + location.search)); return false; }
@@ -464,7 +464,7 @@ function shell() {
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=20261110m').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=20261110n').catch(() => {});
     });
   }
 
@@ -516,7 +516,7 @@ function shell() {
       <div class="ds-foot-brand">
         <a href="index.html" style="text-decoration:none">
           <span class="ds-brand">
-            <img class="ds-brand-logo" src="safar-logo.png?v=20261110m" alt="Safar Self Drive">
+            <img class="ds-brand-logo" src="safar-logo.png?v=20261110n" alt="Safar Self Drive">
             <span class="ds-brand-word" style="color:#0F172A">Safar<small style="color:#FF6000">SELF DRIVE</small></span>
           </span>
         </a>
@@ -723,7 +723,7 @@ async function home() {
     <section class="lp-section" aria-labelledby="lp-host">
       <div class="lp-host">
         <div class="lp-host-copy">
-          <div class="eyebrow" style="color:#E5C9E6">Host &amp; Vehicle-Owner Onboarding</div>
+          <div class="eyebrow" style="color:var(--brand-orange, #FF6000);font-weight:700">Host &amp; Vehicle-Owner Onboarding</div>
           <h2 id="lp-host">Share Your Car on Safar</h2>
           <p>List your personal car or dealership fleet with structured inspections, verified renters, and transparent payout settlements.</p>
           <ul>
@@ -731,44 +731,9 @@ async function home() {
             <li>${icon('check')} Manage your availability calendar, daily pricing, and upcoming guest handovers in one console.</li>
             <li>${icon('check')} Receive the configured host settlement directly to your verified bank account.</li>
           </ul>
-          <div style="margin-top:16px"><a class="button btn-orange" href="host-onboarding.html">Become a Host</a></div>
-
-          <!-- Instant Host Earnings Calculator -->
-          <div class="host-calc-box">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-              <strong style="font-size:14px;color:#FF6000;text-transform:uppercase;letter-spacing:0.08em;">Instant Host Earnings Estimator</strong>
-              <span class="badge ok" style="background:#22C55E;color:#000;font-weight:700">80% Net Host Share</span>
-            </div>
-            <div style="margin-top:14px">
-              <label style="font-size:11.5px;color:#94A3B8;display:block;margin-bottom:6px">Select Vehicle Category</label>
-              <select id="host-calc-segment" style="width:100%;padding:10px 12px;border-radius:10px;background:#0F172A;color:#fff;border:1px solid #334155;font-weight:600;font-size:13.5px">
-                <option value="1800">Compact Hatchback (Swift / i20) · ₹1,800/day</option>
-                <option value="2600">Executive Sedan (City / Ciaz) · ₹2,600/day</option>
-                <option value="3800" selected>Compact SUV / Thar Roxx · ₹3,800/day</option>
-                <option value="5500">Premium MPV (Innova Crysta) · ₹5,500/day</option>
-                <option value="7500">Luxury SUV / Fortuner · ₹7,500/day</option>
-              </select>
-            </div>
-            <div class="host-calc-slider-wrap">
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
-                <span style="color:#CBD5E1">Days Hosted Per Month:</span>
-                <strong id="host-calc-days-lbl" style="color:#FF6000;font-size:15px">18 Days</strong>
-              </div>
-              <input type="range" id="host-calc-days" min="5" max="30" value="18" step="1">
-            </div>
-            <div class="host-calc-metrics">
-              <div>
-                <span style="font-size:11px;color:#94A3B8;text-transform:uppercase;display:block;margin-bottom:2px">Est. Monthly Payout</span>
-                <div class="host-calc-val" id="host-calc-payout">₹54,720</div>
-              </div>
-              <div>
-                <span style="font-size:11px;color:#94A3B8;text-transform:uppercase;display:block;margin-bottom:2px">Guaranteed Terms</span>
-                <div style="font-size:12.5px;color:#F1F5F9;margin-top:4px;font-weight:600">Direct Weekly Bank Transfer &middot; Zero Liability</div>
-              </div>
-            </div>
-          </div>
+          <div style="margin-top:12px"><a class="button btn-orange btn-lg" href="host-onboarding.html">Become a Host</a></div>
         </div>
-        <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80" alt="Vehicle owner handing over car keys" loading="lazy">
+        <img src="cars/fortuner.jpg?v=20261110n" alt="Safar Self Drive Showroom Fleet" loading="lazy">
       </div>
     </section>
 
@@ -887,24 +852,7 @@ async function home() {
         </figure>`).join('');
       revWrap.hidden = false;
     }
-
-    // Host earnings calculator interactivity
-    const segmentEl = $('#host-calc-segment');
-    const daysEl = $('#host-calc-days');
-    const daysLbl = $('#host-calc-days-lbl');
-    const payoutEl = $('#host-calc-payout');
-    const updateHostCalc = () => {
-      if (!segmentEl || !daysEl || !payoutEl) return;
-      const rate = Number(segmentEl.value) || 3800;
-      const days = Number(daysEl.value) || 18;
-      if (daysLbl) daysLbl.textContent = `${days} Days`;
-      const net = Math.round(rate * days * 0.80);
-      payoutEl.textContent = money(net);
-    };
-    segmentEl?.addEventListener('change', updateHostCalc);
-    daysEl?.addEventListener('input', updateHostCalc);
-    updateHostCalc();
-  } catch (e) {
+} catch (e) {
     $('#fleet').innerHTML = loadError('Fleet unavailable', e.message, 'Reload fleet');
     $('.retry-load-btn')?.addEventListener('click', () => home());
   }
@@ -957,7 +905,7 @@ function auth(forceRegister, loginMode = 'password') {
     <div class="auth-box">
       <aside class="auth-banner">
         <div>
-          <img src="safar-logo.png?v=20261110m" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
+          <img src="safar-logo.png?v=20261110n" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
           <h1>Your Journey.<br>Your Rules.</h1>
           <p>Sign in to manage trips, verify documents, and explore self-drive rentals across India.</p>
         </div>
@@ -1488,7 +1436,7 @@ async function carDetails(id) {
         <!-- Photo Gallery Card -->
         <div class="details-gallery" id="sec-gallery">
           <div class="details-main-img-box">
-            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261110m';">
+            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261110n';">
             ${mediaList.length > 1 ? `<span class="gallery-counter" id="gallery-counter-lbl">1 / ${mediaList.length}</span>` : ''}
           </div>
 

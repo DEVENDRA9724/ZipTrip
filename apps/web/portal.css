@@ -3719,40 +3719,4 @@ textarea:focus-visible, summary:focus-visible {
   justify-content: space-between;
 }
 
-/* Host Earnings Widget */
-.host-calc-box {
-  background: linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%);
-  color: #FFFFFF;
-  border-radius: 18px;
-  padding: 28px;
-  margin-top: 20px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.2);
-}
 
-.host-calc-slider-wrap {
-  margin: 20px 0;
-}
-
-.host-calc-slider-wrap input[type="range"] {
-  width: 100%;
-  accent-color: #FF6000;
-  height: 6px;
-  cursor: pointer;
-}
-
-.host-calc-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 18px;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.host-calc-val {
-  font-size: 26px;
-  font-weight: 800;
-  color: #22C55E;
-}
