@@ -1219,10 +1219,10 @@ async function cars() {
         <div class="horizon-search-top">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span class="horizon-location-pill">
-              <span class="ico">${icon('pin')}</span> <strong>Ellisbridge / SG Highway Hub, Ahmedabad</strong> <small style="opacity:0.75">(Gujarat 380006)</small>
+              <span class="ico">${icon('pin')}</span> <strong>Ellisbridge / SG Highway Hub, Ahmedabad</strong> <small style="color:#64748B;font-weight:500;">(Gujarat 380006)</small>
             </span>
-            <span class="badge ok">${icon('shield')} Verified Fleet</span>
-            <button type="button" id="btn-gps-near-me" class="button btn-outline btn-sm" style="padding:4px 10px;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            <span class="badge ok" style="padding:6px 12px;border-radius:999px;">${icon('shield')} Verified Fleet</span>
+            <button type="button" id="btn-gps-near-me" class="button btn-outline btn-sm" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fff;border:1px solid #CBD5E1;color:#0F172A;border-radius:999px;font-weight:600;">
               ${icon('pin', 'ic-sm')} <span>Near Me (GPS)</span>
             </button>
           </div>

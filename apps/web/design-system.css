@@ -1250,13 +1250,13 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
 
 /* ── Prominent Search Bar & Filter Controls ───────────────────────── */
 .horizon-search-bar {
-  background: linear-gradient(135deg, #160A28 0%, #2B1046 55%, #3B1259 100%) !important;
+  background: #FFFFFF !important;
   border-radius: 20px !important;
-  padding: 18px 22px !important;
-  color: #fff !important;
-  margin-bottom: 12px !important;
-  box-shadow: 0 16px 36px rgba(22, 10, 40, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  padding: 20px 24px !important;
+  color: var(--ink, #0F172A) !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06) !important;
+  border: 1.5px solid #E2E8F0 !important;
 }
 .horizon-search-top {
   display: flex !important;
@@ -1264,30 +1264,39 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   align-items: center !important;
   gap: 12px !important;
   flex-wrap: wrap !important;
-  margin-bottom: 14px !important;
+  margin-bottom: 16px !important;
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid #F1F5F9 !important;
 }
 .horizon-location-pill {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
-  background: rgba(255, 255, 255, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: #F8FAFC !important;
+  border: 1px solid #E2E8F0 !important;
   padding: 7px 15px !important;
   border-radius: 999px !important;
   font-size: 13px !important;
-  color: #fff !important;
+  color: #0F172A !important;
+}
+.horizon-location-pill .ico, .horizon-location-pill svg {
+  color: #FF6000 !important;
+}
+.horizon-location-pill small {
+  color: #64748B !important;
+  opacity: 1 !important;
 }
 .horizon-km-toggle {
   display: inline-flex !important;
-  background: rgba(0, 0, 0, 0.35) !important;
+  background: #F1F5F9 !important;
   padding: 4px !important;
   border-radius: 999px !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid #E2E8F0 !important;
 }
 .horizon-km-toggle button {
   background: transparent !important;
   border: none !important;
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: #64748B !important;
   padding: 7px 16px !important;
   border-radius: 999px !important;
   font-size: 12.5px !important;
@@ -1296,9 +1305,9 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   transition: all 0.18s ease !important;
 }
 .horizon-km-toggle button.active {
-  background: linear-gradient(135deg, #E86A17, #FF8533) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 12px rgba(232, 106, 23, 0.35) !important;
+  background: linear-gradient(135deg, #FF6000 0%, #FF7A1A 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 3px 10px rgba(255, 96, 0, 0.35) !important;
 }
 
 .horizon-search-bar .availability-search {
@@ -1323,17 +1332,17 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
 .horizon-search-bar .availability-heading strong {
   font-size: 19px !important;
   font-weight: 800 !important;
-  color: #FFFFFF !important;
+  color: #0F172A !important;
 }
 .horizon-search-bar .availability-heading span {
   font-size: 13px !important;
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: #64748B !important;
 }
 .horizon-search-bar .availability-search > label {
   flex: 1 1 200px !important;
   font-size: 12.5px !important;
   font-weight: 700 !important;
-  color: rgba(255, 255, 255, 0.95) !important;
+  color: #334155 !important;
   letter-spacing: 0.02em !important;
   display: flex !important;
   flex-direction: column !important;
@@ -1351,7 +1360,7 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
 .horizon-search-bar .trip-date-range legend {
   font-size: 12.5px !important;
   font-weight: 700 !important;
-  color: #FF9447 !important;
+  color: #FF6000 !important;
   margin-bottom: 6px !important;
   padding: 0 !important;
 }
@@ -1360,7 +1369,7 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   min-width: 0 !important;
   font-size: 12.5px !important;
   font-weight: 700 !important;
-  color: rgba(255, 255, 255, 0.95) !important;
+  color: #334155 !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 6px !important;
@@ -1371,19 +1380,19 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   font-size: 14.5px !important;
   font-weight: 600 !important;
   color: #0F172A !important;
-  background: #FFFFFF !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+  background: #F8FAFC !important;
+  border: 1.5px solid #CBD5E1 !important;
   border-radius: 12px !important;
   padding: 0 14px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
   box-sizing: border-box !important;
   width: 100% !important;
 }
 .horizon-search-bar input[name="city"]:focus,
 .horizon-search-bar input[type="datetime-local"]:focus {
-  border-color: #E86A17 !important;
+  border-color: #FF6000 !important;
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(232, 106, 23, 0.35) !important;
+  box-shadow: 0 0 0 3px rgba(255, 96, 0, 0.18) !important;
+  background: #FFFFFF !important;
 }
 .horizon-search-bar .availability-search button[type="submit"] {
   height: 48px !important;
@@ -1391,11 +1400,11 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   font-weight: 700 !important;
   padding: 0 24px !important;
   border-radius: 12px !important;
-  background: linear-gradient(135deg, #E86A17 0%, #FF8533 100%) !important;
+  background: linear-gradient(135deg, #FF6000 0%, #FF7A1A 100%) !important;
   color: #FFFFFF !important;
   border: none !important;
   cursor: pointer !important;
-  box-shadow: 0 4px 16px rgba(232, 106, 23, 0.4) !important;
+  box-shadow: 0 4px 14px rgba(255, 96, 0, 0.35) !important;
   white-space: nowrap !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -1404,7 +1413,7 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
 }
 .horizon-search-bar .availability-search button[type="submit"]:hover {
   transform: translateY(-1px) !important;
-  box-shadow: 0 6px 20px rgba(232, 106, 23, 0.5) !important;
+  box-shadow: 0 6px 18px rgba(255, 96, 0, 0.45) !important;
 }
 
 /* Secondary Search & Sort row */

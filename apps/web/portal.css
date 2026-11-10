@@ -3272,55 +3272,64 @@ html {
 
 /* Safar Horizon Floating Trip Bar */
 .horizon-search-bar {
-  background: linear-gradient(135deg, #160A28 0%, #2B1046 55%, #3B1259 100%);
-  border-radius: 22px;
+  background: #FFFFFF;
+  border-radius: 20px;
   padding: 20px 24px;
-  color: #fff;
-  margin-bottom: 20px;
-  box-shadow: 0 20px 44px rgba(22, 10, 40, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--ink, #0F172A);
+  margin-bottom: 16px;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+  border: 1.5px solid #E2E8F0;
 }
 .horizon-search-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #F1F5F9;
 }
 .horizon-location-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 7px 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  padding: 7px 15px;
   border-radius: 999px;
-  font-size: 12.5px;
-  color: #fff;
+  font-size: 13px;
+  color: #0F172A;
+}
+.horizon-location-pill .ico, .horizon-location-pill svg {
+  color: #FF6000;
+}
+.horizon-location-pill small {
+  color: #64748B;
+  opacity: 1;
 }
 .horizon-km-toggle {
   display: inline-flex;
-  background: rgba(0, 0, 0, 0.32);
+  background: #F1F5F9;
   padding: 4px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid #E2E8F0;
 }
 .horizon-km-toggle button {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.72);
-  padding: 6px 14px;
+  color: #64748B;
+  padding: 7px 16px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 12.5px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.18s ease;
 }
 .horizon-km-toggle button.active {
-  background: linear-gradient(135deg, #E86A17, #FF8533);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(232, 106, 23, 0.35);
+  background: linear-gradient(135deg, #FF6000 0%, #FF7A1A 100%);
+  color: #FFFFFF;
+  box-shadow: 0 3px 10px rgba(255, 96, 0, 0.35);
 }
 
 /* Safar Quick Section Jump Bar on Car Detail Page */
