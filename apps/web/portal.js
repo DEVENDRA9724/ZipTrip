@@ -432,8 +432,9 @@ function shell() {
     ['cars.html', 'Live Customer View ↗'],
   ] : [
     ['cars.html', 'Explore Cars'],
-    ['index.html#how-it-works', 'How It Works'],
+    ['dealer.html', 'Dealer Fleet'],
     ['host-onboarding.html', isPartner ? 'Host Console' : 'Become a Host'],
+    ['index.html#how-it-works', 'How It Works'],
     ['index.html#support', 'Help & Support'],
     ...(user?.role === 'ADMIN' ? [['admin.html', 'Admin Panel']] : []),
   ];
@@ -2722,8 +2723,9 @@ async function host(activeTab = 'overview') {
                 </div>
                 <p style="font-size:12.5px;color:var(--text-muted);">${esc(v.reviewNote || 'Verified for self-drive marketplace.')}</p>
                 <div class="admin-tile-actions" style="flex-wrap:wrap">
-                  <a class="button btn-outline btn-sm" href="kyc.html?vehicle=${encodeURIComponent(v.id)}">RC, Insurance &amp; PUC</a>
+                  <button type="button" class="button btn-orange btn-sm manage-fleet-vehicle-btn" data-id="${v.id}">⚙️ Manage &amp; Pricing</button>
                   <button type="button" class="button btn-outline btn-sm host-schedule" data-id="${v.id}">Availability Calendar</button>
+                  <a class="button btn-outline btn-sm" href="kyc.html?vehicle=${encodeURIComponent(v.id)}">RC &amp; Insurance</a>
                   <a class="button btn-ghost btn-sm" href="host-agreement.html?id=${encodeURIComponent(v.id)}">Host Agreement</a>
                 </div>
               </div>
@@ -2778,7 +2780,78 @@ async function host(activeTab = 'overview') {
   }
 
   bindBookingEvents();
-  $$('.host-schedule').forEach(button => button.onclick = () => openVehicleSchedule(vehicles.find(item => item.id === button.dataset.id)));
+    // Manage Vehicle & Pricing Modal (Items #5, #18, #19)
+  $('.manage-fleet-vehicle-btn').forEach(btn => {
+    btn.onclick = () => {
+      const v = vehicles.find(item => item.id === btn.dataset.id);
+      if (!v) return;
+      showDialog(`
+        <div style="padding:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <span style="color:#FF6000;font-size:11.5px;font-weight:800;letter-spacing:0.06em">VEHICLE CONSOLE</span>
+              <h3 style="margin:2px 0 0">${esc(v.make + ' ' + v.model + ' (' + (v.registrationNumber || 'Pending') + ')')}</h3>
+            </div>
+            ${badge(v.status)}
+          </div>
+
+          <form id="manage-vehicle-modal-form" class="form-stack">
+            <label>Operational Status
+              <select name="status">
+                <option value="ACTIVE" ${v.status === 'ACTIVE' ? 'selected' : ''}>Active — Visible on Marketplace</option>
+                <option value="MAINTENANCE" ${v.status === 'MAINTENANCE' ? 'selected' : ''}>Maintenance — Taken Offline for Service</option>
+                <option value="INACTIVE" ${v.status === 'INACTIVE' ? 'selected' : ''}>Inactive — Temporarily Hidden</option>
+              </select>
+            </label>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <label>Daily Base Rate (₹) *
+                <input name="pricePerDay" type="number" required min="500" max="100000" step="50" value="${Number(v.pricePerDay || 2500)}">
+              </label>
+              <label>Extra Kilometre Fee (₹/km)
+                <input name="extraKmCharge" type="number" min="0" max="100" step="1" value="${Number(v.extraKmCharge || 12)}">
+              </label>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <label>Refundable Deposit (₹)
+                <input name="securityDeposit" type="number" min="0" max="50000" step="500" value="${Number(v.securityDeposit || 2000)}">
+              </label>
+              <label>Current Odometer (km)
+                <input name="odometer" type="number" min="0" max="2000000" value="${Number(v.odometer || 12000)}">
+              </label>
+            </div>
+
+            <!-- Dynamic Pricing Rules (Item #19) -->
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px;margin:6px 0">
+              <strong style="font-size:13px;display:block;margin-bottom:6px">Dynamic Pricing Adjustments</strong>
+              <div style="display:flex;gap:16px;font-size:12.5px;color:var(--text-muted)">
+                <span>• Weekend Surge (+15% Fri-Sun): <strong>₹${Math.round(Number(v.pricePerDay || 2500) * 1.15)}/day</strong></span>
+                <span>• Weekly Discount (7+ Days, 10% off): <strong>₹${Math.round(Number(v.pricePerDay || 2500) * 0.90)}/day</strong></span>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:10px">
+              <button type="submit" class="button btn-orange" style="flex:1">Save &amp; Update Vehicle</button>
+              <button type="button" class="button btn-outline" onclick="$('dialog')?.close()">Cancel</button>
+            </div>
+          </form>
+        </div>
+      `);
+
+      bindForm('#manage-vehicle-modal-form', async data => {
+        await api('/vehicles/' + v.id, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+        });
+        $('dialog')?.close();
+        toast('✅ Vehicle status and pricing updated successfully!');
+        await host('fleet');
+      });
+    };
+  });
+
+  $('.host-schedule').forEach(button => button.onclick = () => openVehicleSchedule(vehicles.find(item => item.id === button.dataset.id)));
 
   bindForm('#payout-account-form', async data => {
     await post('/payouts/account', data);
@@ -5323,6 +5396,189 @@ function bindAdminActions() {
   });
 }
 
+
+/* ─── DEALERSHIP & COMMERCIAL FLEET HUB ──────────────────────────────── */
+async function dealerPage() {
+  $('#app').innerHTML = `
+    <div class="dealer-page-wrap" style="max-width:1180px;margin:0 auto;padding:24px 16px 60px">
+      <!-- Hero Section -->
+      <section class="dealer-hero" style="background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);border-radius:24px;padding:48px 36px;color:#fff;margin-bottom:36px;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap">
+        <div style="max-width:620px">
+          <span class="badge" style="background:rgba(255,96,0,0.2);color:#FF6000;border:1px solid #FF6000;font-weight:700;margin-bottom:14px;display:inline-block">COMMERCIAL FLEET &amp; DEALERSHIP ECOSYSTEM</span>
+          <h1 style="font-size:36px;line-height:1.2;margin:12px 0 16px;color:#fff">Turn Idle Showroom &amp; Fleet Inventory into High-Yield Revenue</h1>
+          <p style="font-size:16px;line-height:1.6;color:#94A3B8;margin-bottom:24px">
+            Partner with Safar to list 5 to 50+ vehicles across Gujarat. Protected by Motor Vehicles Act compliant digital sub-leases, 8-angle photo handovers, telematics monitoring, and guaranteed weekly bank payouts.
+          </p>
+          <div style="display:flex;gap:14px;flex-wrap:wrap">
+            <a href="host-onboarding.html" class="button btn-orange btn-lg">Open Dealer Fleet Console →</a>
+            <a href="#dealer-calc" class="button btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,0.3)">Estimate Fleet Earnings</a>
+          </div>
+        </div>
+        <div style="flex:1;min-width:280px;max-width:440px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px">
+          <div style="font-size:13px;font-weight:700;text-transform:uppercase;color:#FF6000;letter-spacing:0.06em;margin-bottom:8px">Dealership Fleet Program</div>
+          <div style="font-size:28px;font-weight:800;color:#fff;margin-bottom:4px">80% Net Host Share</div>
+          <p style="font-size:13px;color:#94A3B8;margin-bottom:18px">Transparent revenue split with automated weekly IMPS/NEFT transfers directly to your bank account.</p>
+          <ul style="list-style:none;padding:0;margin:0 0 20px;display:flex;flex-direction:column;gap:10px;font-size:13.5px">
+            <li style="display:flex;align-items:center;gap:8px">${icon('shield')} Zero Owner Liability (Legal Sub-lease)</li>
+            <li style="display:flex;align-items:center;gap:8px">${icon('camera')} 8-Angle Handover Digital Inspection</li>
+            <li style="display:flex;align-items:center;gap:8px">${icon('receipt')} Automated GST SAC 996601 Invoices</li>
+            <li style="display:flex;align-items:center;gap:8px">${icon('users')} Dedicated Fleet Operations Manager</li>
+          </ul>
+          <a href="host-onboarding.html" class="button btn-orange" style="width:100%;text-align:center">Register Dealership Today</a>
+        </div>
+      </section>
+
+      <!-- 4 Pillars Section -->
+      <section style="margin-bottom:48px">
+        <div style="text-align:center;max-width:700px;margin:0 auto 32px">
+          <span style="color:#FF6000;font-weight:700;font-size:12.5px;letter-spacing:0.08em;text-transform:uppercase">OPERATIONAL ADVANTAGE</span>
+          <h2 style="font-size:28px;margin:8px 0 12px">Engineered Specifically for Commercial Operators</h2>
+          <p style="color:var(--text-muted);font-size:15px;line-height:1.6">Everything car rental agencies, host syndicates, and authorized auto dealerships need to operate at scale without administrative friction.</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:20px">
+          <div class="panel" style="padding:24px;border-radius:16px">
+            <div style="width:44px;height:44px;background:#FEF2F2;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#EF4444;margin-bottom:14px">${icon('shield')}</div>
+            <h4 style="margin:0 0 8px;font-size:17px">Complete Legal Indemnity</h4>
+            <p style="margin:0;font-size:13.5px;color:var(--text-muted);line-height:1.6">Legally binding peer-to-peer car sharing sub-lease agreements executed under the Motor Vehicles Act shield vehicle owners from traffic citations, challans, and third-party liabilities.</p>
+          </div>
+
+          <div class="panel" style="padding:24px;border-radius:16px">
+            <div style="width:44px;height:44px;background:#F0FDF4;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#16A34A;margin-bottom:14px">${icon('camera')}</div>
+            <h4 style="margin:0 0 8px;font-size:17px">Digital Handover Checklists</h4>
+            <p style="margin:0;font-size:13.5px;color:var(--text-muted);line-height:1.6">8-point high-resolution photo evidence, digital fuel level percentage, and verified odometer readings recorded at both pickup and return to resolve claims instantly.</p>
+          </div>
+
+          <div class="panel" style="padding:24px;border-radius:16px">
+            <div style="width:44px;height:44px;background:#EFF6FF;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#2563EB;margin-bottom:14px">${icon('card')}</div>
+            <h4 style="margin:0 0 8px;font-size:17px">Automated Weekly Payouts</h4>
+            <p style="margin:0;font-size:13.5px;color:var(--text-muted);line-height:1.6">Revenue settlements reconciled against completed bookings and transferred every Tuesday to your registered corporate or firm bank account with full ledger tracking.</p>
+          </div>
+
+          <div class="panel" style="padding:24px;border-radius:16px">
+            <div style="width:44px;height:44px;background:#FAF5FF;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#9333EA;margin-bottom:14px">${icon('sliders')}</div>
+            <h4 style="margin:0 0 8px;font-size:17px">Dynamic Fleet Control</h4>
+            <p style="margin:0;font-size:13.5px;color:var(--text-muted);line-height:1.6">Easily toggle vehicles between Active, Service Maintenance, and Unavailable states. Set dynamic weekend surge rates and multi-day discounts directly from your dealer console.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dealership Fleet Revenue Estimator -->
+      <section id="dealer-calc" class="panel" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:24px;padding:36px;margin-bottom:48px">
+        <div style="text-align:center;max-width:600px;margin:0 auto 28px">
+          <span style="color:#FF6000;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">PROJECTED FLEET REVENUE</span>
+          <h2 style="font-size:26px;margin:6px 0 8px">Dealership Fleet Earnings Estimator</h2>
+          <p style="color:var(--text-muted);font-size:14px">Adjust the parameters below to calculate estimated monthly returns based on historical Gujarat market demand.</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:32px;align-items:center">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <label style="font-weight:700;font-size:14px">Fleet Size (Cars on Platform)</label>
+                <span id="calc-fleet-size-val" style="font-weight:800;color:#FF6000;font-size:15px">10 Vehicles</span>
+              </div>
+              <input type="range" id="calc-fleet-size" min="2" max="50" step="1" value="10" class="range-slider" style="width:100%">
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <label style="font-weight:700;font-size:14px">Average Daily Rate (₹)</label>
+                <span id="calc-daily-rate-val" style="font-weight:800;color:#FF6000;font-size:15px">₹3,200 / day</span>
+              </div>
+              <input type="range" id="calc-daily-rate" min="1500" max="7500" step="100" value="3200" class="range-slider" style="width:100%">
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <label style="font-weight:700;font-size:14px">Monthly Utilization (Billed Days)</label>
+                <span id="calc-util-days-val" style="font-weight:800;color:#FF6000;font-size:15px">18 Days / Month</span>
+              </div>
+              <input type="range" id="calc-util-days" min="8" max="28" step="1" value="18" class="range-slider" style="width:100%">
+            </div>
+          </div>
+
+          <div style="background:#0F172A;border-radius:20px;padding:28px;color:#fff;text-align:center">
+            <span style="font-size:12px;font-weight:700;text-transform:uppercase;color:#94A3B8;letter-spacing:0.06em">ESTIMATED NET MONTHLY PAYOUT (80%)</span>
+            <div id="calc-net-payout" style="font-size:42px;font-weight:900;color:#22C55E;margin:12px 0 6px">₹4,60,800</div>
+            <div style="font-size:13px;color:#94A3B8;margin-bottom:18px">Projected Annual Payout: <strong id="calc-annual-payout" style="color:#fff">₹55,29,600</strong></div>
+            <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:16px;display:flex;justify-content:space-around;font-size:12.5px">
+              <div>
+                <span style="color:#94A3B8;display:block">Gross Billed</span>
+                <strong id="calc-gross-billed" style="color:#fff">₹5,76,000</strong>
+              </div>
+              <div>
+                <span style="color:#94A3B8;display:block">Platform Fee (20%)</span>
+                <strong id="calc-platform-fee" style="color:#FF6000">₹1,15,200</strong>
+              </div>
+            </div>
+            <div style="margin-top:20px">
+              <a href="host-onboarding.html" class="button btn-orange" style="width:100%;text-align:center">Join as Fleet Partner →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dealership Onboarding Form -->
+      <section class="panel" style="padding:36px;border-radius:24px">
+        <div style="text-align:center;max-width:600px;margin:0 auto 28px">
+          <span style="color:#FF6000;font-weight:700;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">GET STARTED IN 24 HOURS</span>
+          <h2 style="font-size:26px;margin:6px 0 8px">Dealership Fleet Onboarding Consultation</h2>
+          <p style="color:var(--text-muted);font-size:14px">Speak with our Gujarat Fleet Operations Director to schedule an on-site telematics setup and bulk vehicle listing.</p>
+        </div>
+
+        <form id="dealer-inquiry-form" class="form-grid" style="max-width:800px;margin:0 auto">
+          ${inp('dealershipName', 'Dealership / Agency Name *', 'text', 'required placeholder="e.g. Navjivan Auto Rentals / Maru Motors"')}
+          ${inp('contactName', 'Authorized Representative *', 'text', 'required placeholder="e.g. Ramesh Patel"')}
+          ${inp('phone', 'Mobile Number (WhatsApp) *', 'tel', 'required pattern="[0-9]{10}" maxlength="10" placeholder="10-digit mobile"')}
+          ${inp('email', 'Business Email Address *', 'email', 'required placeholder="fleet@example.com"')}
+          ${sel('hubCity', 'Primary Gujarat Operations Hub', ['Ahmedabad (SG Highway / Ellisbridge)', 'Surat (Vesu / Ring Road)', 'Vadodara (Alkapuri)', 'Rajkot (Kalawad Road)', 'Gandhinagar (Infocity)'])}
+          ${sel('fleetSizeRange', 'Total Vehicles to Onboard', ['1 – 4 Cars', '5 – 10 Cars', '11 – 25 Cars', '25+ Cars'])}
+          <div style="grid-column:1/-1;margin-top:8px">
+            <button type="submit" class="button btn-orange btn-lg" style="width:100%">Submit Dealership Partnership Request →</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  `;
+
+  // Calculator interaction logic
+  const fleetSlider = $('#calc-fleet-size');
+  const rateSlider = $('#calc-daily-rate');
+  const utilSlider = $('#calc-util-days');
+
+  const updateDealerCalc = () => {
+    const fleet = Number(fleetSlider?.value || 10);
+    const rate = Number(rateSlider?.value || 3200);
+    const days = Number(utilSlider?.value || 18);
+
+    $('#calc-fleet-size-val').textContent = fleet + (fleet === 1 ? ' Vehicle' : ' Vehicles');
+    $('#calc-daily-rate-val').textContent = money(rate) + ' / day';
+    $('#calc-util-days-val').textContent = days + ' Days / Month';
+
+    const gross = fleet * rate * days;
+    const platform = Math.round(gross * 0.20);
+    const net = gross - platform;
+    const annual = net * 12;
+
+    $('#calc-gross-billed').textContent = money(gross);
+    $('#calc-platform-fee').textContent = money(platform);
+    $('#calc-net-payout').textContent = money(net);
+    $('#calc-annual-payout').textContent = money(annual);
+  };
+
+  fleetSlider?.addEventListener('input', updateDealerCalc);
+  rateSlider?.addEventListener('input', updateDealerCalc);
+  utilSlider?.addEventListener('input', updateDealerCalc);
+
+  bindForm('#dealer-inquiry-form', async data => {
+    toast('✅ Request received! Our Fleet Director will contact ' + esc(data.contactName) + ' within 2 hours.');
+    setTimeout(() => {
+      location.href = 'host-onboarding.html';
+    }, 1500);
+  });
+}
+
 /* ─── APPLICATION INITIALIZATION ─────────────────────────────────────── */
 async function main() {
   ['safar_user','safar_bookings','safar_latest_paid_booking'].forEach(k => localStorage.removeItem(k));
@@ -5333,6 +5589,7 @@ async function main() {
     'index.html': home,
     'auth.html': auth,
     'cars.html': cars,
+    'dealer.html': dealerPage,
     'host-onboarding.html': host,
     'dashboard.html': dashboard,
     'kyc.html': kyc,
