@@ -1448,12 +1448,12 @@ function applyCarFilters() {
     else list = list.filter(c => (c.category || '').toLowerCase().includes(activeChip.toLowerCase()));
   }
 
-  const selBrands = $('.brand-cb:checked').map(x => x.value);
+  const selBrands = $$('.brand-cb:checked').map(x => x.value);
   const isAllBrands = selBrands.includes('all') || selBrands.length === 0;
-  const selSeats  = $('.seats-cb:checked').map(x => Number(x.value));
-  const selCats   = $('.cat-cb:checked').map(x => x.value.toLowerCase());
-  const selTxs    = $('.trans-cb:checked').map(x => x.value.toLowerCase());
-  const selFuels  = $('.fuel-cb:checked').map(x => x.value.toLowerCase());
+  const selSeats  = $$('.seats-cb:checked').map(x => Number(x.value));
+  const selCats   = $$('.cat-cb:checked').map(x => x.value.toLowerCase());
+  const selTxs    = $$('.trans-cb:checked').map(x => x.value.toLowerCase());
+  const selFuels  = $$('.fuel-cb:checked').map(x => x.value.toLowerCase());
   const maxPrice  = Number($('#price-slider')?.value || 99999);
   const maxDist   = Number($('#distance-slider')?.value || 25);
   const minYear   = Number($('#year-slider')?.value || 2018);
