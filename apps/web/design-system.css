@@ -108,9 +108,9 @@
 
 /* Dark mode is retired in v2 to keep brand contrast consistent */
 html, body {
-  overflow-x: clip;
-  max-width: 100vw;
-  width: 100%;
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
   margin: 0;
   padding: 0;
   -webkit-text-size-adjust: 100%;
@@ -120,7 +120,7 @@ html, body {
   box-sizing: border-box;
 }
 
-body { background: var(--bg); color: var(--ink); font-family: inherit; overflow-x: clip; }
+body { background: var(--bg); color: var(--ink); font-family: inherit; overflow-x: hidden !important; max-width: 100% !important; }
 main.container { max-width: 1360px; width: 100%; margin: 0 auto; padding: 16px 20px 56px; box-sizing: border-box; }
 
 /* ── Typography ─────────────────────────────────────────────────── */
@@ -566,7 +566,7 @@ footer.footer { padding-inline: max(16px, calc((100vw - 1360px) / 2)); }
 
 /* ── Vehicle cards (v2) ─────────────────────────────────────────── */
 .car-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-.vcard { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; color: var(--ink); text-decoration: none; transition: transform .22s cubic-bezier(0.16,1,0.3,1), box-shadow .22s cubic-bezier(0.16,1,0.3,1), border-color .2s; height: 100%; box-shadow: 0 4px 14px rgba(15,23,42,0.04); }
+.vcard { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; color: var(--ink); text-decoration: none; transition: transform .22s cubic-bezier(0.16,1,0.3,1), box-shadow .22s cubic-bezier(0.16,1,0.3,1), border-color .2s; height: 100%; box-shadow: 0 4px 14px rgba(15,23,42,0.04); max-width: 100%; box-sizing: border-box; }
 .vcard:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(15,23,42,0.09); border-color: #FED7AA; color: var(--ink); }
 .vcard-media { position: relative !important; aspect-ratio: 16 / 10 !important; background: radial-gradient(circle at 50% 45%, #FFFFFF 0%, #F1F5F9 100%) !important; overflow: hidden !important; border-bottom: 1px solid #EEF2F6 !important; }
 .vcard-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s cubic-bezier(0.16,1,0.3,1); }
@@ -1144,32 +1144,110 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
    ═══════════════════════════════════════════════════════════════════════════ */
 .cars-page-wrap { width: 100%; }
 
-/* Two-Column Grid: Fixed 310px Left Studio + Scrollable Right Fleet Grid */
-.cars-layout {
-  display: grid !important;
-  grid-template-columns: 310px minmax(0, 1fr) !important;
-  gap: 24px !important;
-  align-items: start !important;
-  margin-top: 0 !important;
+/* Two-Column Grid: Fixed 310px Left Studio + Scrollable Right Fleet Grid on Desktop */
+@media (min-width: 961px) {
+  .cars-layout {
+    display: grid !important;
+    grid-template-columns: 310px minmax(0, 1fr) !important;
+    gap: 24px !important;
+    align-items: start !important;
+    margin-top: 0 !important;
+  }
+
+  .sidebar-filters {
+    position: sticky !important;
+    top: 76px !important;
+    max-height: calc(100vh - 92px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    scrollbar-width: thin !important;
+    background: #FFFFFF !important;
+    border: 1px solid var(--line, #E2E4E8) !important;
+    border-radius: 18px !important;
+    padding: 20px 18px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .mobile-filter-toggle {
+    display: none !important;
+  }
 }
 
-.sidebar-filters {
-  position: sticky !important;
-  top: 76px !important;
-  max-height: calc(100vh - 92px) !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-  scrollbar-width: thin !important;
-  background: #FFFFFF !important;
-  border: 1px solid var(--line, #E2E4E8) !important;
-  border-radius: 18px !important;
-  padding: 20px 18px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
-  box-sizing: border-box !important;
-  width: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 16px !important;
+/* Mobile & Tablet (< 960px): Clean Single-Column Stack, No Horizontal Spills */
+@media (max-width: 960px) {
+  .cars-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    gap: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .mobile-filter-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    min-height: 46px !important;
+    padding: 12px 18px !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 14.5px !important;
+    cursor: pointer !important;
+    background: #FFFFFF !important;
+    border: 1px solid var(--line, #CBD5E1) !important;
+    color: var(--ink, #0F172A) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    box-sizing: border-box !important;
+  }
+
+  .mobile-filter-toggle:active {
+    background: #F1F5F9 !important;
+  }
+
+  .sidebar-filters {
+    position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 16px !important;
+    padding: 18px 16px !important;
+    background: #FFFFFF !important;
+    border: 1px solid var(--line, #E2E4E8) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .sidebar-filters:not(.filters-expanded) {
+    display: none !important;
+  }
+
+  .sidebar-filters.filters-expanded {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .cars-results-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .car-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    width: 100% !important;
+  }
 }
 
 .sidebar-filters .filter-header-top {
@@ -1477,13 +1555,55 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   outline: none !important;
 }
 
+@media (max-width: 768px) {
+  .horizon-search-bar {
+    padding: 16px 14px !important;
+    border-radius: 16px !important;
+  }
+  .horizon-search-bar .availability-search {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .horizon-search-bar .availability-search > label,
+  .horizon-search-bar .trip-date-range,
+  .horizon-search-bar .trip-date-range label,
+  .horizon-search-bar .availability-search button[type="submit"] {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+  .horizon-search-bar .trip-date-range {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .cars-search-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .search-input-box,
+  .sort-dropdown {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
 /* Category Filter Chips */
 .chip-row {
   display: flex !important;
   gap: 8px !important;
   overflow-x: auto !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
   padding: 2px 0 6px !important;
   margin-bottom: 14px !important;
+}
+.chip-row::-webkit-scrollbar {
+  display: none !important;
 }
 .chip-btn {
   height: 38px !important;
