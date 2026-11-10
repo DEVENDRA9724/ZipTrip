@@ -532,7 +532,7 @@ let BookingsService = class BookingsService {
         const mediaId = (0, validation_1.text)(body.mediaId, stage === 'DAMAGE' ? 'Damage photo' : 'Odometer / primary photo');
         const selfieMediaId = body.selfieMediaId ? (0, validation_1.text)(body.selfieMediaId, 'Customer handover selfie', 100) : null;
         const fuelPercent = (0, validation_1.number)(body.fuelPercent ?? 100, 'Fuel level (%)', 0, 100, true);
-        const damageNote = (0, validation_1.text)(body.damageNote || 'Clean — all 8 angles & selfie verified at hub', 'Vehicle condition', 2000);
+        const damageNote = (0, validation_1.text)(body.damageNote || 'Clean — vehicle condition & selfie verified at hub', 'Vehicle condition', 2000);
         const rawIds = [
             mediaId,
             ...(selfieMediaId ? [selfieMediaId] : []),
@@ -761,7 +761,7 @@ let BookingsService = class BookingsService {
         const booking = await this.prisma.booking.findUnique({ where: { id }, include: { vehicle: true } });
         if (booking) {
             const event = stage === 'PICKUP'
-                ? ['TRIP_STARTED', 'Trip started', `Trip ${booking.bookingRef} has started. 8-angle pickup photos & customer selfie were recorded.`]
+                ? ['TRIP_STARTED', 'Trip started', `Trip ${booking.bookingRef} has started. Pickup photos & customer selfie were recorded.`]
                 : stage === 'RETURN'
                     ? ['TRIP_ENDED', 'Trip ended', `Trip ${booking.bookingRef} has ended. Return photos & selfie were recorded and settlement calculated.`]
                     : ['DAMAGE_REPORTED', 'Damage reported', `A damage report was added to trip ${booking.bookingRef}.`];

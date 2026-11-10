@@ -3,12 +3,12 @@
    Colors: Imperial Purple (#320E3B), Sunset Amber/Orange (#E37220), Champagne Gold (#D97706)
    ══════════════════════════════════════════════════════════════════ */
 :root {
-  --lux-purple: #320E3B;
-  --lux-purple-light: #4A1756;
-  --lux-purple-pale: rgba(50, 14, 59, 0.07);
-  --lux-orange: #E37220;
-  --lux-orange-hover: #F27E2D;
-  --lux-orange-pale: rgba(227, 114, 32, 0.08);
+  --lux-purple: #1E1B4B;
+  --lux-purple-light: #312E81;
+  --lux-purple-pale: rgba(30, 27, 75, 0.05);
+  --lux-orange: #FF6A00;
+  --lux-orange-hover: #FF7D1A;
+  --lux-orange-pale: rgba(255, 106, 0, 0.08);
   --lux-gold: #D97706;
   --lux-gold-light: #F59E0B;
   --lux-bg-page: #F8FAFC;
@@ -114,7 +114,7 @@ body {
   text-decoration: none !important;
 }
 .header-logo-img {
-  height: 42px !important;
+  height: 60px !important;
   width: auto !important;
   object-fit: contain !important;
   display: block !important;

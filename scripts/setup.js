@@ -16,7 +16,7 @@ if (!existsSync(envPath)) {
   console.log('Created apps/backend/.env with local security keys. Add Sandbox credentials there.');
 }
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-for (const args of [['install', '--ignore-scripts'], ['run','db:generate'], ['run','db:push'], ['run','seed'], ['run','build']]) {
+for (const args of [['install'], ['run','db:generate'], ['run','db:push'], ['run','seed'], ['run','build']]) {
   const result = spawnSync(npm, args, { cwd: backend, stdio: 'inherit', shell: process.platform === 'win32', windowsHide: true });
   if (result.status !== 0) process.exit(result.status || 1);
 }

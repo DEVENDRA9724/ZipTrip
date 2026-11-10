@@ -128,7 +128,7 @@ function hasFeature(car, name) {
   const needle = name.toLowerCase();
   return carFeatures(car).some(feature => feature.toLowerCase() === needle);
 }
-/* A vehicle counts as "8-angle pre-inspected" only when every stored
+/* A vehicle counts as verified pre-inspected only when every stored
    inspection angle is present, not merely when it has some photos. */
 function hasAllAngles(car) {
   const kinds = new Set((car?.media || []).map(m => m.kind));
@@ -194,13 +194,15 @@ function getCarStockPhoto(car) {
 }
 
 function getVehicleCover(v) {
+  const stock = getCarStockPhoto(v);
+  if (stock) return stock + '?v=20261110k';
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
     if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
   const front = v.media?.find(m => m.kind === 'FRONT');
-  if (front?.id && front.storageKey && !front.storageKey.startsWith('safar-media/')) return `/api/media/${front.id}`;
-  return getCarStockPhoto(v);
+  if (front?.id) return `/api/media/${front.id}`;
+  return 'cars/thar.jpg?v=20261110k';
 }
 
 const badge = s => {
@@ -271,7 +273,7 @@ function brandMark(size = 34, light = false) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
 }
 function brandLockup(light = false) {
-  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
+  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261110k" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
 }
 
 const page = location.pathname.split('/').pop() || 'index.html';
@@ -349,6 +351,8 @@ async function uploadFile(file, kind) {
   return api('/media?kind=' + kind, {method:'POST', body: fd});
 }
 function photoUrl(car) {
+  const stock = getCarStockPhoto(car);
+  if (stock) return stock + '?v=20261110k';
   if (car.images) {
     try {
       const p = JSON.parse(car.images);
@@ -359,8 +363,8 @@ function photoUrl(car) {
     }
   }
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
-  if (m?.id && m.storageKey && !m.storageKey.startsWith('safar-media/')) return '/api/media/' + encodeURIComponent(m.id);
-  return getCarStockPhoto(car);
+  if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
+  return 'cars/thar.jpg?v=20261110k';
 }
 function requireUser(roles) {
   if (!user) { location.replace('auth.html?redirect=' + encodeURIComponent(page + location.search)); return false; }
@@ -374,11 +378,11 @@ function requireUser(roles) {
 /* ─── COMPANY CONFIG ─────────────────────────────────────────────────── */
 const COMPANY = {
   name: 'Safar Self Drive',
-  phone: '+91 99999 99999',
-  phoneHref: '+919999999999',
+  phone: '+91 99090 31177',
+  phoneHref: '+919909031177',
   email: 'support@safarselfdrive.com',
   hours: 'Every day, 8:00 AM – 10:00 PM',
-  address: 'Ellisbridge, Ahmedabad, Gujarat 380006, India',
+  address: 'Suite 402, Pinnacle Business Park, Corporate Road, Prahlad Nagar, SG Highway, Ahmedabad, Gujarat 380015, India',
 };
 const DEFAULT_CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'];
 const getCity = () => localStorage.getItem('safar-city') || '';
@@ -497,20 +501,96 @@ function shell() {
     document.body.appendChild(bnav);
   }
 
+  if (!document.getElementById('safar-wa-float')) {
+    const wa = document.createElement('a');
+    wa.id = 'safar-wa-float';
+    wa.className = 'wa-floating-btn';
+    wa.href = 'https://wa.me/919909031177?text=' + encodeURIComponent('Hi Safar, I would like to book a self-drive car.');
+    wa.target = '_blank';
+    wa.rel = 'noopener';
+    wa.setAttribute('aria-label', 'Chat with us on WhatsApp');
+    wa.innerHTML = `
+      <span class="wa-ripple"></span>
+      <svg class="wa-icon" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.81 13.47 3.81 11.91C3.81 7.37 7.5 3.67 12.05 3.67M9.53 7.34C9.33 7.34 9 7.41 8.73 7.71C8.45 8.01 7.68 8.73 7.68 10.2C7.68 11.67 8.75 13.08 8.9 13.28C9.05 13.48 11 16.65 14.03 17.84C16.39 18.76 16.87 18.57 17.37 18.52C17.87 18.48 18.99 17.86 19.22 17.21C19.45 16.56 19.45 16.01 19.38 15.89C19.31 15.77 19.13 15.7 18.86 15.57C18.59 15.43 17.28 14.79 17.03 14.7C16.78 14.62 16.6 14.58 16.42 14.85C16.24 15.13 15.73 15.73 15.58 15.91C15.43 16.08 15.28 16.11 15.01 15.97C14.74 15.84 13.88 15.56 12.86 14.65C12.06 13.94 11.53 13.06 11.38 12.8C11.23 12.54 11.36 12.4 11.5 12.27C11.62 12.15 11.77 11.95 11.91 11.79C12.05 11.62 12.1 11.5 12.19 11.33C12.28 11.16 12.24 11.01 12.17 10.87C12.1 10.74 11.58 9.47 11.37 8.95C11.16 8.45 10.95 8.51 10.79 8.51C10.64 8.5 10.46 8.5 10.28 8.5C10.1 8.5 9.81 8.57 9.56 8.84"/>
+      </svg>
+      <span class="wa-tooltip">Need Help? Chat on WhatsApp</span>
+    `;
+    document.body.appendChild(wa);
+  }
+
   const footer = $('footer.footer');
   if (footer) footer.innerHTML = `
     <div class="ds-foot-grid">
       <div class="ds-foot-brand">
-        ${brandLockup(true)}
-        <p style="margin-top:14px;max-width:320px">Verified self-drive car rentals with transparent pricing, documented vehicle handovers, and digital lease agreements.</p>
+        <a href="index.html" style="text-decoration:none">
+          <span class="ds-brand">
+            <img class="ds-brand-logo" src="safar-logo.png?v=20261110k" alt="Safar Self Drive">
+            <span class="ds-brand-word" style="color:#0F172A">Safar<small style="color:#FF6000">SELF DRIVE</small></span>
+          </span>
+        </a>
+        <p style="margin-top:14px;max-width:320px;font-size:13.5px;line-height:1.6;color:#64748B">
+          Verified self-drive car rentals with transparent daily pricing, documented vehicle handovers, and legally enforceable digital lease agreements.
+        </p>
       </div>
-      <div><h4>Book &amp; Drive</h4><a href="cars.html">Explore Cars</a><a href="index.html#how-it-works">How It Works</a><a href="index.html#faq">Frequently Asked Questions</a><a href="calculator.html">Trip Cost Estimator</a></div>
-      <div><h4>Company &amp; Hosts</h4><a href="about.html">About Safar</a><a href="host-onboarding.html">List Your Car</a><a href="services.html">Mobility Services</a><a href="contact.html">Contact Us</a></div>
-      <div><h4>Customer Support</h4><a href="tel:${COMPANY.phoneHref}">${esc(COMPANY.phone)}</a><a href="mailto:${COMPANY.email}">${esc(COMPANY.email)}</a><p style="margin:6px 0 0;font-size:13px">${esc(COMPANY.hours)}</p><p style="margin:4px 0 0;font-size:12.5px">${esc(COMPANY.address)}</p></div>
+
+      <div class="foot-col">
+        <h4>Book &amp; Drive</h4>
+        <a href="cars.html">Explore Available Cars</a>
+        <a href="index.html#how-it-works">How Safar Works</a>
+        <a href="index.html#faq">Frequently Asked Questions</a>
+        <a href="calculator.html">Trip Cost Estimator</a>
+        <a href="index.html#policies">Rental Policies &amp; Terms</a>
+      </div>
+
+      <div class="foot-col">
+        <h4>Company &amp; Hosts</h4>
+        <a href="about.html">About Safar</a>
+        <a href="host-onboarding.html">List Your Car / Become a Host</a>
+        <a href="services.html">Mobility &amp; Taxi Services</a>
+        <a href="contact.html">Contact Us</a>
+        <a href="host-onboarding.html">Host Revenue Calculator</a>
+      </div>
+
+      <div class="foot-col foot-contact-col">
+        <h4>Customer Support</h4>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+          <div>
+            <span style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;color:#94A3B8;letter-spacing:0.06em;margin-bottom:3px">Booking Helpline</span>
+            <a href="tel:${COMPANY.phoneHref}" style="color:#0F172A;font-weight:700;text-decoration:none;font-size:15px;display:inline-block">${esc(COMPANY.phone)}</a>
+          </div>
+          <div>
+            <span style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;color:#94A3B8;letter-spacing:0.06em;margin-bottom:3px">WhatsApp Concierge</span>
+            <a href="https://wa.me/919909031177" target="_blank" rel="noopener" style="color:#059669;font-weight:700;text-decoration:none;font-size:14px;display:inline-block">+91 99090 31177</a>
+            <span style="font-size:11.5px;color:#94A3B8;display:block;margin-top:1px">8:00 AM – 10:00 PM</span>
+          </div>
+          <div>
+            <span style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;color:#94A3B8;letter-spacing:0.06em;margin-bottom:3px">Email Support</span>
+            <a href="mailto:${COMPANY.email}" style="color:#475569;text-decoration:none;font-size:13.5px">${esc(COMPANY.email)}</a>
+          </div>
+          <div>
+            <span style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;color:#94A3B8;letter-spacing:0.06em;margin-bottom:3px">Registered Office</span>
+            <span style="font-size:12.5px;color:#64748B;line-height:1.5;display:block">${esc(COMPANY.address)}</span>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="ds-foot-bottom">
-      <span>© ${new Date().getFullYear()} ${esc(COMPANY.name)}. All rights reserved.</span>
-      <span><a href="index.html#policies" style="color:inherit">Terms &amp; Conditions</a> · <a href="index.html#policies" style="color:inherit">Privacy Policy</a> · <a href="index.html#policies" style="color:inherit">Cancellation &amp; Refund Policy</a></span>
+      <div>
+        <span>&copy; ${new Date().getFullYear()} ${esc(COMPANY.name)}. All rights reserved.</span>
+        <div class="foot-developer-credit" style="margin-top:6px;font-size:12.5px;color:#64748B">
+          Developed and managed by <a href="https://paramountindiatechnologies.com/" target="_blank" rel="noopener" style="color:#FF6000;font-weight:700;text-decoration:none;">Paramount India Technologies</a>
+        </div>
+      </div>
+      <span class="foot-policy-links">
+        <a href="index.html#policies">Terms &amp; Conditions</a> &middot;
+        <a href="index.html#policies">Privacy Policy</a> &middot;
+        <a href="index.html#policies">Cancellation &amp; Refund Policy</a>
+      </span>
+      <button type="button" class="foot-back-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">
+        Top &uarr;
+      </button>
     </div>`;
 }
 
@@ -656,7 +736,7 @@ async function home() {
           <h2 id="lp-host">Share Your Car on Safar</h2>
           <p>List your personal car or dealership fleet with structured inspections, verified renters, and transparent payout settlements.</p>
           <ul>
-            <li>${icon('check')} Register your vehicle with 8-angle inspection photos, RC, and insurance documentation.</li>
+            <li>${icon('check')} Register your vehicle with complete inspection photos, RC, and insurance documentation.</li>
             <li>${icon('check')} Manage your availability calendar, daily pricing, and upcoming guest handovers in one console.</li>
             <li>${icon('check')} Receive the configured host settlement directly to your verified bank account.</li>
           </ul>
@@ -810,7 +890,7 @@ function auth(forceRegister, loginMode = 'password') {
     <div class="auth-box">
       <aside class="auth-banner">
         <div>
-          <img src="safar-logo.png" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
+          <img src="safar-logo.png?v=20261110k" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
           <h1>Your Journey.<br>Your Rules.</h1>
           <p>Sign in to manage trips, verify documents, and explore self-drive rentals across India.</p>
         </div>
@@ -966,7 +1046,7 @@ async function cars() {
             <span class="horizon-location-pill">
               <span class="ico">${icon('pin')}</span> <strong>Ellisbridge / SG Highway Hub, Ahmedabad</strong> <small style="opacity:0.75">(Gujarat 380006)</small>
             </span>
-            <span class="badge ok">${icon('shield')} 8-Angle S3 Verified Fleet</span>
+            <span class="badge ok">${icon('shield')} Verified Fleet</span>
           </div>
           <div class="horizon-km-toggle" id="horizon-km-pkg">
             <button type="button" class="active" data-pkg="300">300 Kms Included</button>
@@ -1048,7 +1128,7 @@ async function cars() {
               <input type="checkbox" id="filter-home-delivery" />
               <span>Hub Pickup &amp; Doorstep Delivery</span>
             </label>
-            <small class="text-muted" style="display:block;font-size:11px;margin-top:4px">8-angle inspection performed at handover.</small>
+            <small class="text-muted" style="display:block;font-size:11px;margin-top:4px">Vehicle inspection performed at handover.</small>
           </div>
 
           <!-- Daily / Total Price Slider -->
@@ -1116,7 +1196,7 @@ async function cars() {
           <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
             <div class="filter-title">Verification Standards</div>
             <label class="checkbox-item"><input type="checkbox" id="addon-fastag" checked /><span>Active FASTag Equipped</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="addon-s3" checked /><span>8-Angle S3 Pre-Inspected</span></label>
+            <label class="checkbox-item"><input type="checkbox" id="addon-s3" checked /><span>Pre-Inspected Fleet</span></label>
             <label class="checkbox-item"><input type="checkbox" id="addon-superhost" /><span>Top Rated Hosts Only</span></label>
           </div>
         </aside>
@@ -1321,11 +1401,11 @@ async function carDetails(id) {
   const otherCars = (similarCars || []).filter(c => c.id !== car.id).slice(0, 3);
 
   const aiAnswers = {
-    fuel: `<strong>Fuel Policy (Level-to-Level):</strong> Fuel is not included in the base rental fare. Your ${esc(car.make + ' ' + car.model)} (${esc(car.fuelType)}) is handed over with a verified fuel percentage recorded in the 8-Angle Hub Inspection. Return it at the same fuel level to avoid refuelling charges.`,
-    deposit: `<strong>Refundable Security Deposit (₹2,000):</strong> Held during the trip and refunded after return inspection once the 8-Angle Return Photos and odometer reading are verified.`,
+    fuel: `<strong>Fuel Policy (Level-to-Level):</strong> Fuel is not included in the base rental fare. Your ${esc(car.make + ' ' + car.model)} (${esc(car.fuelType)}) is handed over with a verified fuel percentage recorded in the Hub Handover Inspection. Return it at the same fuel level to avoid refuelling charges.`,
+    deposit: `<strong>Refundable Security Deposit (₹2,000):</strong> Held during the trip and refunded after return inspection once the return photos and odometer reading are verified.`,
     cancel: `<strong>Cancellation &amp; Refund Policy:</strong> Free cancellation up to 24 hours before pickup. Cancellations within 24 hours of pickup are subject to platform cancellation terms displayed in your agreement.`,
     km: `<strong>Kilometre Package:</strong> Standard bookings include <strong>300 km per 24 hours</strong>, or you can select the <strong>Unlimited Kms Package</strong> in the booking configurator. Excess distance on the standard plan is billed at ₹12/km.`,
-    docs: `<strong>Pickup Requirements:</strong> Complete your Aadhaar + Driving Licence + Live Selfie verification on Safar. At handover, capture the 8 car angle photos + 1 selfie to begin your trip.`,
+    docs: `<strong>Pickup Requirements:</strong> Complete your Aadhaar + Driving Licence + Live Selfie verification on Safar. At handover, complete the vehicle condition photos + selfie to begin your trip.`,
     location: `<strong>Hub Location (${distKm} km away):</strong> Located at <strong>${esc(car.currentHub?.name || ('Ellisbridge / Khanpur Hub, ' + car.locationCity))}</strong>. Exact pickup instructions and host contact details are provided upon booking confirmation.`,
   };
 
@@ -1335,28 +1415,13 @@ async function carDetails(id) {
       <span style="font-size:12.5px;color:var(--text-muted)">${icon('pin')} <strong>${distKm} km away</strong> · ${esc(car.locationCity || 'Ahmedabad')}, Gujarat</span>
     </div>
 
-    <!-- Quick Section Jump Navigation -->
-    <nav class="horizon-jump-nav" aria-label="Vehicle sections">
-      <a href="#sec-gallery">${icon('camera')} 8-Angle Gallery</a>
-      <a href="#sec-location">${icon('pin')} Location (${distKm} km)</a>
-      <a href="#sec-ai-concierge">${icon('help')} Policy Q&amp;A</a>
-      <a href="#sec-host">${icon('user')} Host</a>
-      <a href="#sec-reviews">${icon('star')} Reviews (${hasReviews ? rating.value : 'New'})</a>
-      <a href="#sec-features">${icon('check')} Specifications</a>
-      <a href="#sec-cancellation">${icon('shield')} Cancellation</a>
-      <a href="#sec-inclusions">${icon('file')} Rental Rules</a>
-      ${otherCars.length ? `<a href="#sec-similar">${icon('car')} Similar Cars</a>` : ''}
-    </nav>
-
     <div class="details-layout">
       <!-- LEFT COLUMN -->
       <div class="details-left-col">
         <!-- Photo Gallery Card -->
         <div class="details-gallery" id="sec-gallery">
           <div class="details-main-img-box">
-            ${mainMedia
-              ? `<img id="car-hero-img" src="/api/media/${encodeURIComponent(mainMedia.id)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='${getCarStockPhoto(car)}';">`
-              : `<img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='${getCarStockPhoto(car)}';">`}
+            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261110k';">
             ${mediaList.length > 1 ? `<span class="gallery-counter" id="gallery-counter-lbl">1 / ${mediaList.length}</span>` : ''}
           </div>
 
@@ -1379,7 +1444,7 @@ async function carDetails(id) {
                 <span>·</span>
                 ${badge(car.category)}
                 <span>·</span>
-                <span style="color:var(--ok);font-weight:700">✓ 8-Angle S3 Verified</span>
+                <span style="color:var(--ok);font-weight:700">✓ Verified Fleet Vehicle</span>
               </div>
             </div>
             <div class="details-rating-box">
@@ -1432,16 +1497,16 @@ async function carDetails(id) {
             </div>
           </div>
 
-          <!-- Interactive 8-Point Vehicle Inspection Angles -->
+          <!-- Interactive Vehicle Inspection Angles -->
           <div class="details-block">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
               <div>
                 <span class="eyebrow" style="color:var(--cta);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">PRE-DELIVERY CONDITION RECORD</span>
-                <h3 style="margin:2px 0 0;">8-Angle Vehicle Inspection Views</h3>
+                <h3 style="margin:2px 0 0;">Vehicle Inspection Views</h3>
               </div>
-              <span class="badge good">${mediaList.length}/8 Angles Archived</span>
+              <span class="badge good">${mediaList.length} Photos Verified</span>
             </div>
-            <p class="text-muted" style="font-size:12.5px;margin-bottom:14px;">Select any inspection angle below to preview the archived condition photo.</p>
+            <p class="text-muted" style="font-size:12.5px;margin-bottom:14px;">Select any inspection view below to preview the archived condition photo.</p>
             <div class="digital-twin-grid" id="digital-twin-nodes">
               ${PHOTO_ANGLES.map((angle, idx) => {
                 const match = mediaList.find(m => m.kind === angle) || mediaList[idx % Math.max(1, mediaList.length)];
@@ -1469,7 +1534,7 @@ async function carDetails(id) {
                 </div>
                 <div>
                   <strong style="font-size:16px">${esc(hostName)}</strong>
-                  <p class="text-muted" style="margin:2px 0 0;font-size:12.5px">Verified Safar Fleet Partner · 8-Angle Handover Compliant</p>
+                  <p class="text-muted" style="margin:2px 0 0;font-size:12.5px">Verified Safar Fleet Partner · Handover Compliant</p>
                 </div>
               </div>
               <div style="display:flex;gap:18px;text-align:center">
@@ -1494,44 +1559,6 @@ async function carDetails(id) {
                   `).join('')}
                 </div>
               ` : `<p class="text-muted" style="margin:8px 0 0;font-size:13.5px">No customer reviews yet for this vehicle. Reviews are published by verified renters after trip completion.</p>`}
-            </div>
-          </div>
-
-          <!-- Interactive Road-Trip Fuel & Budget Estimator -->
-          <div class="details-block trip-simulator-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-              <div>
-                <span class="eyebrow" style="color:var(--cta);font-size:10.5px;font-weight:800;letter-spacing:0.12em;">TRIP COST ESTIMATOR</span>
-                <h3 style="margin:2px 0 0;">Distance &amp; Fuel Estimate</h3>
-              </div>
-              <span class="badge warn" id="sim-mileage-badge">Approx. ${(car.category || '').toLowerCase().includes('suv') ? '14' : '19'} km/L (${esc(car.fuelType)})</span>
-            </div>
-            <div class="sim-route-presets">
-              <button type="button" class="sim-preset-btn active" data-km="150">City Run (150 km)</button>
-              <button type="button" class="sim-preset-btn" data-km="400">Statue of Unity RT (400 km)</button>
-              <button type="button" class="sim-preset-btn" data-km="520">Udaipur Weekend RT (520 km)</button>
-              <button type="button" class="sim-preset-btn" data-km="750">Highway Tour (750 km)</button>
-            </div>
-            <div style="margin:14px 0;">
-              <div style="display:flex;justify-content:space-between;font-weight:800;font-size:13px;margin-bottom:6px;">
-                <span>Planned Trip Distance</span>
-                <span id="sim-km-label" style="color:var(--cta);font-size:15px;">150 km</span>
-              </div>
-              <input type="range" id="trip-sim-slider" class="range-slider" min="50" max="1200" step="25" value="150">
-            </div>
-            <div class="sim-metrics-grid">
-              <div class="sim-metric-box">
-                <span>Est. Fuel Needed</span>
-                <strong id="sim-litres-val">9 Litres</strong>
-              </div>
-              <div class="sim-metric-box">
-                <span>Est. Fuel Cost</span>
-                <strong id="sim-fuel-cost">₹860</strong>
-              </div>
-              <div class="sim-metric-box">
-                <span>1-Day Base + Est. Fuel</span>
-                <strong id="sim-total-est" style="color:var(--cta);">${money(Number(car.pricePerDay) + 860)}</strong>
-              </div>
             </div>
           </div>
 
@@ -1593,33 +1620,33 @@ async function carDetails(id) {
           <a class="button btn-orange" style="width:100%" href="auth.html?redirect=${encodeURIComponent(carLink(id))}">Sign In / Register to Book</a>
         ` : `
           <form id="car-booking-form" class="form-stack">
-            <div class="booking-steps" aria-label="Booking progress">
-              <div class="booking-step active" data-step="1">Dates</div>
-              <div class="booking-step" data-step="2">Vehicle</div>
-              <div class="booking-step" data-step="3">Review</div>
-              <div class="booking-step" data-step="4">Confirm</div>
+            <div class="booking-steps" aria-label="Booking progress" style="display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;margin:0 0 16px!important;padding:8px 10px!important;background:#F8FAFC!important;border:1px solid #E2E8F0!important;border-radius:12px!important;box-sizing:border-box!important;width:100%!important;">
+              <div class="booking-step active" data-step="1" style="flex:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;font-size:10.5px!important;font-weight:700!important;">Dates</div>
+              <div class="booking-step" data-step="2" style="flex:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;font-size:10.5px!important;font-weight:700!important;">Vehicle</div>
+              <div class="booking-step" data-step="3" style="flex:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;font-size:10.5px!important;font-weight:700!important;">Review</div>
+              <div class="booking-step" data-step="4" style="flex:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;font-size:10.5px!important;font-weight:700!important;">Confirm</div>
             </div>
             ${inp('startDate', 'Pick-up Date &amp; Time', 'datetime-local')}
             ${inp('endDate', 'Drop-off Date &amp; Time', 'datetime-local')}
 
             <div>
-              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:var(--text-muted)">Kilometre Package</span>
-              <div class="pkg-selector-grid" id="detail-km-pkg">
-                <button type="button" class="pkg-option-card active" data-addon="0">
-                  <strong>300 Kms / day</strong>
-                  <small>Included · ₹12/km excess</small>
+              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px">Kilometre Package</span>
+              <div class="pkg-selector-grid" id="detail-km-pkg" style="display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin:8px 0 14px!important;width:100%!important;box-sizing:border-box!important;">
+                <button type="button" class="pkg-option-card active" data-addon="0" style="all:unset!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;padding:12px 14px!important;border:1.5px solid #FF6000!important;border-radius:12px!important;background:#FFF7ED!important;cursor:pointer!important;text-align:left!important;min-height:64px!important;box-sizing:border-box!important;width:100%!important;white-space:normal!important;">
+                  <span style="display:block!important;font-size:13.5px!important;font-weight:800!important;color:#0F172A!important;line-height:1.25!important;margin:0 0 3px!important;white-space:nowrap!important;">300 Kms / day</span>
+                  <span style="display:block!important;font-size:11.5px!important;font-weight:600!important;color:#64748B!important;line-height:1.25!important;white-space:nowrap!important;">Included &middot; &#8377;12/km extra</span>
                 </button>
-                <button type="button" class="pkg-option-card" data-addon="899">
-                  <strong>Unlimited Kms</strong>
-                  <small>+₹899 · Highway package</small>
+                <button type="button" class="pkg-option-card" data-addon="899" style="all:unset!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;padding:12px 14px!important;border:1.5px solid #CBD5E1!important;border-radius:12px!important;background:#FFFFFF!important;cursor:pointer!important;text-align:left!important;min-height:64px!important;box-sizing:border-box!important;width:100%!important;white-space:normal!important;">
+                  <span style="display:block!important;font-size:13.5px!important;font-weight:800!important;color:#0F172A!important;line-height:1.25!important;margin:0 0 3px!important;white-space:nowrap!important;">Unlimited Kms</span>
+                  <span style="display:block!important;font-size:11.5px!important;font-weight:600!important;color:#64748B!important;line-height:1.25!important;white-space:nowrap!important;">+&#8377;899 &middot; Highway pack</span>
                 </button>
               </div>
             </div>
 
             <div style="background:var(--bg-subtle);padding:10px 12px;border-radius:12px;border:1px solid var(--border-main);display:flex;justify-content:space-between;align-items:center">
               <div>
-                <strong style="font-size:12.5px;display:block">8-Photo Condition Protection</strong>
-                <small class="text-muted" style="font-size:11px">Pre/post-trip S3 inspection evidence</small>
+                <strong style="font-size:12.5px;display:block">Vehicle Condition Protection</strong>
+                <small class="text-muted" style="font-size:11px">Pre/post-trip inspection verification</small>
               </div>
               <span class="badge ok">INCLUDED</span>
             </div>
@@ -1630,7 +1657,7 @@ async function carDetails(id) {
 
             <label class="check">
               <input type="checkbox" required checked>
-              <span>I agree to the <a href="#sec-inclusions">Safar Self-Drive Car Lease Agreement</a> terms and mandatory 8-Photo + Selfie handover inspection.</span>
+              <span>I agree to the <a href="#sec-inclusions">Safar Self-Drive Car Lease Agreement</a> terms and mandatory vehicle handover inspection.</span>
             </label>
 
             <button type="submit" class="button btn-orange" style="width:100%;padding:14px;font-size:15px">
@@ -1680,8 +1707,14 @@ async function carDetails(id) {
   // Km package selector cards in right sticky panel
   $$('#detail-km-pkg .pkg-option-card').forEach(card => {
     card.onclick = () => {
-      $$('#detail-km-pkg .pkg-option-card').forEach(c => c.classList.remove('active'));
+      $$('#detail-km-pkg .pkg-option-card').forEach(c => {
+        c.classList.remove('active');
+        c.style.borderColor = '#CBD5E1';
+        c.style.background = '#FFFFFF';
+      });
       card.classList.add('active');
+      card.style.borderColor = '#FF6000';
+      card.style.background = '#FFF7ED';
       $('#car-booking-form')?.dispatchEvent(new Event('input'));
     };
   });
@@ -1724,7 +1757,7 @@ async function carDetails(id) {
     });
   }
 
-  // Interactive 8-Point Digital Twin Radar Nodes
+  // Interactive Vehicle Inspection Views
   $$('#digital-twin-nodes .twin-sensor-btn').forEach(btn => {
     btn.onclick = () => {
       $$('#digital-twin-nodes .twin-sensor-btn').forEach(b => b.classList.remove('active'));
@@ -1738,33 +1771,6 @@ async function carDetails(id) {
     };
   });
 
-  // Interactive Road-Trip Distance & Fuel Simulator
-  const simSlider = $('#trip-sim-slider');
-  const updateTripSim = kmVal => {
-    const km = Number(kmVal || 150);
-    const isSuv = (car.category || '').toLowerCase().includes('suv') || (car.category || '').toLowerCase().includes('muv');
-    const kmPerLitre = isSuv ? 14 : 19;
-    const fuelPrice = (car.fuelType || '').toLowerCase().includes('diesel') ? 92 : 96;
-    const litres = Math.max(1, Math.round(km / kmPerLitre));
-    const fuelCost = Math.round(litres * fuelPrice);
-    if ($('#sim-km-label')) $('#sim-km-label').textContent = `${km} km`;
-    if ($('#sim-litres-val')) $('#sim-litres-val').textContent = `~${litres} Litres`;
-    if ($('#sim-fuel-cost')) $('#sim-fuel-cost').textContent = money(fuelCost);
-    if ($('#sim-total-est')) $('#sim-total-est').textContent = money(Number(car.pricePerDay) + fuelCost);
-  };
-  if (simSlider) {
-    simSlider.oninput = () => updateTripSim(simSlider.value);
-    updateTripSim(simSlider.value);
-  }
-  $$('.sim-preset-btn').forEach(btn => {
-    btn.onclick = () => {
-      $$('.sim-preset-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (simSlider) simSlider.value = btn.dataset.km;
-      updateTripSim(btn.dataset.km);
-    };
-  });
-
   // Quote Calculator & Form Submission
   if (user) {
     const form = $('#car-booking-form');
@@ -1775,16 +1781,27 @@ async function carDetails(id) {
     }
     let currentQuote = null, quoteSequence = 0, quoteTimer, bookingRequestKey = safeUuid();
     const syncBookingSteps = () => {
-      const startReady = Boolean(form.elements.startDate.value);
-      const endReady = Boolean(form.elements.endDate.value);
+      const startReady = Boolean(form.elements.startDate?.value);
+      const endReady = Boolean(form.elements.endDate?.value);
       const quoteReady = Boolean(currentQuote);
       const steps = $$('.booking-step', form);
-      steps.forEach((step, index) => {
-        const done = index === 0 ? quoteReady : index === 1 ? quoteReady : index === 2 ? quoteReady : false;
-        const active = index === 0 ? !startReady || !endReady : index === 1 ? startReady && endReady && !quoteReady : index === 2 ? quoteReady : false;
-        step.classList.toggle('done', done);
-        step.classList.toggle('active', active || (!done && index === 0 && !active));
-      });
+      if (!steps.length) return;
+      if (!startReady || !endReady) {
+        steps[0]?.classList.add('active'); steps[0]?.classList.remove('done');
+        steps[1]?.classList.remove('active', 'done');
+        steps[2]?.classList.remove('active', 'done');
+        steps[3]?.classList.remove('active', 'done');
+      } else if (!quoteReady) {
+        steps[0]?.classList.add('done'); steps[0]?.classList.remove('active');
+        steps[1]?.classList.add('active'); steps[1]?.classList.remove('done');
+        steps[2]?.classList.remove('active', 'done');
+        steps[3]?.classList.remove('active', 'done');
+      } else {
+        steps[0]?.classList.add('done'); steps[0]?.classList.remove('active');
+        steps[1]?.classList.add('done'); steps[1]?.classList.remove('active');
+        steps[2]?.classList.add('done'); steps[2]?.classList.remove('active');
+        steps[3]?.classList.add('active'); steps[3]?.classList.remove('done');
+      }
     };
     const updateQuote = async () => {
       const sequence = ++quoteSequence;
@@ -1924,19 +1941,19 @@ function renderKycTabHtml(info) {
 
     ${eligible && !vehicleId ? `
       <!-- CONDITIONAL UPLOAD RULE: User is verified -> Hide upload forms by default and show verified credential summary -->
-      <div class="panel" style="background:linear-gradient(135deg,#3B123F,#521D50);color:#fff;margin-bottom:20px;border:none">
+      <div class="panel" style="background:linear-gradient(135deg,#065F46 0%,#059669 50%,#10B981 100%);color:#fff;margin-bottom:20px;border-radius:14px;box-shadow:0 10px 28px rgba(5,150,105,0.22);border:none">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
           <div>
-            <span class="badge ok" style="background:rgba(22,128,74,0.25);color:#86EFAC;border:1px solid rgba(134,239,172,0.3)">✓ Driver Verification Complete</span>
+            <span class="badge ok" style="background:rgba(255,255,255,0.22);color:#fff;border:1px solid rgba(255,255,255,0.35);font-weight:700">✓ Driver Verification Complete</span>
             <h3 style="color:#fff;margin:10px 0 6px">Your identity and driving licence are verified</h3>
-            <p style="margin:0;color:rgba(255,255,255,0.82);font-size:13.5px">
+            <p style="margin:0;color:rgba(255,255,255,0.92);font-size:13.5px">
               Aadhaar Reference: <strong>${esc(prof.aadhaarNumberMasked || user?.aadhaarMasked || 'Masked reference unavailable')}</strong> ·
               Driving Licence: <strong>${esc(prof.drivingLicenseMasked || 'Verified')}</strong> ·
               Valid Until: <strong>${user?.dlValidUntil ? d(user.dlValidUntil) : 'Expiry not recorded'}</strong>
               ${faceScore ? ` · Face Match: <strong>${faceScore}%</strong>` : ''}
             </p>
           </div>
-          <a href="cars.html" class="button btn-orange">Browse Vehicles</a>
+          <a href="cars.html" class="button btn-orange" style="background:#FF6A00;color:#fff;font-weight:700;border:none;box-shadow:0 4px 14px rgba(0,0,0,0.15)">Browse Vehicles</a>
         </div>
       </div>
 
@@ -2309,7 +2326,7 @@ async function host(activeTab = 'overview') {
             <span>${icon('chart')} Fleet &amp; Bookings</span><span class="pro-nav-badge">${hostBookings.length}</span>
           </button>
           <button type="button" class="pro-nav-item ${activeTab === 'register' ? 'active' : ''}" data-host-tab="register">
-            <span>${icon('plus')} List New Vehicle</span><span class="pro-nav-badge">8 Angles</span>
+            <span>${icon('plus')} List New Vehicle</span>
           </button>
           <button type="button" class="pro-nav-item ${activeTab === 'fleet' ? 'active' : ''}" data-host-tab="fleet">
             <span>${icon('car')} My Vehicles</span><span class="pro-nav-badge">${vehicles.length}</span>
@@ -2320,7 +2337,7 @@ async function host(activeTab = 'overview') {
         </nav>
         <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border-main);font-size:12px;color:var(--text-muted);">
           <strong style="color:var(--ink);display:block;">${esc(user.firstName + ' ' + user.lastName)}</strong>
-          <span>80% Partner Share · 8-Angle S3 Verified</span>
+          <span>80% Partner Share · Verified Fleet</span>
         </div>
       </aside>
 
@@ -2328,7 +2345,7 @@ async function host(activeTab = 'overview') {
         <div class="pro-topbar">
           <div>
             <h2>${dealer ? 'Dealership Fleet &amp; Handover Console' : 'Host Partner Console'}</h2>
-            <p>Manage vehicle listings, 8-angle + selfie hub handovers, lease agreements, and partner settlements.</p>
+            <p>Manage vehicle listings, hub handover inspections, lease agreements, and partner settlements.</p>
           </div>
           <div class="actions">
             <button type="button" class="button btn-orange btn-sm" id="host-quick-add-btn">+ List New Vehicle</button>
@@ -2369,7 +2386,7 @@ async function host(activeTab = 'overview') {
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
               <div>
                 <h3 style="margin:0;">Active &amp; Upcoming Guest Handovers</h3>
-                <p class="text-muted" style="margin:4px 0 0;">Verify the guest's Lease Agreement and complete the 8-Angle Car + Selfie inspection at Pickup and Return.</p>
+                <p class="text-muted" style="margin:4px 0 0;">Verify the guest's Lease Agreement and complete the vehicle photo inspection at Pickup and Return.</p>
               </div>
             </div>
             ${renderBookingTable(hostBookings, true)}
@@ -2400,7 +2417,7 @@ async function host(activeTab = 'overview') {
                 <div class="cam-banner-content">
                   <div class="cam-icon-box">${icon('camera', 'ic-lg')}</div>
                   <div>
-                    <h3 style="margin:0 0 4px 0;font-size:18px;">02 · Mandatory 8-Angle Vehicle Inspection</h3>
+                    <h3 style="margin:0 0 4px 0;font-size:18px;">02 · Mandatory Vehicle Handover Inspection</h3>
                     <p style="margin:0;font-size:13px;color:var(--ink-2);">Capture photos directly using your mobile camera on-site, or upload existing photos from your files.</p>
                   </div>
                 </div>
@@ -2413,7 +2430,7 @@ async function host(activeTab = 'overview') {
 
               <div class="cam-progress-wrap" style="margin:16px 0 20px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                  <span id="photo-progress" style="font-weight:700;color:var(--brand);font-size:13.5px;">0 of 8 vehicle angles captured</span>
+                  <span id="photo-progress" style="font-weight:700;color:var(--brand);font-size:13.5px;">0 of 8 vehicle views captured</span>
                   <span id="photo-progress-pct" style="font-size:12px;font-weight:600;color:var(--ink-2);">0% complete</span>
                 </div>
                 <div class="cam-progress-track">
@@ -2808,16 +2825,16 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
 
   $('#app').innerHTML = `
     <div class="acct-shell">
-      <!-- LEFT ACCOUNT SIDEBAR (Inspired by Zoomcar Reference) -->
+      <!-- LEFT ACCOUNT SIDEBAR -->
       <aside class="acct-side">
-        <div class="acct-profile-box">
-          <div class="acct-avatar">${esc(initials)}</div>
+        <div class="acct-id acct-profile-box">
+          <div class="ds-avatar acct-avatar">${esc(initials)}</div>
           <strong class="acct-name">${esc(user.firstName + ' ' + user.lastName)}</strong>
           <span class="acct-sub">${esc(user.phone || '+91 Verified Member')}</span>
           <span class="acct-sub">${esc(user.email)}</span>
         </div>
 
-        <div class="acct-verify-list">
+        <div class="acct-checks acct-verify-list">
           <div class="acct-verify-row">
             <span>Profile Document</span>
             <strong class="${user.isVerified ? 'ok' : 'warn'}">${user.isVerified ? '✓ Verified' : 'Pending'}</strong>
@@ -2832,37 +2849,37 @@ async function dashboard(defaultTab = 'trips', forceRefresh = true) {
           </div>
         </div>
 
-        <nav class="acct-menu" aria-label="Account navigation">
+        <nav class="acct-nav acct-menu" aria-label="Account navigation">
           <button type="button" class="acct-menu-btn ${activeTab === 'trips' ? 'active' : ''}" onclick="switchAccountTab('trips')">
             <span class="acct-menu-lbl">${icon('calendar')} My Bookings</span>
-            <span class="acct-menu-badge">${trips.length}</span>
+            <span class="acct-count acct-menu-badge">${trips.length}</span>
           </button>
           <button type="button" class="acct-menu-btn ${activeTab === 'profile' ? 'active' : ''}" onclick="switchAccountTab('profile')">
             <span class="acct-menu-lbl">${icon('user')} Account Information</span>
           </button>
           <button type="button" class="acct-menu-btn ${activeTab === 'kyc' ? 'active' : ''}" onclick="switchAccountTab('kyc')">
             <span class="acct-menu-lbl">${icon('idcard')} KYC &amp; Verification</span>
-            <span class="acct-menu-badge">${user.isVerified ? '✓' : '!'}</span>
+            <span class="acct-count acct-menu-badge">${user.isVerified ? '✓' : '!'}</span>
           </button>
           <button type="button" class="acct-menu-btn ${activeTab === 'disputes' ? 'active' : ''}" onclick="switchAccountTab('disputes')">
             <span class="acct-menu-lbl">${icon('scale')} Booking Disputes</span>
-            ${disputesCount ? `<span class="acct-menu-badge">${disputesCount}</span>` : ''}
+            ${disputesCount ? `<span class="acct-count acct-menu-badge">${disputesCount}</span>` : ''}
           </button>
           <button type="button" class="acct-menu-btn ${activeTab === 'reviews' ? 'active' : ''}" onclick="switchAccountTab('reviews')">
             <span class="acct-menu-lbl">${icon('star')} Reviews &amp; Ratings</span>
-            ${reviewsCount ? `<span class="acct-menu-badge">${reviewsCount}</span>` : ''}
+            ${reviewsCount ? `<span class="acct-count acct-menu-badge">${reviewsCount}</span>` : ''}
           </button>
           <button type="button" class="acct-menu-btn ${activeTab === 'history' ? 'active' : ''}" onclick="switchAccountTab('history')">
             <span class="acct-menu-lbl">${icon('history')} Trip &amp; Damage History</span>
           </button>
           <button type="button" class="acct-menu-btn ${activeTab === 'saved' ? 'active' : ''}" onclick="switchAccountTab('saved')">
             <span class="acct-menu-lbl">${icon('car')} Saved Vehicles &amp; Alerts</span>
-            ${unreadAlerts ? `<span class="acct-menu-badge">${unreadAlerts}</span>` : ''}
+            ${unreadAlerts ? `<span class="acct-count acct-menu-badge">${unreadAlerts}</span>` : ''}
           </button>
         </nav>
 
-        <div style="padding:14px 18px;border-top:1px solid var(--border-main)">
-          <button type="button" id="sidebar-logout-btn" class="btn-outline btn-sm" style="width:100%;justify-content:center">
+        <div style="padding:14px 0 0;border-top:1px solid var(--line, #E2E4E8)">
+          <button type="button" id="sidebar-logout-btn" class="button btn-outline btn-sm" style="width:100%;justify-content:center;display:flex;align-items:center;gap:8px">
             ${icon('logout')} Sign Out
           </button>
         </div>
@@ -3117,7 +3134,7 @@ function renderHorizontalBookingCard(b) {
         <div class="bk-foot-info">
           ${b.inspections?.length
             ? `<span style="color:var(--ok);font-weight:600">✓ ${b.inspections.length}/2 Handover Inspections Recorded</span>`
-            : `<span class="text-muted">8-Angle + Selfie inspection required at Pickup &amp; Return</span>`}
+            : `<span class="text-muted">Handover photo inspection required at Pickup &amp; Return</span>`}
         </div>
         <div class="bk-foot-actions">
           ${st === 'PENDING' ? `<button type="button" class="button btn-orange btn-sm pay-booking-btn" data-id="${b.id}">Pay Now &amp; Confirm</button>` : ''}
@@ -3288,7 +3305,7 @@ function renderHistoryTabHtml(trips) {
                     ? item.inspections.map(inspection => `
                         <div style="margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed var(--border-main)">
                           <strong>${esc(inspection.stage)}</strong> · Odometer: <strong>${Number(inspection.odometer || 0).toLocaleString('en-IN')} km</strong> · Fuel: <strong>${inspection.fuelPercent == null ? '—' : Number(inspection.fuelPercent) + '%'}</strong>
-                          <br><small class="text-muted">${esc(inspection.damageNote || 'All 8 angles verified clean')}</small>
+                          <br><small class="text-muted">${esc(inspection.damageNote || 'Vehicle condition verified clean')}</small>
                         </div>`).join('') + tripDistanceSummary(item)
                     : '<span class="text-muted">Handover inspection pending</span>'}
                 </td>
@@ -3443,7 +3460,7 @@ function renderBookingTable(list, isHost) {
                 <strong style="font-size:15px;">${money(b.totalAmount)}</strong>
                 <p class="text-muted" style="font-size:11.5px;margin:2px 0;">Fare: ${money(b.baseFare)} + Deposit: ${money(b.securityDeposit)}</p>
                 ${isHost ? `<p style="font-size:11.5px;color:var(--ok);font-weight:700;margin:2px 0;">Host 80%: ${money(hostRev)} <span class="text-muted">(Fee: ${money(platFee)})</span></p>` : ''}
-                ${b.inspections?.length ? `<details class="trip-inspection-details" style="margin-top:6px;"><summary style="font-size:12px;cursor:pointer;color:var(--brand);font-weight:700;">${b.inspections.length} Handover Record(s)</summary>${b.inspections.map(ins => `<div style="padding:6px 0;border-bottom:1px dashed var(--border-main);font-size:12px;"><strong>${esc(ins.stage)}</strong> · ${Number(ins.odometer).toLocaleString('en-IN')} km · Fuel ${Number(ins.fuelPercent || 0)}%<br><span class="text-muted">${esc(ins.damageNote || 'All 8 angles & selfie verified')}</span></div>`).join('')}${tripDistanceSummary(b)}</details>` : ''}
+                ${b.inspections?.length ? `<details class="trip-inspection-details" style="margin-top:6px;"><summary style="font-size:12px;cursor:pointer;color:var(--brand);font-weight:700;">${b.inspections.length} Handover Record(s)</summary>${b.inspections.map(ins => `<div style="padding:6px 0;border-bottom:1px dashed var(--border-main);font-size:12px;"><strong>${esc(ins.stage)}</strong> · ${Number(ins.odometer).toLocaleString('en-IN')} km · Fuel ${Number(ins.fuelPercent || 0)}%<br><span class="text-muted">${esc(ins.damageNote || 'Vehicle photos & selfie verified')}</span></div>`).join('')}${tripDistanceSummary(b)}</details>` : ''}
               </td>
               <td>
                 ${badge(st)}
@@ -3507,7 +3524,7 @@ function openBookingPaymentModal(booking) {
         </label>
         <label class="check">
           <input type="checkbox" required checked>
-          <span>I accept the <strong>Safar Self-Drive Car Lease Agreement</strong> and agree to complete the 8-angle vehicle + selfie handover inspection at Pickup and Return.</span>
+          <span>I accept the <strong>Safar Self-Drive Car Lease Agreement</strong> and agree to complete the vehicle + selfie handover inspection at Pickup and Return.</span>
         </label>
         <button type="submit" class="button btn-orange" style="width:100%;justify-content:center;padding:14px;">Pay ${money(booking.totalAmount)} &amp; Confirm Booking</button>
       </form>
@@ -3525,14 +3542,14 @@ function openBookingPaymentModal(booking) {
 function openHandoverWizardModal(bookingId, stage) {
   const isPickup = stage === 'PICKUP';
   const selfieKind = isPickup ? 'SELFIE_PICKUP' : 'SELFIE_RETURN';
-  const title = isPickup ? 'Trip Pickup Handover (8 Car Angles + Customer Selfie)' : 'Trip Return Handover (8 Car Angles + Customer Selfie)';
+  const title = isPickup ? 'Trip Pickup Handover (Vehicle Photos + Customer Selfie)' : 'Trip Return Handover (Vehicle Photos + Customer Selfie)';
 
   showDialog(`
     <div style="max-width:780px;">
       <span class="badge ${isPickup ? 'ok' : 'warn'}">${isPickup ? 'STEP 1 · HUB PICKUP INSPECTION' : 'STEP 2 · HUB RETURN & SETTLEMENT INSPECTION'}</span>
       <h3 style="margin:8px 0 4px;">${title}</h3>
       <p class="text-muted" style="margin:0 0 14px;">
-        Upload all <strong>8 mandatory car angle photos</strong> plus <strong>1 live customer selfie with the vehicle</strong>.
+        Upload all <strong>mandatory vehicle photos</strong> plus <strong>1 live customer selfie with the vehicle</strong>.
       </p>
 
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:12px 16px;background:var(--bg-subtle);border-radius:12px;border:1px solid var(--border-main);">
@@ -3540,7 +3557,7 @@ function openHandoverWizardModal(bookingId, stage) {
           <strong id="handover-slot-counter" style="color:var(--brand);">0 of 9 mandatory photos ready</strong>
           <p class="text-muted" style="margin:2px 0 0;font-size:12px;">Select any slot below to upload from your camera, or use Auto-Fill for testing.</p>
         </div>
-        <button type="button" class="button btn-outline btn-sm" id="handover-autofill-btn">Auto-Fill 8 Angles + Selfie (Demo)</button>
+        <button type="button" class="button btn-outline btn-sm" id="handover-autofill-btn">Auto-Fill Photos + Selfie (Demo)</button>
       </div>
 
       <form id="handover-wizard-form" class="form-stack">
@@ -3652,7 +3669,7 @@ function openHandoverWizardModal(bookingId, stage) {
       damageNote: data.damageNote,
       mediaId: uploadedMedia[0].id,
       mediaIds: uploadedMedia.map(m => m.id),
-      note: `${stage} 8-Angle + Customer Selfie Handover completed.`,
+      note: `${stage} Handover Photo Inspection completed.`,
     });
 
     $('dialog')?.close();
@@ -4221,7 +4238,7 @@ function renderAdminView(tab) {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <div>
             <h3 style="margin:0;">Pending Vehicle Listings (${pendingVehicles.length})</h3>
-            <p class="text-muted" style="margin:2px 0 0;font-size:13px;">Inspect 8-angle photos and compliance documents before activating host vehicles.</p>
+            <p class="text-muted" style="margin:2px 0 0;font-size:13px;">Inspect vehicle photos and compliance documents before activating host vehicles.</p>
           </div>
         </div>
         ${pendingVehicles.length ? `
@@ -4457,8 +4474,8 @@ function renderAdminView(tab) {
     $('#admin-panel-content').innerHTML = `
       <div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 24px;margin-bottom:14px">
         <div>
-          <strong style="font-size:16px;color:var(--text-main)">Fleet Vehicle &amp; 8-Angle S3 Studio</strong>
-          <p class="text-muted" style="margin:4px 0 0;font-size:13px">Click any car tile to open the 8-Angle S3 Folder, upload/replace photos, verify RC/Insurance/PUC, or adjust pricing.</p>
+          <strong style="font-size:16px;color:var(--text-main)">Fleet Vehicle Media Studio</strong>
+          <p class="text-muted" style="margin:4px 0 0;font-size:13px">Click any car tile to open vehicle photos, upload/replace photos, verify RC/Insurance/PUC, or adjust pricing.</p>
         </div>
         <button id="admin-add-vehicle-btn" class="button btn-orange btn-sm">+ Add New Car to Fleet</button>
       </div>
@@ -4480,7 +4497,7 @@ function renderAdminView(tab) {
                 ${v.documents.map(d => `<span>${esc(d.kind)} ${badge(d.status)}</span>`).join('') || '<span class="text-muted">Compliance docs pending</span>'}
               </div>
               <div class="admin-tile-actions">
-                <button class="button btn-orange btn-sm vehicle-folder-btn" data-id="${v.id}">Open 8-Angle Folder</button>
+                <button class="button btn-orange btn-sm vehicle-folder-btn" data-id="${v.id}">Open Vehicle Photos</button>
                 <button class="btn-outline btn-sm vehicle-pricing-action" data-id="${v.id}">Rate</button>
                 <button class="btn-outline btn-sm vehicle-schedule-action" data-id="${v.id}">Schedule</button>
               </div>
@@ -4870,7 +4887,7 @@ function bindAdminActions() {
       if (!booking) return;
       showDialog(`
         <div style="max-width:740px;">
-          <h3>18-Photo Pickup &amp; Return Handover Evidence</h3>
+          <h3>Pickup &amp; Return Handover Evidence</h3>
           <p class="text-muted">Booking Ref: <strong>${esc(booking.bookingRef)}</strong> · ${esc(booking.vehicle.make + ' ' + booking.vehicle.model)}</p>
           ${(booking.inspections || []).map(ins => `
             <div class="panel" style="margin-bottom:14px;">

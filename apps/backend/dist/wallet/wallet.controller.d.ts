@@ -5,8 +5,8 @@ export declare class WalletController {
     getBalance(req: any): Promise<{
         id: string;
         updatedAt: Date;
-        balance: import("@prisma/client-runtime-utils").Decimal;
         userId: string;
+        balance: import("@prisma/client-runtime-utils").Decimal;
     }>;
     deposit(req: any, amount: number): Promise<void>;
 }
