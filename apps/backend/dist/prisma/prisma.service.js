@@ -93,14 +93,9 @@ let PrismaService = class PrismaService extends client_1.PrismaClient {
             url = process.env.POSTGRES_DATABASE_URL;
             process.env.DATABASE_URL = url;
         }
-        if (!url || !/^postgres(ql)?:\/\//.test(url)) {
-            if (process.env.NODE_ENV === 'production' || (0, node_fs_1.existsSync)('/home/ubuntu/ZipTrip')) {
-                url = 'postgresql://root:rootpassword@127.0.0.1:5432/ziptrip?schema=public';
-                process.env.DATABASE_URL = url;
-            }
-            else {
-                url = url || 'file:./portal.db';
-            }
+        if (!url) {
+            url = 'file:./portal.db';
+            process.env.DATABASE_URL = url;
         }
         const isPostgres = /^postgres(ql)?:\/\//.test(url);
         const adapter = isPostgres

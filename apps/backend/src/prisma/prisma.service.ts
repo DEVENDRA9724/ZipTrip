@@ -53,14 +53,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       process.env.DATABASE_URL = url;
     }
 
-    // If url is empty or sqlite, but we are running in production or on the server, fallback to default local postgres
-    if (!url || !/^postgres(ql)?:\/\//.test(url)) {
-      if (process.env.NODE_ENV === 'production' || existsSync('/home/ubuntu/ZipTrip')) {
-        url = 'postgresql://root:rootpassword@127.0.0.1:5432/ziptrip?schema=public';
-        process.env.DATABASE_URL = url;
-      } else {
-        url = url || 'file:./portal.db';
-      }
+    if (!url) {
+      url = 'file:./portal.db';
+      process.env.DATABASE_URL = url;
     }
 
     const isPostgres = /^postgres(ql)?:\/\//.test(url);
