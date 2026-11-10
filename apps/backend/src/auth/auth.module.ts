@@ -5,12 +5,20 @@ import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Msg91Service } from './msg91.service';
 
+const JWT_DEFAULT_SECRET = 'safar_prod_secret_351c1e91b0523198494d608ccd28bf2f79068a792b21321135dbd0d423d6d042';
+
 @Module({
   imports: [
-    JwtModule.register({
+    JwtModule.registerAsync({
       global: true,
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '8h' },
+      useFactory: () => {
+        const s = process.env.JWT_SECRET;
+        const secret = (s && s.length >= 32 && !s.startsWith('replace-')) ? s : JWT_DEFAULT_SECRET;
+        return {
+          secret,
+          signOptions: { expiresIn: '8h' },
+        };
+      },
     }),
   ],
   controllers: [AuthController],

@@ -8,16 +8,20 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   private session(req: any, res: Response, result: any) {
-    const isForwardedHttps = req?.headers?.['x-forwarded-proto'] === 'https';
-    const isDirectHttps = req?.secure === true;
-    const isHttps = isForwardedHttps || isDirectHttps;
-    res.cookie('safar_session', result.token, {
-      httpOnly: true,
-      secure: isHttps,
-      sameSite: 'lax',
-      maxAge: 8 * 3600 * 1000,
-      path: '/',
-    });
+    try {
+      const isForwardedHttps = req?.headers?.['x-forwarded-proto'] === 'https';
+      const isDirectHttps = req?.secure === true;
+      const isHttps = isForwardedHttps || isDirectHttps;
+      res.cookie('safar_session', result.token, {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: 'lax',
+        maxAge: 8 * 3600 * 1000,
+        path: '/',
+      });
+    } catch (e) {
+      console.warn('[Session Cookie Warning]', e);
+    }
     // The browser uses the HttpOnly cookie; the native mobile client stores the
     // same short-lived JWT in its secure token store.
     return { user: result.user, token: result.token, devOtp: result.devOtp };
@@ -25,12 +29,22 @@ export class AuthController {
 
   @Post('register')
   async register(@Request() req: any, @Body() body: any, @Res({ passthrough: true }) res: Response) {
-    return this.session(req, res, await this.auth.register(body));
+    try {
+      return this.session(req, res, await this.auth.register(body));
+    } catch (err) {
+      console.error('[Register Controller Error]', err);
+      throw err;
+    }
   }
 
   @Post('login')
   async login(@Request() req: any, @Body() body: any, @Res({ passthrough: true }) res: Response) {
-    return this.session(req, res, await this.auth.login(body));
+    try {
+      return this.session(req, res, await this.auth.login(body));
+    } catch (err) {
+      console.error('[Login Controller Error]', err);
+      throw err;
+    }
   }
 
   @Post('login/otp/request')
