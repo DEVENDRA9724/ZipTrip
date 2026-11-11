@@ -198,6 +198,8 @@ function carLink(id) {
   return 'cars.html?' + next.toString();
 }
 
+const CAR_IMG_VER = '20261111j';
+
 const CAR_IMAGE_MAP = {
   thar: 'cars/thar.jpg',
   creta: 'cars/creta.jpg',
@@ -229,14 +231,14 @@ function getCarStockPhoto(car) {
 
 function getVehicleCover(v) {
   const stock = getCarStockPhoto(v);
-  if (stock) return stock + '?v=20261111h';
+  if (stock) return stock + '?v=' + CAR_IMG_VER;
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
     if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
   const front = v.media?.find(m => m.kind === 'FRONT');
   if (front?.id) return `/api/media/${front.id}`;
-  return 'cars/thar.jpg?v=20261111h';
+  return 'cars/thar.jpg?v=' + CAR_IMG_VER;
 }
 
 const badge = s => {
@@ -813,7 +815,7 @@ async function home() {
         <div style="display:grid;gap:14px">
           <div class="lp-hero-live-pill">
             <span class="pulse-live-dot"></span>
-            <span>⚡ Over 1,400+ Verified Trips · Instant Booking in 60s</span>
+            <span>Over 1,400+ Verified Trips Completed</span>
           </div>
           <span class="eyebrow" style="color:#F5D9A8">SELF-DRIVE CAR RENTALS</span>
           <h1 id="lp-title">Your Next Drive Starts Here.</h1>
@@ -833,10 +835,10 @@ async function home() {
           <p id="lp-search-err" class="error" role="alert" hidden style="grid-column:1/-1;margin:0"></p>
         </form>
         <div class="hero-perks-strip">
-          <div class="hero-perk"><span class="perk-icon">🛡️</span> Zero Deposit Option</div>
-          <div class="hero-perk"><span class="perk-icon">⚡</span> Instant Confirmation</div>
-          <div class="hero-perk"><span class="perk-icon">📍</span> Free Doorstep / Airport Handover</div>
-          <div class="hero-perk"><span class="perk-icon">📄</span> 100% Digital Lease &amp; KYC</div>
+          <div class="hero-perk">${icon('shield', 'ic-sm')} Zero Deposit Option</div>
+          <div class="hero-perk">${icon('clock', 'ic-sm')} Instant Confirmation</div>
+          <div class="hero-perk">${icon('pin', 'ic-sm')} Free Doorstep / Airport Handover</div>
+          <div class="hero-perk">${icon('file', 'ic-sm')} 100% Digital Lease &amp; KYC</div>
         </div>
       </div>
     </section>
@@ -898,7 +900,7 @@ async function home() {
           </ul>
           <div style="margin-top:12px"><a class="button btn-orange btn-lg" href="host-onboarding.html">Become a Host</a></div>
         </div>
-        <img src="cars/fortuner.jpg?v=20261111h" alt="Safar Self Drive Showroom Fleet" loading="lazy">
+        <img src="cars/fortuner.jpg?v=20261111j" alt="Safar Self Drive Showroom Fleet" loading="lazy">
       </div>
     </section>
 

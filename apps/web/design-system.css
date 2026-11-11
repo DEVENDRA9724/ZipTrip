@@ -1358,12 +1358,14 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   }
   .lp-host img {
     width: 100% !important;
-    height: 230px !important;
-    min-height: unset !important;
-    max-height: 250px !important;
-    object-fit: contain !important;
-    background: radial-gradient(circle, #FFFFFF 0%, #F1F5F9 100%) !important;
-    padding: 8px !important;
+    height: auto !important;
+    min-height: 220px !important;
+    max-height: 300px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    display: block !important;
+    background: #FFFFFF !important;
+    padding: 0 !important;
   }
 
   /* Corporate Clean White Footer - Mobile Centered Formatting */
@@ -1543,33 +1545,79 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
    ═══════════════════════════════════════════════════════════════════════════ */
 .cars-page-wrap { width: 100%; }
 
-/* Two-Column Grid: Fixed 310px Left Studio + Scrollable Right Fleet Grid on Desktop */
+/* Full-Width Fluid Workspace for Car Discovery (Eliminates excessive side padding) */
+body.cars-page .header,
+body:has(.cars-layout) .header,
+body:has(.cars-page-container) .header {
+  padding-inline: clamp(16px, 2.5vw, 36px) !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+}
+
+body.cars-page main.container,
+body.cars-page .cars-page-container,
+body:has(.cars-layout) main.container,
+main.container:has(.cars-layout) {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 16px clamp(16px, 2.5vw, 36px) 72px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+body.cars-page footer.footer,
+body:has(.cars-layout) footer.footer,
+body:has(.cars-page-container) footer.footer {
+  padding-inline: clamp(16px, 2.5vw, 36px) !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Two-Column Grid: Fixed 280px Left Studio + Scrollable Right Fleet Grid on Desktop */
 @media (min-width: 961px) {
   .cars-layout {
     display: grid !important;
-    grid-template-columns: 310px minmax(0, 1fr) !important;
-    gap: 24px !important;
+    grid-template-columns: 280px minmax(0, 1fr) !important;
+    gap: 28px !important;
     align-items: start !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin-top: 0 !important;
   }
 
   .sidebar-filters {
     position: sticky !important;
-    top: 76px !important;
-    max-height: calc(100vh - 92px) !important;
+    top: 96px !important;
+    height: calc(100vh - 116px) !important;
+    max-height: calc(100vh - 116px) !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
     scrollbar-width: thin !important;
     background: #FFFFFF !important;
-    border: 1px solid var(--line, #E2E4E8) !important;
-    border-radius: 18px !important;
+    border: 1px solid var(--line, #E2E8F0) !important;
+    border-radius: 16px !important;
     padding: 20px 18px !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04) !important;
     box-sizing: border-box !important;
     width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 16px !important;
+    align-self: start !important;
+  }
+
+  .cars-results-wrap {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .cars-results-wrap .car-grid {
+    grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)) !important;
+    gap: 24px !important;
+    width: 100% !important;
   }
 
   .mobile-filter-toggle {
