@@ -198,7 +198,7 @@ function carLink(id) {
   return 'cars.html?' + next.toString();
 }
 
-const CAR_IMG_VER = '20261111k';
+const CAR_IMG_VER = '20261111L';
 
 const CAR_IMAGE_MAP = {
   thar: 'cars/thar.jpg',
@@ -1503,204 +1503,207 @@ async function cars() {
   if (id) return carDetails(id);
 
   $('#app').innerHTML = `
-    <div class="cars-page-wrap">
-      <!-- Top Search & Schedule Command Bar -->
-      <div class="horizon-search-bar">
-        <div class="horizon-search-top">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span class="horizon-location-pill">
-              <span class="ico">${icon('pin')}</span> <strong>Ellisbridge / SG Highway Hub, Ahmedabad</strong> <small style="color:#64748B;font-weight:500;">(Gujarat 380006)</small>
-            </span>
-            <span class="badge ok" style="padding:6px 12px;border-radius:999px;">${icon('shield')} Verified Fleet</span>
-            <button type="button" id="btn-gps-near-me" class="button btn-outline btn-sm" style="padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fff;border:1px solid #CBD5E1;color:#0F172A;border-radius:999px;font-weight:600;">
+    <div class="cars-layout">
+      <!-- Fixed Left Filter Studio (Zoomcar Style: Pinned to Left, Full Height, Independent Scroll) -->
+      <button type="button" class="mobile-filter-toggle btn-outline" aria-expanded="false" aria-controls="vehicle-search-filters">Show Filters</button>
+      <aside class="sidebar-filters" id="vehicle-search-filters">
+        <div class="filter-header-top">
+          <h3>Filters</h3>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button type="button" class="filter-reset-btn" id="clear-filters-btn">Reset All</button>
+          </div>
+        </div>
+
+        <!-- Distance Slider -->
+        <div class="filter-group">
+          <div class="filter-title">
+            <span>Distance from Hub</span>
+            <span class="price-val-label" id="distance-val-badge">&le; 20 km</span>
+          </div>
+          <input type="range" min="2" max="25" step="1" value="20" class="range-slider" id="distance-slider" />
+          <div class="range-labels">
+            <span>Near (2 km)</span>
+            <span>25 km</span>
+          </div>
+        </div>
+
+        <!-- Delivery Type -->
+        <div class="filter-group">
+          <div class="filter-title">Handover Option</div>
+          <label class="checkbox-item">
+            <input type="checkbox" id="filter-home-delivery" />
+            <span>Hub Pickup &amp; Doorstep Delivery</span>
+          </label>
+          <small class="text-muted" style="display:block;font-size:11px;margin-top:4px">Vehicle inspection performed at handover.</small>
+        </div>
+
+        <!-- Daily / Total Price Slider -->
+        <div class="filter-group">
+          <div class="filter-title">
+            <span>Daily Rate Budget</span>
+            <span class="price-val-label" id="price-val-label">&le; &#x20B9;8,500</span>
+          </div>
+          <input type="range" min="1000" max="8500" step="250" value="8500" class="range-slider" id="price-slider" />
+          <div class="range-labels">
+            <span>&#x20B9;1,000</span>
+            <span id="budget-maximum">&#x20B9;8,500</span>
+          </div>
+        </div>
+
+        <!-- Brand Filter -->
+        <div class="filter-group">
+          <div class="filter-title">Car Brand / Make</div>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="all" checked /><span>All Brands</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Mahindra" /><span>Mahindra</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Toyota" /><span>Toyota</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Hyundai" /><span>Hyundai</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Maruti Suzuki" /><span>Maruti Suzuki</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="BMW" /><span>BMW</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Kia" /><span>Kia</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Honda" /><span>Honda</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Mercedes-Benz" /><span>Mercedes-Benz</span></label>
+        </div>
+
+        <!-- Seating Capacity -->
+        <div class="filter-group">
+          <div class="filter-title">Seating Capacity</div>
+          <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="4" checked /><span>4-Seater</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="5" checked /><span>5-Seater</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="7" checked /><span>6 / 7-Seater</span></label>
+        </div>
+
+        <!-- Car Type (Category) -->
+        <div class="filter-group">
+          <div class="filter-title">Segment / Body Type</div>
+          <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="hatchback" checked /><span>Hatchback</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="suv,compact suv" checked /><span>SUV / Compact SUV</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="sedan" checked /><span>Sedan</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="muv" checked /><span>MUV / 7-Seater</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="luxury" checked /><span>Luxury &amp; Executive</span></label>
+        </div>
+
+        <!-- Transmission -->
+        <div class="filter-group">
+          <div class="filter-title">Transmission</div>
+          <label class="checkbox-item"><input type="checkbox" class="trans-cb" value="Automatic" checked /><span>Automatic</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="trans-cb" value="Manual" checked /><span>Manual</span></label>
+        </div>
+
+        <!-- Fuel Type -->
+        <div class="filter-group">
+          <div class="filter-title">Fuel Type</div>
+          <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Petrol" checked /><span>Petrol</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Diesel" checked /><span>Diesel</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="CNG" checked /><span>CNG</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Electric" checked /><span>Electric (EV)</span></label>
+          <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Hybrid" checked /><span>Hybrid</span></label>
+        </div>
+
+        <!-- Minimum Guest Rating -->
+        <div class="filter-group">
+          <div class="filter-title">Customer Rating</div>
+          <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.5" /><span>4.5+ Rated</span></label>
+          <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.0" /><span>4.0+ Rated</span></label>
+          <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="0" checked /><span>All Verified Cars</span></label>
+        </div>
+
+        <!-- Model Year Slider -->
+        <div class="filter-group">
+          <div class="filter-title">
+            <span>Minimum Model Year</span>
+            <span class="price-val-label" id="year-val-label">&ge; 2018</span>
+          </div>
+          <input type="range" min="2018" max="2026" step="1" value="2018" class="range-slider" id="year-slider" />
+          <div class="range-labels">
+            <span>2018</span>
+            <span>2026</span>
+          </div>
+        </div>
+
+        <!-- Verification Standards -->
+        <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+          <div class="filter-title">Verification Standards</div>
+          <label class="checkbox-item"><input type="checkbox" id="addon-fastag" checked /><span>Active FASTag Equipped</span></label>
+          <label class="checkbox-item"><input type="checkbox" id="addon-s3" checked /><span>Pre-Inspected Fleet</span></label>
+          <label class="checkbox-item"><input type="checkbox" id="addon-superhost" /><span>Top Rated Hosts Only</span></label>
+        </div>
+      </aside>
+
+      <!-- Right Scrollable Fleet Discovery Workspace (Only this area scrolls!) -->
+      <div class="cars-results-wrap">
+        <!-- Top Promo Headline Banner (Zoomcar Inspired) -->
+        <div class="cars-top-promo-banner">
+          <div class="promo-text">
+            <span class="promo-eyebrow">Book Verified Self-Drive Cars</span>
+            <h2 class="promo-title">Drive Daily Anywhere &mdash; Anytime</h2>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="badge ok" style="padding:6px 14px;border-radius:999px;font-size:12px;">${icon('shield', 'ic-sm')} 100% Verified Fleet</span>
+            <button type="button" id="btn-gps-near-me" class="button btn-outline btn-sm" style="padding:6px 14px;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fff;border:1px solid #CBD5E1;color:#0F172A;border-radius:999px;font-weight:600;">
               ${icon('pin', 'ic-sm')} <span>Near Me (GPS)</span>
             </button>
           </div>
+        </div>
+
+        <!-- Hub Location & Trip Schedule Command Bar -->
+        <div class="horizon-search-bar">
+          <form id="availability-search" class="availability-search">
+            <div class="availability-heading">
+              <strong>Trip Schedule &amp; Pickup Hub</strong>
+              <span>Transparent Pricing · Digital Lease Agreement · Verified Handover</span>
+            </div>
+            <label>Hub / City<input name="city" placeholder="Ahmedabad, Surat, Vadodara…" maxlength="120"></label>
+            <fieldset class="trip-date-range"><legend>Trip Schedule</legend>
+              <label>Pick-up<input name="startDate" type="datetime-local" required></label>
+              <label>Drop-off<input name="endDate" type="datetime-local" required></label>
+            </fieldset>
+            <button type="submit" class="button btn-orange">Update Search</button>
+          </form>
+        </div>
+
+        <!-- Search Input, Km Package Toggle & Sort Row -->
+        <div class="cars-search-row">
+          <div class="search-input-box">
+            <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input id="car-search" type="search" placeholder="Search for model, features, transmission, fuel…" autocomplete="off">
+          </div>
           <div class="horizon-km-toggle" id="horizon-km-pkg">
-            <button type="button" class="active" data-pkg="300">300 Kms Included</button>
-            <button type="button" data-pkg="unlimited">Unlimited Kms</button>
+            <button type="button" data-pkg="unlimited">Unlimited kms</button>
+            <button type="button" class="active" data-pkg="300">300 Kms incl.</button>
           </div>
+          <select id="car-sort" class="sort-dropdown">
+            <option value="">Sort: Recommended / Popular</option>
+            <option value="dist_asc">Distance: Nearest to Me (GPS)</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="rating_desc">Rating: Highest Rated (5★ to 1★)</option>
+            <option value="year_desc">Model Year: Newest First</option>
+            <option value="brand_asc">Brand: A to Z</option>
+          </select>
         </div>
 
-        <form id="availability-search" class="availability-search">
-          <div class="availability-heading">
-            <strong>Search Available Vehicles</strong>
-            <span>Transparent Pricing · Digital Lease Agreement · Verified Handover</span>
-          </div>
-          <label>Hub / City<input name="city" placeholder="Ahmedabad, Surat, Vadodara…" maxlength="120"></label>
-          <fieldset class="trip-date-range"><legend>Trip Schedule</legend>
-            <label>Pick-up<input name="startDate" type="datetime-local" required></label>
-            <label>Drop-off<input name="endDate" type="datetime-local" required></label>
-          </fieldset>
-          <button type="submit" class="button btn-orange">Update Search</button>
-        </form>
-      </div>
-
-      <!-- Search & Sort Row -->
-      <div class="cars-search-row">
-        <div class="search-input-box">
-          <svg class="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input id="car-search" type="search" placeholder="Search by make, model, city, transmission, fuel type…" autocomplete="off">
+        <!-- Quick Category Filter Pills -->
+        <div class="chip-row" id="chip-row">
+          <button type="button" class="chip-btn active" data-filter="all">${icon('car')} All Verified Cars</button>
+          <button type="button" class="chip-btn" data-filter="SUV">SUV &amp; 4x4</button>
+          <button type="button" class="chip-btn" data-filter="Sedan">Sedan</button>
+          <button type="button" class="chip-btn" data-filter="Hatchback">Hatchback</button>
+          <button type="button" class="chip-btn" data-filter="Automatic">${icon('sliders')} Automatic</button>
+          <button type="button" class="chip-btn" data-filter="Diesel">${icon('fuel')} Diesel</button>
+          <button type="button" class="chip-btn" data-filter="7seater">${icon('users')} 6/7 Seater</button>
+          <button type="button" class="chip-btn" data-filter="near">${icon('pin')} Within 5 km</button>
+          <button type="button" class="chip-btn" data-filter="newmodel">Model 2023+</button>
+          <button type="button" class="chip-btn" data-filter="superhost">${icon('star')} Top Rated</button>
         </div>
-        <select id="car-sort" class="sort-dropdown">
-          <option value="">Sort: Recommended / Popular</option>
-          <option value="dist_asc">Distance: Nearest to Me (GPS)</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
-          <option value="rating_desc">Rating: Highest Rated (5★ to 1★)</option>
-          <option value="year_desc">Model Year: Newest First</option>
-          <option value="brand_asc">Brand: A to Z</option>
-        </select>
-      </div>
 
-      <!-- Quick Filter Pills (Clean SVG Icons, Zero Emojis) -->
-      <div class="chip-row" id="chip-row">
-        <button type="button" class="chip-btn active" data-filter="all">${icon('car')} All Verified Cars</button>
-        <button type="button" class="chip-btn" data-filter="SUV">SUV &amp; 4x4</button>
-        <button type="button" class="chip-btn" data-filter="Sedan">Sedan</button>
-        <button type="button" class="chip-btn" data-filter="Hatchback">Hatchback</button>
-        <button type="button" class="chip-btn" data-filter="Automatic">${icon('sliders')} Automatic</button>
-        <button type="button" class="chip-btn" data-filter="Diesel">${icon('fuel')} Diesel</button>
-        <button type="button" class="chip-btn" data-filter="7seater">${icon('users')} 6/7 Seater</button>
-        <button type="button" class="chip-btn" data-filter="near">${icon('pin')} Within 5 km</button>
-        <button type="button" class="chip-btn" data-filter="newmodel">Model 2023+</button>
-        <button type="button" class="chip-btn" data-filter="superhost">${icon('star')} Top Rated</button>
-      </div>
-
-      <!-- Two-Column Layout: Left Filter Studio + Right Fleet Grid -->
-      <div class="cars-layout">
-        <button type="button" class="mobile-filter-toggle btn-outline" aria-expanded="false" aria-controls="vehicle-search-filters">Show Filters</button>
-        <aside class="sidebar-filters" id="vehicle-search-filters">
-          <div class="filter-header-top">
-            <h3>Filters</h3>
-            <button type="button" class="filter-reset-btn" id="clear-filters-btn">Reset All</button>
-          </div>
-
-          <!-- Distance Slider -->
-          <div class="filter-group">
-            <div class="filter-title">
-              <span>Distance from Hub</span>
-              <span class="price-val-label" id="distance-val-badge">&le; 20 km</span>
-            </div>
-            <input type="range" min="2" max="25" step="1" value="20" class="range-slider" id="distance-slider" />
-            <div class="range-labels">
-              <span>Near (2 km)</span>
-              <span>25 km</span>
-            </div>
-          </div>
-
-          <!-- Delivery Type -->
-          <div class="filter-group">
-            <div class="filter-title">Handover Option</div>
-            <label class="checkbox-item">
-              <input type="checkbox" id="filter-home-delivery" />
-              <span>Hub Pickup &amp; Doorstep Delivery</span>
-            </label>
-            <small class="text-muted" style="display:block;font-size:11px;margin-top:4px">Vehicle inspection performed at handover.</small>
-          </div>
-
-          <!-- Daily / Total Price Slider -->
-          <div class="filter-group">
-            <div class="filter-title">
-              <span>Daily Rate Budget</span>
-              <span class="price-val-label" id="price-val-label">&le; &#x20B9;8,500</span>
-            </div>
-            <input type="range" min="1000" max="8500" step="250" value="8500" class="range-slider" id="price-slider" />
-            <div class="range-labels">
-              <span>&#x20B9;1,000</span>
-              <span id="budget-maximum">&#x20B9;8,500</span>
-            </div>
-          </div>
-
-          <!-- Brand Filter -->
-          <div class="filter-group">
-            <div class="filter-title">Car Brand / Make</div>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="all" checked /><span>All Brands</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Mahindra" /><span>Mahindra</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Toyota" /><span>Toyota</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Hyundai" /><span>Hyundai</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Maruti Suzuki" /><span>Maruti Suzuki</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="BMW" /><span>BMW</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Kia" /><span>Kia</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Honda" /><span>Honda</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="brand-cb" value="Mercedes-Benz" /><span>Mercedes-Benz</span></label>
-          </div>
-
-          <!-- Seating Capacity -->
-          <div class="filter-group">
-            <div class="filter-title">Seating Capacity</div>
-            <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="4" checked /><span>4-Seater</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="5" checked /><span>5-Seater</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="seats-cb" value="7" checked /><span>6 / 7-Seater</span></label>
-          </div>
-
-          <!-- Car Type (Category) -->
-          <div class="filter-group">
-            <div class="filter-title">Segment / Body Type</div>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="hatchback" checked /><span>Hatchback</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="suv,compact suv" checked /><span>SUV / Compact SUV</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="sedan" checked /><span>Sedan</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="muv" checked /><span>MUV / 7-Seater</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="cat-cb" value="luxury" checked /><span>Luxury &amp; Executive</span></label>
-          </div>
-
-          <!-- Transmission -->
-          <div class="filter-group">
-            <div class="filter-title">Transmission</div>
-            <label class="checkbox-item"><input type="checkbox" class="trans-cb" value="Automatic" checked /><span>Automatic</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="trans-cb" value="Manual" checked /><span>Manual</span></label>
-          </div>
-
-          <!-- Fuel Type -->
-          <div class="filter-group">
-            <div class="filter-title">Fuel Type</div>
-            <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Petrol" checked /><span>Petrol</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Diesel" checked /><span>Diesel</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="CNG" checked /><span>CNG</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Electric" checked /><span>Electric (EV)</span></label>
-            <label class="checkbox-item"><input type="checkbox" class="fuel-cb" value="Hybrid" checked /><span>Hybrid</span></label>
-          </div>
-
-          <!-- Minimum Guest Rating -->
-          <div class="filter-group">
-            <div class="filter-title">Customer Rating</div>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.5" /><span>4.5+ Rated</span></label>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="4.0" /><span>4.0+ Rated</span></label>
-            <label class="checkbox-item"><input type="radio" name="minRating" class="rating-rb" value="0" checked /><span>All Verified Cars</span></label>
-          </div>
-
-          <!-- Model Year Slider -->
-          <div class="filter-group">
-            <div class="filter-title">
-              <span>Minimum Model Year</span>
-              <span class="price-val-label" id="year-val-label">&ge; 2018</span>
-            </div>
-            <input type="range" min="2018" max="2026" step="1" value="2018" class="range-slider" id="year-slider" />
-            <div class="range-labels">
-              <span>2018</span>
-              <span>2026</span>
-            </div>
-          </div>
-
-          <!-- Verification Standards -->
-          <div class="filter-group" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
-            <div class="filter-title">Verification Standards</div>
-            <label class="checkbox-item"><input type="checkbox" id="addon-fastag" checked /><span>Active FASTag Equipped</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="addon-s3" checked /><span>Pre-Inspected Fleet</span></label>
-            <label class="checkbox-item"><input type="checkbox" id="addon-superhost" /><span>Top Rated Hosts Only</span></label>
-          </div>
-        </aside>
-
-        <!-- RIGHT CARS CONTENT -->
-        <div class="cars-results-wrap">
-          <div class="cars-count-bar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <span id="cars-count-text" role="status" aria-live="polite" style="font-weight:800;font-size:15px">Loading verified fleet…</span>
-            <span style="font-size:12px;color:var(--text-muted)">Base fare includes 300 km/day · Refundable deposit shown at checkout</span>
-          </div>
-          <div class="car-grid" id="fleet-grid"></div>
+        <!-- Results Counter & Vehicle Grid -->
+        <div class="cars-count-bar" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span id="cars-count-text" role="status" aria-live="polite" style="font-weight:800;font-size:15px">Loading verified fleet…</span>
+          <span style="font-size:12px;color:var(--text-muted)">Base fare includes 300 km/day · Refundable deposit shown at checkout</span>
         </div>
+        <div class="car-grid" id="fleet-grid"></div>
       </div>
     </div>`;
 
