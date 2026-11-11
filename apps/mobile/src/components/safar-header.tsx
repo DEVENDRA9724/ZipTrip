@@ -109,62 +109,6 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
         </View>
       </View>
 
-      {/* Website-Identical Sub-Navigation Menu Bar */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.subNavScroll}
-        style={styles.subNavBar}
-      >
-        <TouchableOpacity
-          style={[styles.subNavItem, pathname === '/' && styles.subNavItemActive]}
-          onPress={() => router.push('/')}
-        >
-          <Text style={[styles.subNavText, pathname === '/' && styles.subNavTextActive]}>
-            Explore Cars
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.subNavItem}
-          onPress={() => router.push({ pathname: '/guides' as any, params: { section: 'guides' } })}
-        >
-          <Text style={styles.subNavText}>Travel Guides</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.subNavItem}
-          onPress={() => router.push({ pathname: '/guides' as any, params: { section: 'how' } })}
-        >
-          <Text style={styles.subNavText}>How It Works</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.subNavItem}
-          onPress={() => router.push({ pathname: '/guides' as any, params: { section: 'support' } })}
-        >
-          <Text style={styles.subNavText}>Help & Support</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.subNavItem, pathname === '/verification' && styles.subNavItemActive]}
-          onPress={() => router.push('/verification')}
-        >
-          <Text style={[styles.subNavText, pathname === '/verification' && styles.subNavTextActive]}>
-            DigiLocker e-KYC
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.subNavItem, pathname === '/host' && styles.subNavItemActive]}
-          onPress={() => router.push('/host')}
-        >
-          <Text style={[styles.subNavText, pathname === '/host' && styles.subNavTextActive]}>
-            List Your Car
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
       {/* Full Website Menu Drawer Modal */}
       <Modal
         visible={menuOpen}

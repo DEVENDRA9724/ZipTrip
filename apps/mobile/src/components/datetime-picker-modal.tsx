@@ -162,9 +162,7 @@ export function DateTimePickerModal({
             }}
           >
             <Check size={18} color="#FFFFFF" />
-            <Text style={styles.confirmBtnText}>
-              Confirm {tempDate} at {tempTime}
-            </Text>
+            <Text style={styles.confirmBtnText}>Done</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -237,8 +235,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayCardActive: {
-    backgroundColor: '#FF6000',
-    borderColor: '#FF6000',
+    backgroundColor: '#2D114D',
+    borderColor: '#2D114D',
   },
   dayName: {
     fontSize: 11,
@@ -274,8 +272,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeChipActive: {
-    backgroundColor: '#2D114D',
-    borderColor: '#2D114D',
+    backgroundColor: '#FFF1E8',
+    borderColor: '#FF6000',
   },
   timeChipText: {
     fontSize: 12.5,
@@ -283,7 +281,7 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   timeChipTextActive: {
-    color: '#FFFFFF',
+    color: '#C2410C',
     fontWeight: '800',
   },
   confirmBtn: {
@@ -291,7 +289,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FF6000',
+    backgroundColor: '#2D114D',
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 18,
