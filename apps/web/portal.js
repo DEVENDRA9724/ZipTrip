@@ -1173,10 +1173,10 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
     const rawPhone = (formData.phone || '').trim().replace(/\D/g, '');
     const phone = rawPhone.length === 10 ? '+91' + rawPhone : (formData.phone || '').trim();
 
-    initFirebase();
+    await ensureFirebaseLoaded();
     let useFirebasePhone = false;
     let confirmationResult = null;
-    if (window.firebase && firebase.auth) {
+    if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
       try {
         if (!window.safarDialogRecaptcha) {
           window.safarDialogRecaptcha = new firebase.auth.RecaptchaVerifier('dialog-recaptcha-box', {
@@ -1186,8 +1186,9 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
         confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarDialogRecaptcha);
         window.safarPhoneConfirmation = confirmationResult;
         useFirebasePhone = true;
+        toast('SMS OTP dispatched to ' + phone + ' via Google Firebase!');
       } catch (err) {
-        console.warn('[Firebase Dialog Recaptcha Fallback]', err);
+        console.warn('[Firebase Dialog Recaptcha / Phone Auth Note]', err.code || err.message, err);
       }
     }
 
@@ -1395,10 +1396,10 @@ function auth(forceRegister, loginMode = 'otp') {
       const rawPhone = (data.phone || '').trim().replace(/\D/g, '');
       const phone = rawPhone.length === 10 ? '+91' + rawPhone : (data.phone || '').trim();
 
-      initFirebase();
+      await ensureFirebaseLoaded();
       let useFirebasePhone = false;
       let confirmationResult = null;
-      if (window.firebase && firebase.auth) {
+      if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
         try {
           if (!window.safarAuthRecaptcha) {
             window.safarAuthRecaptcha = new firebase.auth.RecaptchaVerifier('auth-recaptcha-inline', {
@@ -1408,8 +1409,9 @@ function auth(forceRegister, loginMode = 'otp') {
           confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarAuthRecaptcha);
           window.safarPhoneConfirmation = confirmationResult;
           useFirebasePhone = true;
+          toast('SMS OTP dispatched to ' + phone + ' via Google Firebase!');
         } catch (err) {
-          console.warn('[Firebase Auth Recaptcha Fallback]', err);
+          console.warn('[Firebase Auth Recaptcha / Phone Auth Note]', err.code || err.message, err);
         }
       }
 
