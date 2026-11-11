@@ -259,7 +259,7 @@ export default function TripsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-      <Modal visible={Boolean(ratingBooking)} animationType="slide" transparent onRequestClose={() => !ratingBusy && setRatingBooking(null)}>
+      <Modal visible={Boolean(ratingBooking)} animationType="slide" transparent onRequestClose={() => { if (!ratingBusy) setRatingBooking(null); }}>
         <View style={styles.modalBg}>
           <SafeAreaView style={[styles.ratingModal, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>

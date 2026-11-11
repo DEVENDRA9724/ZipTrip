@@ -8,8 +8,14 @@
     "scheme": "safar",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "in.safar.selfdrive"
+      "icon": "./assets/images/icon.png",
+      "bundleIdentifier": "in.safar.selfdrive",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Safar needs camera access to capture vehicle condition photos during handover and return.",
+        "NSPhotoLibraryUsageDescription": "Safar needs photo library access to upload driving license and KYC documents.",
+        "NSLocationWhenInUseUsageDescription": "Safar needs your location to display nearby car pickup hubs and delivery distance."
+      }
     },
     "android": {
       "package": "in.safar.selfdrive",
@@ -43,7 +49,11 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

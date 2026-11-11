@@ -344,7 +344,7 @@ export default function HostScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={Boolean(inspectionBooking)} animationType="slide" transparent onRequestClose={() => !inspectionBusy && setInspectionBooking(null)}>
+      <Modal visible={Boolean(inspectionBooking)} animationType="slide" transparent onRequestClose={() => { if (!inspectionBusy) setInspectionBooking(null); }}>
         <View style={styles.modalBg}>
           <SafeAreaView style={[styles.inspectionModal, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
@@ -400,7 +400,7 @@ export default function HostScreen() {
         </View>
       </Modal>
 
-      <Modal visible={Boolean(ratingBooking)} animationType="slide" transparent onRequestClose={() => !ratingBusy && setRatingBooking(null)}>
+      <Modal visible={Boolean(ratingBooking)} animationType="slide" transparent onRequestClose={() => { if (!ratingBusy) setRatingBooking(null); }}>
         <View style={styles.modalBg}>
           <SafeAreaView style={[styles.inspectionModal, { backgroundColor: colors.background }]}>
             <View style={styles.modalHeader}>
