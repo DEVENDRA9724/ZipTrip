@@ -3,7 +3,7 @@ import { text, choice } from '../common/validation';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { createHash, randomInt } from 'node:crypto';
+import { createHash, randomInt, randomBytes } from 'node:crypto';
 import { Msg91Service } from './msg91.service';
 
 @Injectable()
@@ -153,20 +153,84 @@ export class AuthService {
 
   async requestLoginOtp(phoneInput: string) {
     const phone = this.msg91.normalizePhone(text(phoneInput, 'Phone', 20));
-    const user = await this.findByPhone(phone);
-    // Keep the response generic so an attacker cannot enumerate registered
-    // phone numbers. Verification still requires an existing, unblocked user.
-    if (user && !user.isBlocked) {
+    let user = await this.findByPhone(phone);
+    let isNewUser = false;
+
+    if (!user) {
+      // Seamless passwordless auto-registration for new customers
+      isNewUser = true;
+      const cleanDigits = phone.replace(/\D/g, '');
+      const placeholderEmail = `customer_${cleanDigits}@safarselfdrive.com`;
+      const randomPassword = randomBytes(16).toString('hex');
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+      const code = String(randomInt(100000, 999999));
+      const otpCodeHash = this.sha256(code);
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      user = await this.prisma.user.create({
+        data: {
+          phone,
+          email: placeholderEmail,
+          firstName: 'Customer',
+          lastName: phone.slice(-4) || 'User',
+          role: 'CUSTOMER',
+          passwordHash,
+          otpCodeHash,
+          otpExpiresAt,
+          wallet: { create: { balance: 0.0 } },
+          profile: {
+            create: {
+              firstName: 'Customer',
+              lastName: phone.slice(-4) || 'User',
+              city: 'Ahmedabad',
+              state: 'Gujarat',
+            },
+          },
+        },
+        include: { wallet: true, profile: true },
+      });
+
       if (this.isMsg91()) {
         await this.msg91.sendOtp(phone);
-        await this.prisma.user.update({ where: { id: user.id }, data: { phone } });
-      } else {
-        const code = String(randomInt(100000, 999999));
-        await this.prisma.user.update({ where: { id: user.id }, data: { phone, otpCodeHash: this.sha256(code), otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
-        return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600, devOtp: this.exposeDevOtp() ? code : undefined };
+        await this.prisma.user.update({ where: { id: user.id }, data: { otpCodeHash: null, otpExpiresAt: null } });
+      } else if (this.exposeDevOtp()) {
+        console.log(`[SAFAR OTP] Auto-registration OTP for new customer ${phone}: ${code}`);
       }
+
+      return {
+        sent: true,
+        isNewUser: true,
+        maskedPhone: this.maskPhone(phone),
+        expiresInSeconds: 600,
+        devOtp: this.exposeDevOtp() ? code : undefined,
+      };
     }
-    return { sent: true, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600 };
+
+    if (user.isBlocked) {
+      throw new UnauthorizedException('This account is blocked. Contact Safar support.');
+    }
+
+    if (this.isMsg91()) {
+      await this.msg91.sendOtp(phone);
+      await this.prisma.user.update({ where: { id: user.id }, data: { phone } });
+      return { sent: true, isNewUser: false, maskedPhone: this.maskPhone(phone), expiresInSeconds: 600 };
+    } else {
+      const code = String(randomInt(100000, 999999));
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { phone, otpCodeHash: this.sha256(code), otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000) },
+      });
+      if (this.exposeDevOtp()) {
+        console.log(`[SAFAR OTP] Login OTP for ${phone}: ${code}`);
+      }
+      return {
+        sent: true,
+        isNewUser: false,
+        maskedPhone: this.maskPhone(phone),
+        expiresInSeconds: 600,
+        devOtp: this.exposeDevOtp() ? code : undefined,
+      };
+    }
   }
 
   async loginWithOtp(phoneInput: string, otpInput: string) {
@@ -174,18 +238,30 @@ export class AuthService {
     const code = String(otpInput || '').trim();
     if (!/^\d{6}$/.test(code)) throw new BadRequestException('Enter a valid 6-digit OTP');
     const user = await this.findByPhone(phone);
-    if (!user) throw new UnauthorizedException('Invalid or expired OTP code. Please try again.');
+    if (!user) throw new UnauthorizedException('Invalid or expired OTP code. Please request a new OTP.');
     if (user.isBlocked) throw new UnauthorizedException('This account is blocked. Contact Safar support.');
 
     if (this.isMsg91()) {
       await this.msg91.verifyOtp(phone, code);
     } else {
-      const valid = (user.otpCodeHash && user.otpExpiresAt && new Date(user.otpExpiresAt) > new Date() && user.otpCodeHash === this.sha256(code)) || (this.exposeDevOtp() && code === '123456');
+      const valid =
+        (user.otpCodeHash && user.otpExpiresAt && new Date(user.otpExpiresAt) > new Date() && user.otpCodeHash === this.sha256(code)) ||
+        (this.exposeDevOtp() && code === '123456');
       if (!valid) throw new BadRequestException('Invalid or expired OTP code. Please try again.');
     }
-    const updated = await this.prisma.user.update({ where: { id: user.id }, data: { phone, phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null }, include: { wallet: true, profile: true } });
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { phone, phoneVerifiedAt: new Date(), otpCodeHash: null, otpExpiresAt: null },
+      include: { wallet: true, profile: true },
+    });
     const token = this.jwtService.sign({ id: updated.id, email: updated.email, role: updated.role });
-    return { user: this.sanitizeUser(updated), token };
+    const isKycVerified = Boolean(updated.isVerified || updated.profile?.isKycVerified);
+    return {
+      user: this.sanitizeUser(updated),
+      token,
+      isKycVerified,
+      nextStep: isKycVerified ? 'READY_TO_BOOK' : 'EKYC_REQUIRED',
+    };
   }
 
   private maskPhone(phone: string) {

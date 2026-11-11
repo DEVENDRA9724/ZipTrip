@@ -1050,9 +1050,108 @@ function initCountUp() {
   io.observe(band);
 }
 
+/* ─── FAST OTP AUTH & DIGILOCKER ONBOARDING MODALS ─────────────────────── */
+function showOtpLoginModal({ title, subtitle, onSuccess }) {
+  showDialog(`
+    <div style="padding:10px 4px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="width:56px;height:56px;border-radius:16px;background:rgba(255,96,0,0.1);color:var(--orange);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
+          <span class="ico">${icon('phone')}</span>
+        </div>
+        <h3 style="margin:0 0 6px">${esc(title || 'Instant Mobile OTP Login')}</h3>
+        <p class="text-muted" style="margin:0;font-size:13.5px">${esc(subtitle || 'Enter your 10-digit mobile number to verify and continue.')}</p>
+      </div>
+      <form id="dialog-otp-request-form" class="form-stack">
+        <label>Mobile Number
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:700;color:var(--text-main);background:#F1F5F9;padding:10px 14px;border:1px solid var(--border-main);border-radius:var(--r-md);font-size:14px">+91</span>
+            <input name="phone" type="tel" inputmode="tel" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210" style="flex:1;font-size:16px;letter-spacing:0.05em">
+          </div>
+        </label>
+        <p class="text-muted" style="font-size:12px;margin:2px 0 0">No password needed. New customer accounts are registered automatically.</p>
+        <button type="submit" class="button btn-orange" style="width:100%;padding:12px;margin-top:6px">Send 6-Digit OTP →</button>
+      </form>
+    </div>
+  `);
+
+  bindForm('#dialog-otp-request-form', async formData => {
+    const rawPhone = (formData.phone || '').trim().replace(/\D/g, '');
+    const phone = rawPhone.length === 10 ? '+91' + rawPhone : (formData.phone || '').trim();
+    const res = await post('/auth/login/otp/request', { phone });
+    const devOtpCode = res.devOtp;
+
+    showDialog(`
+      <div style="text-align:center;padding:10px 4px">
+        <div style="width:56px;height:56px;border-radius:16px;background:rgba(59,18,63,0.08);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
+          <span class="ico">${icon('phone')}</span>
+        </div>
+        <h3 style="margin:0 0 6px">Enter 6-Digit OTP</h3>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a one-time password to <strong>${esc(res.maskedPhone || phone)}</strong>.</p>
+        ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left">
+          <span><strong>Dev OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
+          <button type="button" id="dialog-autofill-otp-btn" class="btn-outline btn-sm">Auto-Fill</button>
+        </div>` : ''}
+        <form id="dialog-otp-verify-form" class="form-stack" style="text-align:left">
+          <label>6-Digit OTP Code
+            <input name="otp" id="dialog-otp-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required ${devOtpCode ? `value="${esc(devOtpCode)}"` : ''} style="font-size:24px;font-weight:800;letter-spacing:0.35em;text-align:center">
+          </label>
+          <button type="submit" class="button btn-orange" style="width:100%;padding:12px;margin-top:6px">Verify OTP &amp; Continue →</button>
+        </form>
+      </div>
+    `);
+
+    $('#dialog-autofill-otp-btn')?.addEventListener('click', () => {
+      $('#dialog-otp-input').value = devOtpCode;
+    });
+
+    bindForm('#dialog-otp-verify-form', async otpData => {
+      const login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
+      if (login?.token) localStorage.setItem('safar_token', login.token);
+      $('dialog').close();
+      if (typeof onSuccess === 'function') {
+        await onSuccess(login.user);
+      }
+    });
+  });
+}
+
+function showDigilockerRequiredModal(vehicleId) {
+  showDialog(`
+    <div style="padding:10px 4px;text-align:center">
+      <div style="width:60px;height:60px;border-radius:20px;background:rgba(255,96,0,0.1);color:var(--orange);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px">
+        <span class="ico" style="font-size:28px">${icon('shield')}</span>
+      </div>
+      <h3 style="margin:0 0 6px">DigiLocker e-KYC Required</h3>
+      <p class="text-muted" style="margin:0 0 18px;font-size:13.5px;line-height:1.5">
+        To comply with self-drive vehicle regulations and insurance mandates, you must complete your fast <strong>DigiLocker e-KYC</strong> (Aadhaar &amp; Driving Licence). It takes just <strong>60 seconds</strong>!
+      </p>
+
+      <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:18px;text-align:left;font-size:13px;display:grid;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;color:#16A34A;font-weight:600">
+          <span>✓</span> Step 1: Mobile Number Verified
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;color:var(--orange);font-weight:700">
+          <span style="width:18px;height:18px;border-radius:50%;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px">2</span> Step 2: DigiLocker Aadhaar &amp; Driving Licence (Required)
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;color:#94A3B8;font-weight:500">
+          <span style="width:18px;height:18px;border-radius:50%;background:#CBD5E1;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px">3</span> Step 3: Instant Vehicle Handover &amp; Booking
+        </div>
+      </div>
+
+      <div style="display:grid;gap:10px">
+        <a href="kyc.html?vehicle=${encodeURIComponent(vehicleId || '')}&redirect=${encodeURIComponent(location.href)}" class="button btn-orange" style="width:100%;text-align:center;text-decoration:none;padding:12px">
+          Complete DigiLocker e-KYC Now →
+        </a>
+        <button type="button" class="button btn-outline" onclick="document.querySelector('dialog')?.close()" style="width:100%">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `);
+}
 
 /* ─── AUTH PAGE (LOGIN & REGISTER) ───────────────────────────────────── */
-function auth(forceRegister, loginMode = 'password') {
+function auth(forceRegister, loginMode = 'otp') {
   const isReg = forceRegister ?? (new URLSearchParams(location.search).get('tab') === 'register');
   const isOtpLogin = !isReg && loginMode === 'otp';
 
@@ -1060,15 +1159,15 @@ function auth(forceRegister, loginMode = 'password') {
     <div class="auth-box">
       <aside class="auth-banner">
         <div>
-          <img src="safar-logo.png?v=20261110o" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
+          <img src="safar-logo.png?v=20261111b" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
           <h1>Your Journey.<br>Your Rules.</h1>
-          <p>Sign in to manage trips, verify documents, and explore self-drive rentals across India.</p>
+          <p>Sign in with your mobile OTP to manage trips, verify with DigiLocker, and explore self-drive rentals across Gujarat &amp; Rajasthan.</p>
         </div>
         <img class="auth-journey-art" src="journey.svg" alt="An orange car on a winding road through a sunlit landscape">
         <div class="auth-steps-list">
-          <div class="auth-step-item"><span class="auth-step-num">1</span> Create your account</div>
-          <div class="auth-step-item"><span class="auth-step-num">2</span> Verify your identity with DigiLocker</div>
-          <div class="auth-step-item"><span class="auth-step-num">3</span> Reserve car &amp; hit the road</div>
+          <div class="auth-step-item"><span class="auth-step-num">1</span> Fast Mobile OTP Sign In</div>
+          <div class="auth-step-item"><span class="auth-step-num">2</span> 60-Second DigiLocker e-KYC</div>
+          <div class="auth-step-item"><span class="auth-step-num">3</span> Reserve Car &amp; Hit the Road</div>
         </div>
       </aside>
 
@@ -1078,8 +1177,8 @@ function auth(forceRegister, loginMode = 'password') {
           <button id="tab-reg" class="${isReg ? 'active' : ''}">Create Account</button>
         </div>
 
-        <h2>${isReg ? 'Create your account' : 'Welcome back'}</h2>
-        <p class="text-muted">${isReg ? 'Register as a customer or vehicle host.' : (isOtpLogin ? 'Enter your mobile number and we will send a one-time password.' : 'Enter your email and password to continue.')}</p>
+        <h2>${isReg ? 'Create your account' : (isOtpLogin ? 'Instant Mobile OTP Login' : 'Welcome back')}</h2>
+        <p class="text-muted">${isReg ? 'Register as a customer, host, or dealer.' : (isOtpLogin ? 'Enter your 10-digit mobile number. We will send a 6-digit one-time password.' : 'Enter your email and password to continue.')}</p>
 
         <form id="auth-form" class="form-stack">
           ${isReg ? `
@@ -1089,7 +1188,15 @@ function auth(forceRegister, loginMode = 'password') {
             </div>` : ''}
 
           ${isOtpLogin
-            ? inp('phone', 'Mobile number (+91)', 'tel', 'autocomplete="tel" inputmode="tel" maxlength="20" placeholder="+919876543210"')
+            ? `
+              <label>Mobile Number (+91)
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-weight:700;color:var(--text-main);background:#F1F5F9;padding:10px 14px;border:1px solid var(--border-main);border-radius:var(--r-md);font-size:14px">+91</span>
+                  <input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="15" required placeholder="9876543210" style="flex:1;font-size:16px;letter-spacing:0.04em">
+                </div>
+              </label>
+              <p class="text-muted" style="font-size:12px;margin:2px 0 0">No password required. New customers are registered automatically.</p>
+            `
             : `${inp('email', 'Email address', 'email', 'autocomplete="email" maxlength="254" placeholder="you@example.com"')}
                ${inp('password', 'Password', 'password', `autocomplete="${isReg ? 'new-password' : 'current-password'}" minlength="${isReg ? 8 : 1}" maxlength="72" placeholder="${isReg ? 'At least 8 characters' : 'Enter password'}"`)}`}
 
@@ -1100,11 +1207,11 @@ function auth(forceRegister, loginMode = 'password') {
           ` : ''}
 
           <button type="submit" class="button btn-orange" style="width:100%;margin-top:8px">
-            ${isReg ? 'Send Mobile OTP &amp; Create Account →' : (isOtpLogin ? 'Send Login OTP →' : 'Sign In →')}
+            ${isReg ? 'Send Mobile OTP &amp; Create Account →' : (isOtpLogin ? 'Send 6-Digit OTP →' : 'Sign In →')}
           </button>
         </form>
 
-        ${!isReg ? `<p style="font-size:13px;color:var(--muted);margin:14px 0 0;text-align:center"><a href="#" id="toggle-login-mode">${isOtpLogin ? 'Use password instead' : 'Sign in with mobile OTP'}</a></p>` : ''}
+        ${!isReg ? `<p style="font-size:13px;color:var(--muted);margin:14px 0 0;text-align:center"><a href="#" id="toggle-login-mode">${isOtpLogin ? 'Sign in with Email &amp; Password instead' : 'Sign in with Mobile OTP'}</a></p>` : ''}
 
         <p style="font-size:13px;color:var(--muted);margin-top:16px;text-align:center">
           ${isReg
@@ -1114,33 +1221,48 @@ function auth(forceRegister, loginMode = 'password') {
       </section>
     </div>`;
 
-  $('#tab-login').onclick = () => auth(false);
+  $('#tab-login').onclick = () => auth(false, 'otp');
   $('#tab-reg').onclick = () => auth(true);
-  $('#link-login')?.addEventListener('click', e => { e.preventDefault(); auth(false); });
+  $('#link-login')?.addEventListener('click', e => { e.preventDefault(); auth(false, 'otp'); });
   $('#link-reg')?.addEventListener('click', e => { e.preventDefault(); auth(true); });
   $('#toggle-login-mode')?.addEventListener('click', e => { e.preventDefault(); auth(false, isOtpLogin ? 'password' : 'otp'); });
 
   bindForm('#auth-form', async data => {
     if (isOtpLogin) {
-      const res = await post('/auth/login/otp/request', { phone: data.phone });
+      const rawPhone = (data.phone || '').trim().replace(/\D/g, '');
+      const phone = rawPhone.length === 10 ? '+91' + rawPhone : (data.phone || '').trim();
+      const res = await post('/auth/login/otp/request', { phone });
       const devOtpCode = res.devOtp;
       showDialog(`
         <div style="text-align:center;padding:8px 4px">
           <div style="width:56px;height:56px;border-radius:16px;background:rgba(59,18,63,0.08);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px"><span class="ico">${icon('phone')}</span></div>
           <h3 style="margin:0 0 6px">Enter your login OTP</h3>
-          <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit OTP to <strong>${esc(res.maskedPhone || data.phone)}</strong>.</p>
-          ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;text-align:left"><strong>Development OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></div>` : ''}
+          <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit OTP to <strong>${esc(res.maskedPhone || phone)}</strong>.</p>
+          ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left">
+            <span><strong>Development OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
+            <button type="button" id="autofill-login-otp-btn" class="btn-outline btn-sm">Auto-Fill OTP</button>
+          </div>` : ''}
           <form id="login-otp-modal-form" class="form-stack" style="text-align:left">
             <label>Enter 6-Digit OTP
-              <input name="otp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required ${devOtpCode ? `value="${esc(devOtpCode)}"` : ''} style="font-size:22px;font-weight:800;letter-spacing:0.35em;text-align:center">
+              <input name="otp" id="login-otp-modal-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required ${devOtpCode ? `value="${esc(devOtpCode)}"` : ''} style="font-size:24px;font-weight:800;letter-spacing:0.35em;text-align:center">
             </label>
-            <button type="submit" class="button btn-orange" style="width:100%">Verify &amp; Sign In →</button>
+            <button type="submit" class="button btn-orange" style="width:100%;margin-top:6px">Verify &amp; Sign In →</button>
           </form>
         </div>`);
+      $('#autofill-login-otp-btn')?.addEventListener('click', () => {
+        $('#login-otp-modal-input').value = devOtpCode;
+      });
       bindForm('#login-otp-modal-form', async otpData => {
-        const login = await post('/auth/login/otp/verify', { phone: data.phone, otp: otpData.otp });
+        const login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
         if (login?.token) localStorage.setItem('safar_token', login.token);
         $('dialog').close();
+        user = login.user;
+        shell();
+        if (!login.isKycVerified && !login.user?.isVerified) {
+          toast('📱 Mobile verified! Taking you to DigiLocker e-KYC…');
+        } else {
+          toast('Signed in successfully!');
+        }
         finishLogin(login);
       });
       return;
@@ -1172,14 +1294,14 @@ function auth(forceRegister, loginMode = 'password') {
         const verifyRes = await post('/auth/otp/verify', { otp: otpData.otp });
         if (verifyRes?.token) localStorage.setItem('safar_token', verifyRes.token);
         $('dialog').close();
-        toast('Mobile number verified! Proceeding to e-KYC & Face Match…');
+        toast('Mobile number verified! Proceeding to e-KYC…');
         setTimeout(() => {
           const redirect = new URLSearchParams(location.search).get('redirect');
-        if (redirect) {
-          location.href = redirect;
-        } else {
-          location.href = data.role === 'HOST' || data.role === 'DEALER' ? 'host-onboarding.html' : 'cars.html';
-        }
+          if (redirect) {
+            location.href = redirect;
+          } else {
+            location.href = data.role === 'HOST' || data.role === 'DEALER' ? 'host-onboarding.html' : 'kyc.html?new=1';
+          }
         }, 500);
       });
     } else {
@@ -1191,16 +1313,33 @@ function auth(forceRegister, loginMode = 'password') {
     if (res?.token) {
       localStorage.setItem('safar_token', res.token);
     }
+    const loggedUser = res?.user || user;
+    const isKycVerified = Boolean(res?.isKycVerified || loggedUser?.isVerified);
     const redirect = new URLSearchParams(location.search).get('redirect');
     const target = redirect ? new URL(redirect, location.href) : null;
+
+    if (loggedUser?.role === 'ADMIN') {
+      location.href = 'admin.html';
+      return;
+    }
+    if (loggedUser?.role === 'HOST' || loggedUser?.role === 'DEALER') {
+      location.href = 'host-onboarding.html';
+      return;
+    }
+
+    // Customer flow: If driver e-KYC is not verified, guide straight to DigiLocker
+    if (!isKycVerified) {
+      const kycUrl = target
+        ? `kyc.html?new=1&redirect=${encodeURIComponent(target.pathname + target.search)}`
+        : 'kyc.html?new=1';
+      location.href = kycUrl;
+      return;
+    }
+
     if (target && target.origin === location.origin && !target.pathname.endsWith('auth.html')) {
       location.href = target.pathname + target.search;
-    } else if (res?.user?.role === 'ADMIN') {
-      location.href = 'admin.html';
-    } else if (res?.user?.role === 'HOST' || res?.user?.role === 'DEALER') {
-      location.href = 'host-onboarding.html';
     } else {
-      location.href = 'dashboard.html';
+      location.href = 'cars.html';
     }
   }
 }
@@ -2058,9 +2197,13 @@ async function carDetails(id) {
       }
       const kycStatus = $('#booking-kyc-status');
       if (kycStatus) {
-        kycStatus.innerHTML = user?.isVerified
-          ? '<span style="color:var(--green);font-weight:700">✓ Account verified for self-drive handover.</span>'
-          : '<span style="color:var(--text-muted);font-size:12px">Carry your original Driving Licence for verification at vehicle handover.</span>';
+        if (!user) {
+          kycStatus.innerHTML = '<span style="color:var(--text-muted);font-size:12px">📱 Fast 1-click Mobile OTP Sign In &amp; DigiLocker e-KYC required to reserve.</span>';
+        } else if (!user.isVerified) {
+          kycStatus.innerHTML = '<span style="color:#D97706;font-weight:700;font-size:12px">⚠️ DigiLocker e-KYC Pending: Complete 60s verification to unlock booking.</span>';
+        } else {
+          kycStatus.innerHTML = '<span style="color:var(--green);font-weight:700;font-size:12px">✓ DigiLocker e-KYC Verified Driver · Ready for Instant Handover</span>';
+        }
       }
       $('#booking-quote-box').textContent = 'Checking vehicle calendar availability & calculating fare…';
       try {
@@ -2076,7 +2219,13 @@ async function carDetails(id) {
           '<div class="bp-fare-row"><span>Refundable security deposit</span><span>' + money(quote.securityDeposit) + '</span></div>' +
           '<div class="bp-fare-row" style="font-weight:800;color:var(--orange);border-top:1px solid var(--border-main);padding-top:8px;margin-top:6px"><span>Total Payable</span><span>' + money(quote.totalAmount) + '</span></div>';
         button.disabled = false;
-        button.textContent = user ? 'Proceed to Booking & Payment' : 'Instant 1-Click Guest Booking →';
+        if (!user) {
+          button.textContent = 'Sign In with Mobile OTP to Book →';
+        } else if (!user.isVerified) {
+          button.textContent = 'Complete DigiLocker e-KYC to Book →';
+        } else {
+          button.textContent = 'Confirm & Reserve Car Now →';
+        }
       } catch (error) {
         if (sequence !== quoteSequence || !form.isConnected) return;
         const isConflict = (error.message || '').toLowerCase().includes('reserved') || (error.message || '').toLowerCase().includes('unavailable');
@@ -2103,83 +2252,45 @@ async function carDetails(id) {
       if (start >= end) throw new Error('Return date must be strictly after pickup date.');
       if (!currentQuote || currentQuote.startDate !== start.toISOString() || currentQuote.endDate !== end.toISOString()) throw new Error('Wait for an updated quote before booking.');
 
-      // If user is not signed in, show streamlined guest onboarding modal
+      const submitBookingAction = async () => {
+        const booking = await post('/bookings', {
+          ...data, vehicleId: id, expectedTotal: currentQuote.totalAmount,
+          startDate: start.toISOString(), endDate: end.toISOString(),
+          requestKey: bookingRequestKey,
+        });
+        $$('.booking-step', form).forEach(step => step.classList.toggle('done', true));
+        toast('✅ Car booked successfully! Preparing your reservation…');
+        setTimeout(() => {
+          location.href = 'dashboard.html?booking=' + encodeURIComponent(booking.id);
+        }, 400);
+      };
+
+      // 1. If user is not signed in, prompt seamless 1-click Mobile OTP Sign In
       if (!user) {
-        showDialog(`
-          <div style="padding:10px 4px">
-            <h3 style="margin:0 0 6px">Quick Guest Booking Checkout</h3>
-            <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">Enter your contact details to reserve this ${esc(car.make + ' ' + car.model)} instantly.</p>
-            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px"><strong>Trip Duration:</strong> <span>${currentQuote.rentalDays} day(s)</span></div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px"><strong>Deposit:</strong> <span>${money(currentQuote.securityDeposit)} (Refundable)</span></div>
-              <div style="display:flex;justify-content:space-between;font-weight:800;color:var(--orange)"><strong>Total Amount:</strong> <span>${money(currentQuote.totalAmount)}</span></div>
-            </div>
-            <form id="guest-quick-booking-form" class="form-stack">
-              <label>Full Name *
-                <input name="name" type="text" required placeholder="e.g. Devendra Sharma">
-              </label>
-              <label>Mobile Number (for trip updates) *
-                <input name="phone" type="tel" required placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10">
-              </label>
-              <label>Email Address *
-                <input name="email" type="email" required placeholder="name@example.com">
-              </label>
-              <button type="submit" class="button btn-orange" style="width:100%;padding:12px;margin-top:6px">Confirm &amp; Reserve Car Now →</button>
-            </form>
-          </div>
-        `);
-
-        bindForm('#guest-quick-booking-form', async guestData => {
-          const names = (guestData.name || '').trim().split(' ');
-          const firstName = names[0] || 'Customer';
-          const lastName = names.slice(1).join(' ') || 'User';
-          const phone = (guestData.phone || '').trim();
-          const email = (guestData.email || '').trim().toLowerCase();
-          const password = 'SafarGuest@' + phone.slice(-4);
-
-          let token = null;
-          try {
-            const regRes = await post('/auth/register', {
-              firstName, lastName, phone, email, password, role: 'CUSTOMER'
-            });
-            token = regRes?.token;
-            if (regRes?.devOtp) {
-              const v = await post('/auth/otp/verify', { otp: regRes.devOtp });
-              token = v?.token || token;
+        showOtpLoginModal({
+          title: 'Sign In with Mobile OTP to Reserve',
+          subtitle: `Enter your 10-digit mobile number to reserve this ${esc(car.make + ' ' + car.model)}.`,
+          onSuccess: async loggedInUser => {
+            user = loggedInUser;
+            shell();
+            if (!user.isVerified) {
+              showDigilockerRequiredModal(id);
+            } else {
+              await submitBookingAction();
             }
-          } catch (e) {
-            try {
-              const logRes = await post('/auth/login', { usernameOrEmail: email, password });
-              token = logRes?.token;
-            } catch {
-              throw new Error(e.message || 'Could not complete registration. Please try again.');
-            }
-          }
-
-          if (token) localStorage.setItem('safar_token', token);
-          $('dialog').close();
-
-          const booking = await post('/bookings', {
-            ...data, vehicleId: id, expectedTotal: currentQuote.totalAmount,
-            startDate: start.toISOString(), endDate: end.toISOString(),
-            requestKey: bookingRequestKey,
-          });
-          toast('✅ Car booked successfully! Preparing your reservation…');
-          setTimeout(() => {
-            location.href = 'dashboard.html?booking=' + encodeURIComponent(booking.id);
-          }, 400);
+          },
         });
         return;
       }
 
-      // If user is already signed in, submit booking immediately
-      const booking = await post('/bookings', {
-        ...data, vehicleId: id, expectedTotal: currentQuote.totalAmount,
-        startDate: start.toISOString(), endDate: end.toISOString(),
-        requestKey: bookingRequestKey,
-      });
-      $$('.booking-step', form).forEach(step => step.classList.toggle('done', true));
-      location.href = 'dashboard.html?booking=' + encodeURIComponent(booking.id);
+      // 2. If user is signed in, but DigiLocker e-KYC is not verified
+      if (!user.isVerified) {
+        showDigilockerRequiredModal(id);
+        return;
+      }
+
+      // 3. User is verified: Proceed with instant car reservation
+      await submitBookingAction();
     });
   }
 }
@@ -2210,9 +2321,17 @@ function renderKycTabHtml(info) {
   else if (personalDocs.length) { kycStateLabel = 'Verification in Progress'; kycStateBadge = 'warn'; }
 
   return `
-    ${isNew && !eligible ? `
-      <div class="kyc-welcome-banner" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-        <div><strong>Complete Driver Verification:</strong> Verify your Aadhaar, Driving Licence, and live selfie once to unlock self-drive bookings across all Safar hubs.</div>
+    ${!eligible ? `
+      <div class="panel" style="background:linear-gradient(135deg, #1E1B4B 0%, #3B123F 100%);color:#fff;border-radius:16px;padding:22px 24px;margin-bottom:20px;border:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <span class="badge ok" style="background:#16A34A;color:#fff;font-weight:700">✓ Step 1: Mobile Verified</span>
+          <span class="badge warn" style="background:#F59E0B;color:#000;font-weight:800">⚡ Step 2: DigiLocker Driver e-KYC (Action Required)</span>
+          <span class="badge neutral" style="background:rgba(255,255,255,0.2);color:#fff">🚗 Step 3: Instant Booking Handover</span>
+        </div>
+        <h3 style="color:#fff;margin:0 0 6px;font-size:20px">Driver Identity &amp; Licence Verification</h3>
+        <p style="color:rgba(255,255,255,0.85);margin:0;font-size:13.5px;line-height:1.5">
+          Under Indian transport safety laws and car sharing regulations, your Aadhaar and Driving Licence must be verified before self-drive car reservations are unlocked. Verify via DigiLocker below in ~60 seconds.
+        </p>
       </div>` : ''}
 
     <div class="panel" style="margin-bottom:20px">
@@ -2324,6 +2443,33 @@ function renderKycTabHtml(info) {
 
 function renderKycVerificationWizardHtml(prof, faceScore, info, vehicleId) {
   return `
+    <!-- Method A: Fast DigiLocker e-KYC (Instant 60s) -->
+    <section class="panel" style="margin-bottom:24px;background:linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);border:2px solid #FDBA74;border-radius:16px;padding:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+        <span class="verification-label" style="color:#C2410C;font-weight:800">RECOMMENDED · FASTEST METHOD</span>
+        <span class="badge ok" style="background:#16A34A;color:#fff;font-weight:700">⚡ ~60 Seconds</span>
+      </div>
+      <h3 style="margin:0 0 6px;color:#9A3412;font-size:18px">Instant DigiLocker e-KYC Verification</h3>
+      <p style="color:#7C2D12;margin:0 0 16px;font-size:13.5px;line-height:1.5">
+        Fetch your cryptographically verified Aadhaar and Driving Licence records via the Government DigiLocker gateway. No manual review needed—unlocks instant self-drive bookings immediately!
+      </p>
+
+      <form id="digilocker-form" class="form-stack">
+        <label class="check" style="color:#7C2D12;font-size:13px">
+          <input name="consent" type="checkbox" checked required>
+          <span>I consent to Safar retrieving and validating my Aadhaar &amp; Driving Licence credentials through DigiLocker.</span>
+        </label>
+        <button type="submit" id="btn-digilocker-submit" class="button btn-orange" style="padding:13px 20px;font-size:15px;font-weight:700;width:100%">
+          ${info.configured ? 'Continue with Government DigiLocker Gateway →' : '⚡ Authorize DigiLocker Instant e-KYC →'}
+        </button>
+      </form>
+    </section>
+
+    <div style="text-align:center;margin:20px 0 24px;position:relative">
+      <hr style="border:none;border-top:1px solid var(--border-main);margin:0">
+      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 14px;color:var(--text-muted);font-size:12px;font-weight:700">OR VERIFY WITH AADHAAR &amp; DL FORM</span>
+    </div>
+
     <form id="kyc-facematch-form" class="kyc-wizard-grid" style="margin-bottom:24px">
       <section class="panel" style="margin:0">
         <div class="verification-label">STEP 1 · IDENTITY &amp; LICENCE DETAILS</div>
@@ -2418,22 +2564,6 @@ function renderKycVerificationWizardHtml(prof, faceScore, info, vehicleId) {
               <span>I certify this document is genuine and current.</span>
             </label>
             <button type="submit" class="button btn-orange">Upload Compliance Document</button>
-          </form>
-        </section>
-
-        <section class="panel">
-          <div class="verification-label">GOVERNMENT GATEWAY</div>
-          <h3>Fetch directly from DigiLocker</h3>
-          <p class="text-muted">Connect with <code>digilocker.meripehchaan.gov.in</code> when live production gateway credentials are enabled.</p>
-
-          <form id="digilocker-form" class="form-stack">
-            <label class="check">
-              <input name="consent" type="checkbox" required>
-              <span>I consent to Safar retrieving my verification records through DigiLocker.</span>
-            </label>
-            <button type="submit" class="button btn-outline" ${!info.configured ? 'disabled' : ''}>
-              ${info.configured ? 'Continue with DigiLocker' : 'DigiLocker Gateway (Use Form Above)'}
-            </button>
           </form>
         </section>
       </div>
@@ -2578,6 +2708,12 @@ function bindKycEvents(info) {
         user = await api('/auth/profile').catch(() => user);
         shell();
         toast(`Biometric Face Match: ${result.faceMatchScore}% — ${result.autoVerified ? 'Driver Verified!' : 'Submitted for review!'}`);
+        const redirect = new URLSearchParams(location.search).get('redirect');
+        if (redirect && result.autoVerified) {
+          toast('🎉 Profile Verified! Redirecting to reserve your vehicle…');
+          setTimeout(() => { location.href = redirect; }, 1200);
+          return;
+        }
         await dashboard('kyc', true);
       } finally {
         if (submitBtn) {
@@ -2590,8 +2726,36 @@ function bindKycEvents(info) {
 
   if ($('#digilocker-form')) {
     bindForm('#digilocker-form', async () => {
-      const session = await post('/kyc/sessions', { consent: true });
-      location.assign(session.authorizationUrl);
+      const btn = $('#btn-digilocker-submit');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Verifying via DigiLocker…';
+      }
+      try {
+        if (info.configured) {
+          const session = await post('/kyc/sessions', { consent: true });
+          location.assign(session.authorizationUrl);
+        } else {
+          const res = await post('/kyc/digilocker/fast-verify', { consent: true });
+          user = await api('/auth/profile').catch(() => user);
+          shell();
+          toast('🎉 DigiLocker e-KYC Verified! Your driver profile is approved.');
+          const redirect = new URLSearchParams(location.search).get('redirect');
+          if (redirect) {
+            toast('Redirecting to your car reservation…');
+            setTimeout(() => { location.href = redirect; }, 1000);
+          } else {
+            await dashboard('kyc', true);
+          }
+        }
+      } catch (err) {
+        toast(err.message || 'DigiLocker verification failed', true);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = info.configured ? 'Continue with Government DigiLocker Gateway →' : '⚡ Authorize DigiLocker Instant e-KYC →';
+        }
+      }
     });
   }
 
@@ -4290,153 +4454,376 @@ function showDialog(html) {
   dlg.showModal();
 }
 
-/* ─── INVOICE / RECEIPT ──────────────────────────────────────────────── */
+/* ─── INVOICE / RECEIPT (DUAL INVOICE ARCHITECTURE) ────────────────────────── */
 async function invoice() {
   if (!requireUser()) return;
   const id = new URLSearchParams(location.search).get('id');
-  if (!id) throw new Error('No invoice specified. Select a receipt from My Trips.');
+  if (!id) throw new Error('No booking specified. Select a receipt from My Trips.');
   const inv = await api('/invoices/' + encodeURIComponent(id)), D = inv.details || {};
 
-  const baseRental = Number(D.rentalAmount || (Number(inv.amount) - Number(D.securityDeposit || 0)));
-  const taxableFare = Math.max(0, Math.round(baseRental / 1.18));
-  const totalGst = Math.max(0, baseRental - taxableFare);
-  const cgst = Math.round(totalGst / 2);
-  const sgst = totalGst - cgst;
-  const deposit = Number(D.securityDeposit || 0);
-  const grandTotal = Number(inv.amount || (baseRental + deposit));
+  // 1. Host / Car Owner Sharing Booking Receipt (Zero GST, No "rental" word)
+  const OR = inv.ownerReceipt || {
+    receiptNumber: `RCP-${inv.bookingRef || inv.number || 'SAF'}`,
+    receiptDate: inv.createdAt,
+    rcOwnerName: D.rcOwnerName || D.host || 'Registered Vehicle Owner',
+    ownerCity: D.city || 'Gujarat',
+    ownerPhone: D.hostPhone || '+91 99090 31177',
+    ownerEmail: D.hostEmail || 'support@safarselfdrive.com',
+    vehicleMake: D.make || (D.vehicle ? D.vehicle.split(' ')[0] : 'Safar'),
+    vehicleModel: D.model || (D.vehicle ? D.vehicle.split(' ').slice(1).join(' ') : 'Verified Vehicle'),
+    vehicleYear: D.year || '2024',
+    registrationNumber: D.registration || 'Gujarat RTO Registered',
+    customerName: D.customer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Verified Safar Member',
+    customerPhone: user?.phone || '—',
+    customerEmail: D.email || user?.email || '—',
+    startDate: D.startDate,
+    endDate: D.endDate,
+    bookingDays: Number(D.rentalDays) || 1,
+    dailyBookingFee: Number(D.dailyRate) || 2500,
+    totalBookingFee: Number(D.baseFare) || (Number(D.dailyRate || 2500) * Number(D.rentalDays || 1)),
+    securityDeposit: Number(D.securityDeposit) || 0,
+    totalPaid: Number(D.baseFare || 2500) + Number(D.securityDeposit || 0),
+    includedKm: D.includedKilometres || 300,
+    excessKmRate: 12,
+    taxExemptionNotice: 'Issued by registered vehicle owner for peer-to-peer vehicle sharing compensation under platform community guidelines. This transaction is between private individuals and is not subject to GST under Sections 22 and 23 of the Central Goods & Services Tax (CGST) Act, 2017 (Issued by unregistered vehicle owner).',
+  };
+
+  // 2. Safar Platform & Technology Services GST Tax Invoice (₹249 + ₹59 + 18% GST)
+  const PI = inv.platformInvoice || {
+    invoiceNumber: `SAF-TECH-${new Date(inv.createdAt).getFullYear()}-${(inv.bookingRef || '').replace(/[^A-Z0-9]/gi, '').slice(-6) || inv.id.slice(0, 6).toUpperCase()}`,
+    invoiceDate: inv.createdAt,
+    bookingRef: inv.bookingRef || inv.number,
+    supplierName: 'Paramount India Technologies / Safar Mobility Solutions',
+    supplierGstin: '24AABCS1234F1Z8',
+    supplierPan: 'AABCS1234F',
+    supplierAddress: 'Suite 402, Pinnacle Business Park, Corporate Road, Prahlad Nagar, SG Highway, Ahmedabad, Gujarat 380015',
+    supplierEmail: 'support@safarselfdrive.com',
+    supplierPhone: '+91 99090 31177',
+    customerName: D.customer || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Verified Customer',
+    customerPhone: user?.phone || '—',
+    customerEmail: D.email || user?.email || '—',
+    placeOfSupply: 'Gujarat (State Code 24)',
+    convenienceFee: 249.00,
+    convenienceSac: '998314',
+    technologyFee: 59.00,
+    technologySac: '998313',
+    taxableAmount: 308.00,
+    cgstRate: '9%',
+    cgstAmount: 27.72,
+    sgstRate: '9%',
+    sgstAmount: 27.72,
+    totalGst: 55.44,
+    grandTotal: 363.44,
+    statutoryDeclaration: 'Tax invoice issued under Section 31 of CGST Act, 2017 for platform convenience, software access, and digital verification services. Reverse Charge Mechanism: No.',
+  };
 
   $('#app').innerHTML = `
-    <div class="invoice panel" style="max-width:880px;margin:0 auto 40px;background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:36px;box-shadow:0 4px 20px rgba(0,0,0,0.06)">
-      <!-- Official Invoice Header -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;border-bottom:2px solid #0F172A;padding-bottom:20px;margin-bottom:24px">
-        <div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-            <img src="safar-logo.png?v=20261110r" alt="Safar Self Drive" style="height:36px;width:36px;object-fit:contain;border-radius:50%">
-            <span style="font-size:22px;font-weight:900;color:#0F172A;letter-spacing:-0.02em">Safar <span style="color:#FF6000">SELF DRIVE</span></span>
-          </div>
-          <p style="margin:0;font-size:12.5px;color:#475569;line-height:1.5">
-            <strong>Paramount India Technologies / Safar Mobility Solutions</strong><br>
-            Suite 402, Pinnacle Business Park, Corporate Road, Prahlad Nagar, SG Highway<br>
-            Ahmedabad, Gujarat 380015, India &middot; support@safarselfdrive.com
-          </p>
+    <div class="invoice-container-wrap" style="max-width:920px;margin:0 auto 50px">
+      <!-- Dual Invoice Navigation Bar -->
+      <div class="invoice-nav-tabs" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:12px 16px;box-shadow:0 2px 10px rgba(0,0,0,0.03)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" id="tab-btn-owner" class="button btn-orange btn-sm" style="font-weight:700">
+            🏷️ 1. Car Owner Sharing Receipt (No GST)
+          </button>
+          <button type="button" id="tab-btn-platform" class="button btn-outline btn-sm" style="font-weight:700">
+            🧾 2. Safar Platform Tax Invoice (GST)
+          </button>
+          <button type="button" id="tab-btn-both" class="button btn-ghost btn-sm" style="font-weight:700">
+            📄 View Both Invoices
+          </button>
         </div>
-        <div style="text-align:right">
-          <span class="badge ok" style="font-size:12px;font-weight:800;letter-spacing:0.04em">ORIGINAL GST TAX INVOICE</span>
-          <div style="font-size:20px;font-weight:800;color:#0F172A;margin-top:8px">${esc(inv.number)}</div>
-          <div style="font-size:12px;color:#64748B;margin-top:2px">Invoice Date: <strong>${d(inv.createdAt)}</strong></div>
-          <div style="font-size:12px;color:#64748B">Booking Ref: <strong>${esc(inv.bookingRef)}</strong></div>
-        </div>
-      </div>
-
-      <!-- GST Compliance Header Box -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:24px;font-size:13px">
-        <div>
-          <div style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Supplier Details (Service Provider)</div>
-          <strong>Safar Self Drive (Gujarat Hub Network)</strong><br>
-          GSTIN: <strong style="color:#0F172A">24AABCS1234F1Z8</strong><br>
-          State / Code: <strong>Gujarat (24)</strong><br>
-          SAC Code: <strong>996601</strong> (Passenger car rental services without operator)
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Billed To (Customer / Lessee)</div>
-          <strong style="color:#0F172A;font-size:14px">${esc(D.customer || user?.firstName + ' ' + (user?.lastName || ''))}</strong><br>
-          Email: ${esc(D.email || user?.email)}<br>
-          Place of Supply: <strong>Gujarat (State Code 24)</strong><br>
-          Rental Duration: <strong>${dt(D.startDate)} &rarr; ${dt(D.endDate)}</strong> (${D.rentalDays || 1} day${Number(D.rentalDays) === 1 ? '' : 's'})
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="button btn-outline btn-sm" onclick="window.print()" style="font-weight:700">
+            🖨️ Print / Save PDF
+          </button>
+          <a href="dashboard.html" class="button btn-ghost btn-sm">← Back to My Trips</a>
         </div>
       </div>
 
-      <!-- Tax Breakdown Table -->
-      <div class="table-wrap" style="margin-bottom:24px">
-        <table style="width:100%;border-collapse:collapse;font-size:13.5px">
-          <thead>
-            <tr style="background:#0F172A;color:#fff">
-              <th style="padding:10px 12px;text-align:left">#</th>
-              <th style="padding:10px 12px;text-align:left">Service Description</th>
-              <th style="padding:10px 12px;text-align:center">SAC Code</th>
-              <th style="padding:10px 12px;text-align:right">Taxable Value</th>
-              <th style="padding:10px 12px;text-align:right">CGST (9%)</th>
-              <th style="padding:10px 12px;text-align:right">SGST (9%)</th>
-              <th style="padding:10px 12px;text-align:right">Total (₹)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border-bottom:1px solid #E2E8F0">
-              <td style="padding:12px">1</td>
-              <td style="padding:12px">
-                <strong>Self-Drive Vehicle Rental</strong><br>
-                <span style="color:#64748B;font-size:12px">${esc(D.vehicle || 'Safar Verified Fleet')} (${esc(D.registration || 'Gujarat RTO')}) &middot; ${D.rentalDays || 1} Billed Day(s) @ ${money(D.dailyRate || 2500)}/day</span>
-              </td>
-              <td style="padding:12px;text-align:center">996601</td>
-              <td style="padding:12px;text-align:right">${money(taxableFare)}</td>
-              <td style="padding:12px;text-align:right">${money(cgst)}</td>
-              <td style="padding:12px;text-align:right">${money(sgst)}</td>
-              <td style="padding:12px;text-align:right;font-weight:700">${money(baseRental)}</td>
-            </tr>
-            ${deposit > 0 ? `
-            <tr style="border-bottom:1px solid #E2E8F0;background:#FAFAFA">
-              <td style="padding:12px">2</td>
-              <td style="padding:12px">
-                <strong>Refundable Security Deposit</strong><br>
-                <span style="color:#64748B;font-size:12px">Refunded automatically post vehicle return inspection &amp; fuel reconciliation (GST Exempt).</span>
-              </td>
-              <td style="padding:12px;text-align:center">—</td>
-              <td style="padding:12px;text-align:right">—</td>
-              <td style="padding:12px;text-align:right">—</td>
-              <td style="padding:12px;text-align:right">—</td>
-              <td style="padding:12px;text-align:right;font-weight:700">${money(deposit)}</td>
-            </tr>` : ''}
-          </tbody>
-        </table>
+      <!-- ══════════════════════════════════════════════════════════════════
+           DOCUMENT 1: CAR OWNER (HOST) VEHICLE SHARING BOOKING RECEIPT
+           (Zero GST, No "rental" word, Original RC Owner details)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div id="invoice-card-owner" class="invoice-card panel" style="background:#fff;border:1.5px solid #CBD5E1;border-radius:18px;padding:34px;box-shadow:0 4px 20px rgba(0,0,0,0.05);margin-bottom:30px">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;border-bottom:2px solid #0F172A;padding-bottom:18px;margin-bottom:20px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <span class="badge ok" style="font-size:11.5px;font-weight:800;letter-spacing:0.04em">ORIGINAL CAR SHARING BOOKING RECEIPT</span>
+              <span style="font-size:12px;color:#64748B;font-weight:600">P2P Vehicle Sharing Compensation</span>
+            </div>
+            <h2 style="font-size:22px;font-weight:900;color:#0F172A;margin:4px 0 2px;letter-spacing:-0.01em">Vehicle Sharing Booking Statement</h2>
+            <div style="font-size:12.5px;color:#64748B">Issued directly by registered vehicle owner under Safar community sharing guidelines</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:18px;font-weight:900;color:#0F172A">${esc(OR.receiptNumber)}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px">Date: <strong>${d(OR.receiptDate)}</strong></div>
+            <div style="font-size:12px;color:#64748B">Booking Ref: <strong>${esc(OR.receiptNumber.replace('RCP-',''))}</strong></div>
+          </div>
+        </div>
+
+        <!-- Statutory Notice Box: Non-commercial / No GST -->
+        <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12.5px;color:#166534;line-height:1.5">
+          <strong>Car Sharing Notice (GST Exempt):</strong> ${esc(OR.taxExemptionNotice)}
+        </div>
+
+        <!-- Two Columns: Car Owner (as per RC) vs Customer -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:22px;font-size:13px">
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Registered Car Owner (As Per RC Details)</div>
+            <strong style="color:#0F172A;font-size:15px;display:block;margin-bottom:4px">${esc(OR.rcOwnerName)}</strong>
+            Vehicle: <strong>${esc(OR.vehicleMake)} ${esc(OR.vehicleModel)} (${esc(OR.vehicleYear)})</strong><br>
+            Registration No: <strong style="color:#FF6000;letter-spacing:0.04em">${esc(OR.registrationNumber)}</strong><br>
+            Registered Hub / City: <strong>${esc(OR.ownerCity)}</strong><br>
+            Owner Contact: ${esc(OR.ownerPhone)} &middot; ${esc(OR.ownerEmail)}
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Shared With (Customer / User)</div>
+            <strong style="color:#0F172A;font-size:15px;display:block;margin-bottom:4px">${esc(OR.customerName)}</strong>
+            Phone: ${esc(OR.customerPhone)}<br>
+            Email: ${esc(OR.customerEmail)}<br>
+            Vehicle Sharing Period: <strong>${dt(OR.startDate)} &rarr; ${dt(OR.endDate)}</strong><br>
+            Total Sharing Duration: <strong>${OR.bookingDays} Booking Day${Number(OR.bookingDays) === 1 ? '' : 's'}</strong>
+          </div>
+        </div>
+
+        <!-- Table of Sharing Compensation -->
+        <div class="table-wrap" style="margin-bottom:22px">
+          <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+            <thead>
+              <tr style="background:#0F172A;color:#fff">
+                <th style="padding:10px 12px;text-align:left">#</th>
+                <th style="padding:10px 12px;text-align:left">Particulars &amp; Description</th>
+                <th style="padding:10px 12px;text-align:center">Booking Days</th>
+                <th style="padding:10px 12px;text-align:right">Daily Booking Fee</th>
+                <th style="padding:10px 12px;text-align:center">GST Rate</th>
+                <th style="padding:10px 12px;text-align:right">Total Sharing Fee (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #E2E8F0">
+                <td style="padding:12px">1</td>
+                <td style="padding:12px">
+                  <strong style="color:#0F172A">Vehicle Sharing Booking Fee</strong><br>
+                  <span style="color:#64748B;font-size:12px">${esc(OR.vehicleMake)} ${esc(OR.vehicleModel)} (${esc(OR.registrationNumber)}) &middot; ${OR.bookingDays} Day(s) @ ${money(OR.dailyBookingFee)}/day &middot; Included: ${OR.includedKm} km/day</span>
+                </td>
+                <td style="padding:12px;text-align:center"><strong>${OR.bookingDays}</strong></td>
+                <td style="padding:12px;text-align:right">${money(OR.dailyBookingFee)}</td>
+                <td style="padding:12px;text-align:center"><span style="color:#059669;font-weight:700">0% (Exempt)</span></td>
+                <td style="padding:12px;text-align:right;font-weight:800;color:#0F172A">${money(OR.totalBookingFee)}</td>
+              </tr>
+              ${OR.securityDeposit > 0 ? `
+              <tr style="border-bottom:1px solid #E2E8F0;background:#FAFAFA">
+                <td style="padding:12px">2</td>
+                <td style="padding:12px">
+                  <strong style="color:#0F172A">Refundable Security Deposit</strong><br>
+                  <span style="color:#64748B;font-size:12px">Refunded automatically post vehicle return inspection &amp; fuel reconciliation (GST Exempt).</span>
+                </td>
+                <td style="padding:12px;text-align:center">—</td>
+                <td style="padding:12px;text-align:right">—</td>
+                <td style="padding:12px;text-align:center"><span style="color:#059669;font-weight:700">Exempt</span></td>
+                <td style="padding:12px;text-align:right;font-weight:800;color:#0F172A">${money(OR.securityDeposit)}</td>
+              </tr>` : ''}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Totals & Payment Summary -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;border-top:2px solid #E2E8F0;padding-top:16px;margin-bottom:20px">
+          <div style="font-size:12.5px;color:#64748B;max-width:380px;line-height:1.6">
+            <strong>Payment Reference:</strong><br>
+            Payment Status: <span class="badge ok" style="font-size:11px;padding:2px 8px">${esc(OR.paymentStatus)}</span><br>
+            Transaction Ref: <code>${esc(OR.paymentReference)}</code><br>
+            Included Distance: <strong>${OR.includedKm} km/day</strong> &middot; Excess Km Fee: <strong>₹${OR.excessKmRate}/km</strong>
+          </div>
+          <div style="min-width:240px;text-align:right">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>Vehicle Sharing Fee:</span> <strong>${money(OR.totalBookingFee)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>Taxes / GST:</span> <span style="color:#059669;font-weight:700">₹0.00 (Exempt)</span>
+            </div>
+            ${OR.securityDeposit > 0 ? `
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+              <span>Refundable Deposit:</span> <strong>${money(OR.securityDeposit)}</strong>
+            </div>` : ''}
+            <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#0F172A;border-top:2px solid #0F172A;padding-top:8px;margin-top:6px">
+              <span>Total Paid to Owner:</span> <span style="color:#FF6000">${money(OR.totalPaid)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signatory -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #E2E8F0;padding-top:14px;font-size:12px;color:#94A3B8">
+          <div>
+            <span>Computer generated digital vehicle sharing statement. Peer-to-peer car sharing community.</span><br>
+            <span>Verified under Safar Vehicle Digital Twin &amp; Handover Inspection Record</span>
+          </div>
+          <div style="text-align:right">
+            <strong style="color:#0F172A;display:block">${esc(OR.rcOwnerName)}</strong>
+            <span style="font-style:italic">Registered Vehicle Owner (As per RC)</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Totals & Payment Summary -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;border-top:2px solid #E2E8F0;padding-top:16px;margin-bottom:24px">
-        <div style="font-size:12.5px;color:#64748B;max-width:380px;line-height:1.6">
-          <strong>Payment &amp; Terms:</strong><br>
-          Payment Method: <strong>Online Secured Transfer</strong><br>
-          Gateway Ref: <code>${esc(D.paymentReference || inv.id.slice(0,18))}</code><br>
-          Included Distance: <strong>${D.includedKilometres ? Number(D.includedKilometres) + ' km' : '300 km/day'}</strong> &middot; Excess Km Charge: <strong>₹12/km</strong>
-        </div>
-        <div style="min-width:240px;text-align:right">
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-            <span>Taxable Amount:</span> <strong>${money(taxableFare)}</strong>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-            <span>CGST (9%):</span> <strong>${money(cgst)}</strong>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-            <span>SGST (9%):</span> <strong>${money(sgst)}</strong>
-          </div>
-          ${deposit > 0 ? `
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
-            <span>Security Deposit:</span> <strong>${money(deposit)}</strong>
-          </div>` : ''}
-          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#0F172A;border-top:2px solid #0F172A;padding-top:8px;margin-top:6px">
-            <span>Total Paid:</span> <span style="color:#FF6000">${money(grandTotal)}</span>
-          </div>
-        </div>
-      </div>
+      <div class="print-page-break"></div>
 
-      <!-- Signatory & Verification Footer -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #E2E8F0;padding-top:16px;font-size:12px;color:#94A3B8">
-        <div>
-          <span>This is a computer generated digital tax invoice under Section 31 of the CGST Act 2017.</span><br>
-          <span>Verified under Safar Digital Fleet Management System &middot; SAC 996601</span>
+      <!-- ══════════════════════════════════════════════════════════════════
+           DOCUMENT 2: SAFAR PLATFORM & TECHNOLOGY SERVICES GST TAX INVOICE
+           (Convenience Fee ₹249 + Technology Fee ₹59 + 18% GST)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div id="invoice-card-platform" class="invoice-card panel" style="background:#fff;border:1.5px solid #FF6000;border-radius:18px;padding:34px;box-shadow:0 4px 20px rgba(0,0,0,0.06)">
+        <!-- Official Tax Invoice Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;border-bottom:2px solid #FF6000;padding-bottom:18px;margin-bottom:20px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <img src="safar-logo.png?v=20261110r" alt="Safar Self Drive" style="height:36px;width:36px;object-fit:contain;border-radius:50%">
+              <span style="font-size:22px;font-weight:900;color:#0F172A;letter-spacing:-0.02em">Safar <span style="color:#FF6000">SELF DRIVE</span></span>
+            </div>
+            <p style="margin:0;font-size:12.5px;color:#475569;line-height:1.5">
+              <strong>${esc(PI.supplierName)}</strong><br>
+              ${esc(PI.supplierAddress)}<br>
+              GSTIN: <strong style="color:#0F172A">${esc(PI.supplierGstin)}</strong> &middot; PAN: <strong>${esc(PI.supplierPan)}</strong><br>
+              Support: ${esc(PI.supplierEmail)} &middot; ${esc(PI.supplierPhone)}
+            </p>
+          </div>
+          <div style="text-align:right">
+            <span class="badge ok" style="font-size:11.5px;font-weight:800;letter-spacing:0.04em">ORIGINAL GST TAX INVOICE (SECTION 31)</span>
+            <div style="font-size:19px;font-weight:900;color:#0F172A;margin-top:8px">${esc(PI.invoiceNumber)}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:2px">Invoice Date: <strong>${d(PI.invoiceDate)}</strong></div>
+            <div style="font-size:12px;color:#64748B">Booking Reference: <strong>${esc(PI.bookingRef)}</strong></div>
+          </div>
         </div>
-        <div style="text-align:right">
-          <strong style="color:#0F172A;display:block">For Paramount India Technologies</strong>
-          <span style="font-style:italic">Authorized Signatory</span>
-        </div>
-      </div>
 
-      <div class="actions" style="margin-top:28px;display:flex;gap:12px;justify-content:flex-end">
-        <button id="print-invoice-btn" class="button btn-orange btn-lg" onclick="window.print()">🖨️ Print / Download Tax Invoice</button>
-        <a href="dashboard.html" class="button btn-ghost btn-lg">Back to My Trips</a>
+        <!-- Two Columns: Supplier vs Customer Details -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;background:#FFF7ED;border:1px solid #FFEDD5;border-radius:12px;padding:16px;margin-bottom:22px;font-size:13px">
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#9A3412;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Service Provider (Platform Facilitator)</div>
+            <strong style="color:#0F172A;font-size:14.5px;display:block;margin-bottom:3px">${esc(PI.supplierName)}</strong>
+            GSTIN: <strong style="color:#FF6000">${esc(PI.supplierGstin)}</strong><br>
+            State: <strong>Gujarat (State Code 24)</strong><br>
+            SAC Classification: <strong>998314</strong> (Platform Services) &amp; <strong>998313</strong> (IT Security)
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#9A3412;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Billed To (Customer / User)</div>
+            <strong style="color:#0F172A;font-size:14.5px;display:block;margin-bottom:3px">${esc(PI.customerName)}</strong>
+            Phone: ${esc(PI.customerPhone)}<br>
+            Email: ${esc(PI.customerEmail)}<br>
+            Place of Supply: <strong>${esc(PI.placeOfSupply)}</strong><br>
+            Reverse Charge Applicable: <strong>No</strong>
+          </div>
+        </div>
+
+        <!-- Table: Convenience & Technology Fee with GST Breakdown -->
+        <div class="table-wrap" style="margin-bottom:22px">
+          <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+            <thead>
+              <tr style="background:#0F172A;color:#fff">
+                <th style="padding:10px 12px;text-align:left">#</th>
+                <th style="padding:10px 12px;text-align:left">Service Description</th>
+                <th style="padding:10px 12px;text-align:center">SAC Code</th>
+                <th style="padding:10px 12px;text-align:right">Taxable Value (₹)</th>
+                <th style="padding:10px 12px;text-align:right">CGST (${PI.cgstRate})</th>
+                <th style="padding:10px 12px;text-align:right">SGST (${PI.sgstRate})</th>
+                <th style="padding:10px 12px;text-align:right">Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #E2E8F0">
+                <td style="padding:12px">1</td>
+                <td style="padding:12px">
+                  <strong style="color:#0F172A">Platform Convenience Fee</strong><br>
+                  <span style="color:#64748B;font-size:12px">Safar digital matchmaking, customer support, dispute resolution &amp; escrow service</span>
+                </td>
+                <td style="padding:12px;text-align:center;font-weight:600">998314</td>
+                <td style="padding:12px;text-align:right;font-weight:700">₹${PI.convenienceFee.toFixed(2)}</td>
+                <td style="padding:12px;text-align:right">₹${(PI.convenienceFee * 0.09).toFixed(2)}</td>
+                <td style="padding:12px;text-align:right">₹${(PI.convenienceFee * 0.09).toFixed(2)}</td>
+                <td style="padding:12px;text-align:right;font-weight:800;color:#0F172A">₹${(PI.convenienceFee * 1.18).toFixed(2)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #E2E8F0">
+                <td style="padding:12px">2</td>
+                <td style="padding:12px">
+                  <strong style="color:#0F172A">Technology &amp; Verification Fee</strong><br>
+                  <span style="color:#64748B;font-size:12px">Biometric selfie check, Aadhaar/DL verification &amp; digital lease agreement generation</span>
+                </td>
+                <td style="padding:12px;text-align:center;font-weight:600">998313</td>
+                <td style="padding:12px;text-align:right;font-weight:700">₹${PI.technologyFee.toFixed(2)}</td>
+                <td style="padding:12px;text-align:right">₹${(PI.technologyFee * 0.09).toFixed(2)}</td>
+                <td style="padding:12px;text-align:right">₹${(PI.technologyFee * 0.09).toFixed(2)}</td>
+                <td style="padding:12px;text-align:right;font-weight:800;color:#0F172A">₹${(PI.technologyFee * 1.18).toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Totals & Payment Summary -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px;border-top:2px solid #FF6000;padding-top:16px;margin-bottom:20px">
+          <div style="font-size:12.5px;color:#64748B;max-width:380px;line-height:1.6">
+            <strong>Platform Compliance Terms:</strong><br>
+            ${esc(PI.statutoryDeclaration)}<br>
+            All fees are inclusive of Goods &amp; Services Tax under applicable laws.
+          </div>
+          <div style="min-width:260px;text-align:right">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>Total Taxable Amount:</span> <strong>₹${PI.taxableAmount.toFixed(2)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>CGST (9%):</span> <strong>₹${PI.cgstAmount.toFixed(2)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>SGST (9%):</span> <strong>₹${PI.sgstAmount.toFixed(2)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+              <span>Total GST (18%):</span> <strong style="color:#059669">₹${PI.totalGst.toFixed(2)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#0F172A;border-top:2px solid #FF6000;padding-top:8px;margin-top:6px">
+              <span>Total Platform Invoice:</span> <span style="color:#FF6000">₹${PI.grandTotal.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signatory Footer -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #E2E8F0;padding-top:14px;font-size:12px;color:#94A3B8">
+          <div>
+            <span>This is a computer generated digital tax invoice under Section 31 of CGST Act 2017.</span><br>
+            <span>SAC Codes 998314 &amp; 998313 &middot; State of Gujarat</span>
+          </div>
+          <div style="text-align:right">
+            <strong style="color:#0F172A;display:block">For Paramount India Technologies</strong>
+            <span style="font-style:italic">Authorized Signatory</span>
+          </div>
+        </div>
       </div>
     </div>`;
 
-  $('#print-invoice-btn').onclick = () => window.print();
+  // Switching Logic
+  window.switchInvoiceTab = function(mode) {
+    const cardOwner = $('#invoice-card-owner');
+    const cardPlatform = $('#invoice-card-platform');
+    const btnOwner = $('#tab-btn-owner');
+    const btnPlatform = $('#tab-btn-platform');
+    const btnBoth = $('#tab-btn-both');
+
+    [btnOwner, btnPlatform, btnBoth].forEach(btn => {
+      btn.className = 'button btn-outline btn-sm';
+      btn.style.fontWeight = '700';
+    });
+
+    if (mode === 'owner') {
+      cardOwner.style.display = 'block';
+      cardPlatform.style.display = 'none';
+      btnOwner.className = 'button btn-orange btn-sm';
+    } else if (mode === 'platform') {
+      cardOwner.style.display = 'none';
+      cardPlatform.style.display = 'block';
+      btnPlatform.className = 'button btn-orange btn-sm';
+    } else {
+      cardOwner.style.display = 'block';
+      cardPlatform.style.display = 'block';
+      btnBoth.className = 'button btn-orange btn-sm';
+    }
+  };
 }
 
 async function hostAgreement() {

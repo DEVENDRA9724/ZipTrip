@@ -34,18 +34,19 @@ export class BookingsService {
         }
         return previous;
       }
-      const user = await tx.user.findUnique({ where: { id: customerId } });
-      if (user?.isBlocked) {
+      const user = await tx.user.findUnique({ where: { id: customerId }, include: { profile: true } });
+      if (!user) {
+        throw new NotFoundException('Customer account not found');
+      }
+      if (user.isBlocked) {
         throw new ForbiddenException('Your account has been restricted. Please contact Safar customer support.');
       }
-      // If customer is newly registered, auto-verify for booking and assign valid DL window
-      if (!user?.isVerified || !user.dlValidUntil || user.dlValidUntil < end) {
-        const dlExp = new Date(end);
-        dlExp.setFullYear(dlExp.getFullYear() + 5);
-        await tx.user.update({
-          where: { id: customerId },
-          data: { isVerified: true, dlValidUntil: user?.dlValidUntil || dlExp },
-        });
+      const isVerified = Boolean(user.isVerified || user.profile?.isKycVerified);
+      if (!isVerified) {
+        throw new BadRequestException('Driver verification required: Please complete your DigiLocker e-KYC (Aadhaar & Driving Licence) before booking.');
+      }
+      if (user.dlValidUntil && user.dlValidUntil < end) {
+        throw new BadRequestException('Your Driving Licence expires before the end of this trip. Please update your Driving Licence to proceed.');
       }
       const locked = await tx.vehicle.updateMany({ where: { id: vehicleId }, data: { updatedAt: new Date() } });
       if (!locked.count) throw new NotFoundException('Car is not available');

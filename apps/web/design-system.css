@@ -1969,3 +1969,33 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   100% { width: 100%; }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DUAL INVOICE PRINT OPTIMIZATION (SEPARATE PAGE-BREAK ARCHITECTURE)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  .header, .footer, .mobile-bnav, .invoice-nav-tabs, .actions, #safar-splash-screen {
+    display: none !important;
+  }
+  body, main.container, .invoice-container-wrap {
+    background: #FFFFFF !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .invoice-card {
+    border: 1px solid #94A3B8 !important;
+    box-shadow: none !important;
+    padding: 20px !important;
+    margin: 0 0 20px 0 !important;
+  }
+  .print-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+}
+
