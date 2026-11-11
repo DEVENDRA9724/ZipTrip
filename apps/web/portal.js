@@ -1071,6 +1071,42 @@ function initFirebase() {
   }
 }
 
+async function ensureFirebaseLoaded() {
+  if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
+    initFirebase();
+    return true;
+  }
+  return new Promise((resolve) => {
+    try {
+      const loadAuth = () => {
+        if (window.firebase && window.firebase.auth) {
+          initFirebase();
+          return resolve(true);
+        }
+        const s2 = document.createElement('script');
+        s2.src = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js';
+        s2.onload = () => { initFirebase(); resolve(true); };
+        s2.onerror = () => resolve(false);
+        document.head.appendChild(s2);
+      };
+
+      if (typeof window !== 'undefined' && window.firebase) {
+        loadAuth();
+      } else if (typeof document !== 'undefined') {
+        const s1 = document.createElement('script');
+        s1.src = 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js';
+        s1.onload = loadAuth;
+        s1.onerror = () => resolve(false);
+        document.head.appendChild(s1);
+      } else {
+        resolve(false);
+      }
+    } catch (err) {
+      resolve(false);
+    }
+  });
+}
+
 /* ─── FAST OTP AUTH & DIGILOCKER ONBOARDING MODALS ─────────────────────── */
 function showOtpLoginModal({ title, subtitle, onSuccess }) {
   initFirebase();
@@ -1112,6 +1148,11 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
 
   $('#dialog-btn-google')?.addEventListener('click', async () => {
     try {
+      const ok = await ensureFirebaseLoaded();
+      if (!ok || typeof firebase === 'undefined' || !firebase.auth) {
+        toast('Google Sign-In SDK is loading or blocked by your browser/ad-blocker. Please refresh the page or disable ad-blocker.', true);
+        return;
+      }
       initFirebase();
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
@@ -1328,6 +1369,11 @@ function auth(forceRegister, loginMode = 'otp') {
 
   $('#btn-google-signin')?.addEventListener('click', async () => {
     try {
+      const ok = await ensureFirebaseLoaded();
+      if (!ok || typeof firebase === 'undefined' || !firebase.auth) {
+        toast('Google Sign-In SDK is loading or blocked by your browser/ad-blocker. Please refresh the page or disable ad-blocker.', true);
+        return;
+      }
       initFirebase();
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
