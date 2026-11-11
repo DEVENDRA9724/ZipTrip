@@ -1173,45 +1173,9 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
     const rawDigits = (formData.phone || '').trim().replace(/\D/g, '');
     const phone = rawDigits.length === 10 ? '+91' + rawDigits : (formData.phone || '').trim();
 
-    await ensureFirebaseLoaded();
-    let useFirebasePhone = false;
-    let confirmationResult = null;
-    let firebaseError = null;
-
-    if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
-      try {
-        if (window.safarDialogRecaptcha) {
-          try { window.safarDialogRecaptcha.clear(); } catch (_) {}
-          window.safarDialogRecaptcha = null;
-        }
-        window.safarDialogRecaptcha = new firebase.auth.RecaptchaVerifier('dialog-recaptcha-box', {
-          size: 'invisible'
-        });
-        toast('Sending real SMS OTP via Google Firebase…');
-        confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarDialogRecaptcha);
-        window.safarPhoneConfirmation = confirmationResult;
-        useFirebasePhone = true;
-        toast('✅ SMS OTP sent to ' + phone + ' via Google Firebase!');
-      } catch (err) {
-        firebaseError = err;
-        console.warn('[Firebase Dialog Recaptcha / Phone Auth Note]', err.code || err.message, err);
-        if (err.code === 'auth/unauthorized-domain') {
-          toast(`Firebase Error: '${window.location.hostname}' is not in Authorized Domains in Firebase Console.`, true);
-        } else if (err.code === 'auth/operation-not-allowed') {
-          toast(`Firebase Error: Phone sign-in is disabled in Firebase Console -> Authentication -> Sign-in method.`, true);
-        } else {
-          toast(`Firebase SMS: ${err.message || err.code}`, true);
-        }
-      }
-    } else {
-      toast('Firebase SDK is not available. Please check connection.', true);
-    }
-
-    let devOtpCode = null;
-    if (!useFirebasePhone) {
-      const res = await post('/auth/login/otp/request', { phone });
-      devOtpCode = res.devOtp;
-    }
+    toast('Sending 6-digit OTP via SMS to ' + phone + '…');
+    const res = await post('/auth/login/otp/request', { phone });
+    const devOtpCode = res?.devOtp;
 
     showDialog(`
       <div style="text-align:center;padding:10px 4px">
@@ -1219,7 +1183,7 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
           <span class="ico">${icon('phone')}</span>
         </div>
         <h3 style="margin:0 0 6px">Enter 6-Digit OTP</h3>
-        <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a one-time password to <strong>${esc(phone)}</strong>.</p>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a one-time password via SMS to <strong>${esc(phone)}</strong>.</p>
         ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left">
           <span><strong>Dev OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
           <button type="button" id="dialog-autofill-otp-btn" class="btn-outline btn-sm">Auto-Fill</button>
@@ -1238,16 +1202,14 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
     });
 
     bindForm('#dialog-otp-verify-form', async otpData => {
-      let login;
-      if (useFirebasePhone && window.safarPhoneConfirmation) {
-        const credential = await window.safarPhoneConfirmation.confirm(otpData.otp);
-        const idToken = await credential.user.getIdToken();
-        login = await post('/auth/firebase/session', { idToken });
-      } else {
-        login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
-      }
+      const login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
       if (login?.token) localStorage.setItem('safar_token', login.token);
       $('dialog').close();
+      if (typeof onSuccess === 'function') {
+        await onSuccess(login.user);
+      }
+    });
+  });
       if (typeof onSuccess === 'function') {
         await onSuccess(login.user);
       }
@@ -1408,54 +1370,18 @@ function auth(forceRegister, loginMode = 'otp') {
 
   bindForm('#auth-form', async data => {
     if (isOtpLogin) {
-      const rawPhone = (data.phone || '').trim().replace(/\D/g, '');
-      const phone = rawPhone.length === 10 ? '+91' + rawPhone : (data.phone || '').trim();
+      const rawDigits = (data.phone || '').trim().replace(/\D/g, '');
+      const phone = rawDigits.length === 10 ? '+91' + rawDigits : (data.phone || '').trim();
 
-      await ensureFirebaseLoaded();
-      let useFirebasePhone = false;
-      let confirmationResult = null;
-      let firebaseError = null;
-
-      if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
-        try {
-          if (window.safarAuthRecaptcha) {
-            try { window.safarAuthRecaptcha.clear(); } catch (_) {}
-            window.safarAuthRecaptcha = null;
-          }
-          window.safarAuthRecaptcha = new firebase.auth.RecaptchaVerifier('auth-recaptcha-inline', {
-            size: 'invisible'
-          });
-          toast('Sending real SMS OTP via Google Firebase…');
-          confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarAuthRecaptcha);
-          window.safarPhoneConfirmation = confirmationResult;
-          useFirebasePhone = true;
-          toast('✅ Real SMS OTP sent to ' + phone + ' via Google Firebase!');
-        } catch (err) {
-          firebaseError = err;
-          console.warn('[Firebase Auth / Phone Auth Note]', err.code || err.message, err);
-          if (err.code === 'auth/unauthorized-domain') {
-            toast(`Firebase Error: '${window.location.hostname}' is not in Authorized Domains in Firebase Console.`, true);
-          } else if (err.code === 'auth/operation-not-allowed') {
-            toast(`Firebase Error: Phone sign-in is disabled in Firebase Console -> Authentication -> Sign-in method.`, true);
-          } else {
-            toast(`Firebase SMS: ${err.message || err.code}`, true);
-          }
-        }
-      } else {
-        toast('Firebase SDK is not available. Please check connection.', true);
-      }
-
-      let devOtpCode = null;
-      if (!useFirebasePhone) {
-        const res = await post('/auth/login/otp/request', { phone });
-        devOtpCode = res.devOtp;
-      }
+      toast('Sending 6-digit OTP via SMS to ' + phone + '…');
+      const res = await post('/auth/login/otp/request', { phone });
+      const devOtpCode = res?.devOtp;
 
       showDialog(`
         <div style="text-align:center;padding:8px 4px">
           <div style="width:56px;height:56px;border-radius:16px;background:rgba(59,18,63,0.08);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px"><span class="ico">${icon('phone')}</span></div>
           <h3 style="margin:0 0 6px">Enter your login OTP</h3>
-          <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit OTP to <strong>${esc(phone)}</strong>.</p>
+          <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit OTP via SMS to <strong>${esc(phone)}</strong>.</p>
           ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left">
             <span><strong>Development OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
             <button type="button" id="autofill-login-otp-btn" class="btn-outline btn-sm">Auto-Fill OTP</button>
@@ -1471,14 +1397,7 @@ function auth(forceRegister, loginMode = 'otp') {
         $('#login-otp-modal-input').value = devOtpCode;
       });
       bindForm('#login-otp-modal-form', async otpData => {
-        let login;
-        if (useFirebasePhone && window.safarPhoneConfirmation) {
-          const credential = await window.safarPhoneConfirmation.confirm(otpData.otp);
-          const idToken = await credential.user.getIdToken();
-          login = await post('/auth/firebase/session', { idToken });
-        } else {
-          login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
-        }
+        const login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
         if (login?.token) localStorage.setItem('safar_token', login.token);
         $('dialog').close();
         user = login.user;

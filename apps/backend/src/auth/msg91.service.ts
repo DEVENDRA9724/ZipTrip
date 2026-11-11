@@ -71,6 +71,8 @@ export class Msg91Service {
     const url = new URL(process.env.MSG91_OTP_SEND_URL || 'https://control.msg91.com/api/v5/otp');
     url.searchParams.set('template_id', templateId);
     url.searchParams.set('mobile', this.providerPhone(phone));
+    url.searchParams.set('otp_length', '6');
+    url.searchParams.set('otp_expiry', '10');
     const response = await fetch(url, {
       method: 'POST',
       headers: { authkey, 'Content-Type': 'application/json', Accept: 'application/json' },
