@@ -8,11 +8,10 @@ import {
   Image,
   ActivityIndicator,
   Modal,
-  TextInput,
   Dimensions,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { apiRequest, getVehicleImageSource, getCarDistance, getVehicleTerms } from '@/services/api';
 import { DateTimePickerModal } from '@/components/datetime-picker-modal';
@@ -27,14 +26,11 @@ import {
   ShieldCheck,
   ArrowRight,
   Car,
-  Compass,
   Check,
   Heart,
   Navigation,
   Sparkles,
-  Zap,
   Tag,
-  Gift,
   Building2,
   Plane,
 } from 'lucide-react-native';
@@ -84,6 +80,7 @@ const formatShortDate = (s: string) => {
 };
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const { user } = require('@/context/AuthContext').useAuth();
 
   const [bookingMode, setBookingMode] = useState<'self' | 'taxi'>('self');
@@ -92,7 +89,7 @@ export default function HomeScreen() {
   const [deliveryAnywhere, setDeliveryAnywhere] = useState(true);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  // Dates
+  // Dates: Tomorrow to Day after tomorrow
   const [startDate, setStartDate] = useState(() => ymd(new Date(Date.now() + 864e5)));
   const [startTime, setStartTime] = useState('10:00 AM');
   const [endDate, setEndDate] = useState(() => ymd(new Date(Date.now() + 2 * 864e5)));
@@ -106,7 +103,6 @@ export default function HomeScreen() {
   // Vehicles
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterQuery, setFilterQuery] = useState('');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -147,15 +143,9 @@ export default function HomeScreen() {
       const isTaxi = String(v.model || '').toLowerCase().includes('taxi');
       if (bookingMode === 'self' && isTaxi) return false;
       if (bookingMode === 'taxi' && !isTaxi) return false;
-
-      if (filterQuery.trim()) {
-        const q = filterQuery.toLowerCase();
-        const text = `${v.make} ${v.model} ${v.category} ${v.fuelType} ${v.transmission}`.toLowerCase();
-        if (!text.includes(q)) return false;
-      }
       return true;
     });
-  }, [vehicles, bookingMode, filterQuery]);
+  }, [vehicles, bookingMode]);
 
   const openCar = (id: string) => {
     router.push({
@@ -164,9 +154,12 @@ export default function HomeScreen() {
     });
   };
 
+  // Safe top padding guaranteeing clearance above the iPhone notch / Dynamic Island
+  const topPadding = Math.max(insets.top, Platform.OS === 'ios' ? 44 : 20);
+
   return (
-    <SafeAreaView style={s.screen} edges={['top']}>
-      {/* ────────── TOP APP BAR ────────── */}
+    <View style={[s.screen, { paddingTop: topPadding }]}>
+      {/* ────────── TOP APP BAR (CLEAR OF NOTCH) ────────── */}
       <View style={s.topBar}>
         <View style={s.brandGroup}>
           <Image
@@ -212,7 +205,7 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ────────── TOP MINT HERO BANNER (FROM SCREENSHOT) ────────── */}
+        {/* ────────── SAFAR PURPLE & ORANGE BRANDING BANNER ────────── */}
         <View style={s.heroBanner}>
           <Text style={s.heroSub}>Book Self-drive Cars Now</Text>
           <View style={s.titleDecorationRow}>
@@ -222,7 +215,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ────────── MAIN SEARCH & CALENDAR CARD (FROM SCREENSHOT) ────────── */}
+        {/* ────────── SEARCH & CALENDAR CARD ────────── */}
         <View style={s.searchCard}>
           {/* Location Search Bar with GPS Icon */}
           <TouchableOpacity
@@ -230,12 +223,12 @@ export default function HomeScreen() {
             onPress={() => setCityModalOpen(true)}
             activeOpacity={0.85}
           >
-            <Search size={16} color="#4B5563" />
+            <Search size={16} color="#2D114D" />
             <Text style={s.locationInputText} numberOfLines={1}>
               {hubAddress}
             </Text>
             <TouchableOpacity onPress={() => setCityModalOpen(true)}>
-              <Navigation size={16} color="#2D114D" />
+              <Navigation size={16} color="#FF6000" />
             </TouchableOpacity>
           </TouchableOpacity>
 
@@ -278,11 +271,11 @@ export default function HomeScreen() {
             <Text style={s.checkboxLabel}>Delivery & Pick-up, from anywhere</Text>
           </TouchableOpacity>
 
-          {/* Big Green Search Car CTA Button */}
+          {/* Safar Orange Search Car CTA Button */}
           <TouchableOpacity
             style={s.searchCarBtn}
             onPress={() => {
-              // Filters or jumps to car feed
+              // Smooth scroll to results
             }}
             activeOpacity={0.88}
           >
@@ -290,7 +283,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ────────── FLEXI PICKUP & DROP NOTICE CARD (FROM SCREENSHOT) ────────── */}
+        {/* ────────── FLEXI PICKUP & DROP NOTICE CARD ────────── */}
         <View style={s.flexiCard}>
           <View style={s.flexiBadge}>
             <Text style={s.flexiBadgeText}>⇄ Flexi Pickup & Drop</Text>
@@ -300,7 +293,7 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* ────────── 1. BOOKING TYPE TILES (DAILY DRIVE / SUBSCRIPTION / PASS) ────────── */}
+        {/* ────────── BOOKING TYPE TILES (DAILY DRIVE / SUBSCRIPTION / PASS) ────────── */}
         <View style={s.sectionHeader}>
           <Text style={s.sectionMainTitle}>Self Drive Options</Text>
         </View>
@@ -366,7 +359,7 @@ export default function HomeScreen() {
             const Icon = item.icon;
             return (
               <View key={idx} style={s.benefitCard}>
-                <Icon size={16} color="#15803D" />
+                <Icon size={16} color="#FF6000" />
                 <Text style={s.benefitTitle}>{item.title}</Text>
                 <Text style={s.benefitSub}>{item.sub}</Text>
               </View>
@@ -374,7 +367,7 @@ export default function HomeScreen() {
           })}
         </View>
 
-        {/* ────────── "UNMATCHED SELECTION" HEADER (EXACT FROM SCREENSHOT) ────────── */}
+        {/* ────────── "UNMATCHED SELECTION" HEADER ────────── */}
         <View style={s.selectionHeaderCard}>
           <Text style={s.selectionTitle}>Unmatched Selection</Text>
           <Text style={s.selectionSub}>Our Finest Cars for Your Next Adventure</Text>
@@ -383,10 +376,10 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* ────────── 2-COLUMN CAR BOX GRID (EXACT FROM SCREENSHOT) ────────── */}
+        {/* ────────── 2-COLUMN CAR BOX GRID ────────── */}
         {loading ? (
           <View style={s.loadingBox}>
-            <ActivityIndicator size="large" color="#15803D" />
+            <ActivityIndicator size="large" color="#2D114D" />
             <Text style={s.loadingText}>Loading available cars…</Text>
           </View>
         ) : fleet.length === 0 ? (
@@ -421,7 +414,7 @@ export default function HomeScreen() {
                     {/* Rating Badge on Top-Left */}
                     <View style={s.carBoxRating}>
                       <Star size={10} color="#FFB800" fill="#FFB800" />
-                      <Text style={s.carBoxRatingText}>4.5★</Text>
+                      <Text style={s.carBoxRatingText}>4.9★</Text>
                     </View>
 
                     {/* Wishlist Heart on Top-Right */}
@@ -432,8 +425,8 @@ export default function HomeScreen() {
                     >
                       <Heart
                         size={14}
-                        color={isFav ? '#DC2626' : '#FFFFFF'}
-                        fill={isFav ? '#DC2626' : 'transparent'}
+                        color={isFav ? '#FF6000' : '#FFFFFF'}
+                        fill={isFav ? '#FF6000' : 'transparent'}
                       />
                     </TouchableOpacity>
                   </View>
@@ -488,7 +481,7 @@ export default function HomeScreen() {
           </View>
           <View style={s.hostBannerAction}>
             <Text style={s.hostBannerActionText}>Host & Earn</Text>
-            <ArrowRight size={14} color="#15803D" />
+            <ArrowRight size={14} color="#FF6000" />
           </View>
         </TouchableOpacity>
       </ScrollView>
@@ -519,9 +512,9 @@ export default function HomeScreen() {
                     setCityModalOpen(false);
                   }}
                 >
-                  <MapPin size={16} color={active ? '#15803D' : '#6B7280'} />
+                  <MapPin size={16} color={active ? '#FF6000' : '#6B7280'} />
                   <Text style={[s.cityRowText, active && s.cityRowTextActive]}>{c}</Text>
-                  {active && <Check size={16} color="#15803D" />}
+                  {active && <Check size={16} color="#FF6000" />}
                 </TouchableOpacity>
               );
             })}
@@ -556,14 +549,14 @@ export default function HomeScreen() {
           setEndPickerOpen(false);
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F8FAF9',
+    backgroundColor: '#F8F6FB',
   },
 
   /* Top Bar */
@@ -575,7 +568,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#EFEBF5',
   },
   brandGroup: {
     flexDirection: 'row',
@@ -589,7 +582,7 @@ const s = StyleSheet.create({
   brandName: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   citySelector: {
     flexDirection: 'row',
@@ -604,7 +597,7 @@ const s = StyleSheet.create({
   },
   topBarRight: {},
   loginPill: {
-    backgroundColor: '#15803D',
+    backgroundColor: '#2D114D',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -618,7 +611,7 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#15803D',
+    backgroundColor: '#FF6000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -632,19 +625,19 @@ const s = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  /* Hero Mint Banner (Matching Screenshot) */
+  /* Hero Banner (Safar Purple & Orange) */
   heroBanner: {
-    backgroundColor: '#EDFAF1',
+    backgroundColor: '#FAF5FF',
     paddingTop: 18,
     paddingBottom: 22,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#D1FAE5',
+    borderBottomColor: '#F3E8FF',
   },
   heroSub: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#166534',
+    color: '#FF6000',
     marginBottom: 4,
   },
   titleDecorationRow: {
@@ -656,18 +649,18 @@ const s = StyleSheet.create({
   titleLine: {
     width: 36,
     height: 3,
-    backgroundColor: '#22C55E',
+    backgroundColor: '#FF6000',
     borderRadius: 2,
   },
   heroMainTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#14532D',
+    color: '#2D114D',
     textAlign: 'center',
     lineHeight: 24,
   },
 
-  /* Search Card (Exact from Screenshot) */
+  /* Search Card */
   searchCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
@@ -675,8 +668,8 @@ const s = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
+    borderColor: '#EFEBF5',
+    shadowColor: '#2D114D',
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 4,
@@ -687,7 +680,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#D8CEE8',
     paddingHorizontal: 12,
     paddingVertical: 12,
     gap: 10,
@@ -708,7 +701,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#D8CEE8',
     padding: 10,
   },
   dateBoxLabel: {
@@ -719,7 +712,7 @@ const s = StyleSheet.create({
   dateBoxValue: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#111827',
+    color: '#2D114D',
     marginTop: 3,
   },
   checkboxRow: {
@@ -739,8 +732,8 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxActive: {
-    backgroundColor: '#15803D',
-    borderColor: '#15803D',
+    backgroundColor: '#2D114D',
+    borderColor: '#2D114D',
   },
   checkboxLabel: {
     fontSize: 12,
@@ -748,11 +741,15 @@ const s = StyleSheet.create({
     fontWeight: '500',
   },
   searchCarBtn: {
-    backgroundColor: '#15803D',
+    backgroundColor: '#FF6000',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 14,
+    shadowColor: '#FF6000',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   searchCarBtnText: {
     color: '#FFFFFF',
@@ -767,12 +764,12 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#7C3AED',
+    borderColor: '#2D114D',
     padding: 12,
   },
   flexiBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#6D28D9',
+    backgroundColor: '#2D114D',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -799,7 +796,7 @@ const s = StyleSheet.create({
   sectionMainTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   bentoGrid: {
     flexDirection: 'row',
@@ -812,13 +809,13 @@ const s = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EFEBF5',
     justifyContent: 'space-between',
     minHeight: 180,
   },
   bentoTag: {
     alignSelf: 'flex-start',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#FFF7ED',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
@@ -826,12 +823,12 @@ const s = StyleSheet.create({
   bentoTagText: {
     fontSize: 8,
     fontWeight: '800',
-    color: '#15803D',
+    color: '#FF6000',
   },
   bentoBigTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#111827',
+    color: '#2D114D',
     marginTop: 4,
   },
   bentoBigSub: {
@@ -852,7 +849,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EFEBF5',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -860,7 +857,7 @@ const s = StyleSheet.create({
   bentoSmallTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#111827',
+    color: '#2D114D',
   },
   bentoSmallSub: {
     fontSize: 9,
@@ -886,13 +883,13 @@ const s = StyleSheet.create({
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EFEBF5',
     gap: 3,
   },
   benefitTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#111827',
+    color: '#2D114D',
     marginTop: 2,
   },
   benefitSub: {
@@ -904,7 +901,7 @@ const s = StyleSheet.create({
   selectionHeaderCard: {
     marginHorizontal: 16,
     marginTop: 20,
-    backgroundColor: '#E8F0F8',
+    backgroundColor: '#F3EEFA',
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
@@ -912,21 +909,21 @@ const s = StyleSheet.create({
   selectionTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#2D114D',
   },
   selectionSub: {
     fontSize: 11,
-    color: '#475569',
+    color: '#6B7280',
     marginTop: 2,
   },
   selectionDates: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#FF6000',
     marginTop: 4,
   },
 
-  /* 2-Column Car Box Grid (Exact from Screenshot) */
+  /* 2-Column Car Box Grid */
   carGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -939,16 +936,16 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EFEBF5',
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#2D114D',
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 2,
   },
   carBoxImageWrap: {
     height: 115,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FAF8FC',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -963,7 +960,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(45, 17, 77, 0.85)',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
@@ -980,7 +977,7 @@ const s = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(45, 17, 77, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -990,7 +987,7 @@ const s = StyleSheet.create({
   carBoxTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#111827',
+    color: '#1F1235',
   },
   carBoxSpecs: {
     fontSize: 10,
@@ -999,8 +996,8 @@ const s = StyleSheet.create({
   },
   carBoxDistance: {
     fontSize: 10,
-    color: '#4B5563',
-    fontWeight: '500',
+    color: '#FF6000',
+    fontWeight: '600',
     marginTop: 4,
   },
   carBoxPriceRow: {
@@ -1015,7 +1012,7 @@ const s = StyleSheet.create({
   carBoxPrice: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#111827',
+    color: '#2D114D',
   },
   carBoxUnit: {
     fontSize: 9,
@@ -1024,11 +1021,11 @@ const s = StyleSheet.create({
   },
   carBoxTripTotal: {
     fontSize: 9,
-    color: '#059669',
-    fontWeight: '600',
+    color: '#FF6000',
+    fontWeight: '700',
   },
   carBoxBookBtn: {
-    backgroundColor: '#15803D',
+    backgroundColor: '#2D114D',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 5,
@@ -1049,13 +1046,13 @@ const s = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EFEBF5',
     gap: 12,
   },
   hostBannerTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#111827',
+    color: '#2D114D',
   },
   hostBannerSub: {
     fontSize: 10,
@@ -1066,7 +1063,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#FFF7ED',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1074,7 +1071,7 @@ const s = StyleSheet.create({
   hostBannerActionText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#15803D',
+    color: '#FF6000',
   },
 
   /* Empty & Loading */
@@ -1094,7 +1091,7 @@ const s = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EFEBF5',
     marginTop: 10,
   },
   emptyTitle: {
@@ -1125,7 +1122,7 @@ const s = StyleSheet.create({
   citySheetTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#111827',
+    color: '#2D114D',
     marginBottom: 12,
   },
   cityRow: {
@@ -1137,7 +1134,7 @@ const s = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   cityRowActive: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#FFF7ED',
     borderRadius: 8,
     paddingHorizontal: 8,
   },
@@ -1148,7 +1145,7 @@ const s = StyleSheet.create({
     fontWeight: '600',
   },
   cityRowTextActive: {
-    color: '#15803D',
+    color: '#FF6000',
     fontWeight: '800',
   },
 });
