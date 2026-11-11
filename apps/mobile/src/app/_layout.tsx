@@ -1,14 +1,14 @@
+import React from 'react';
 import { DefaultTheme, ThemeProvider } from 'expo-router';
-
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { StatusBar } from 'expo-status-bar';
 import AppTabs from '@/components/app-tabs';
 import { AuthProvider } from '@/context/AuthContext';
 
-export default function TabLayout() {
+export default function RootLayout() {
   return (
     <AuthProvider>
       <ThemeProvider value={DefaultTheme}>
-        <AnimatedSplashOverlay />
+        <StatusBar style="dark" />
         <AppTabs />
       </ThemeProvider>
     </AuthProvider>

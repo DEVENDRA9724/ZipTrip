@@ -8,7 +8,6 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -18,9 +17,9 @@ import {
   getCarDistance,
   getVehicleTerms,
 } from '@/services/api';
+import { DateTimePickerModal } from '@/components/datetime-picker-modal';
 import {
   ArrowLeft,
-  Star,
   Calendar,
   MapPin,
   Gauge,
@@ -29,6 +28,7 @@ import {
   Fuel,
   CheckCircle2,
   FileText,
+  Clock,
 } from 'lucide-react-native';
 
 export default function VehicleDetailsScreen() {
@@ -43,7 +43,11 @@ export default function VehicleDetailsScreen() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(paramStart || '2026-11-12');
+  const [startTime, setStartTime] = useState('10:00 AM');
   const [endDate, setEndDate] = useState(paramEnd || '2026-11-13');
+  const [endTime, setEndTime] = useState('10:00 AM');
+  const [pickupPickerOpen, setPickupPickerOpen] = useState(false);
+  const [dropoffPickerOpen, setDropoffPickerOpen] = useState(false);
 
   useEffect(() => {
     fetchVehicleDetails();
@@ -139,6 +143,42 @@ export default function VehicleDetailsScreen() {
             </View>
           </View>
 
+          {/* Interactive Trip Schedule Selector */}
+          <Text style={styles.sectionHeading}>Trip Schedule (Tap to Change)</Text>
+          <View style={styles.scheduleRow}>
+            <TouchableOpacity
+              style={styles.dateSelectorBtn}
+              activeOpacity={0.85}
+              onPress={() => setPickupPickerOpen(true)}
+            >
+              <Text style={styles.dateLabel}>PICK-UP DATE & TIME</Text>
+              <View style={styles.dateValRow}>
+                <Calendar size={14} color="#FF6000" />
+                <Text style={styles.dateVal}>{startDate}</Text>
+              </View>
+              <View style={styles.timeValRow}>
+                <Clock size={12} color="#64748B" />
+                <Text style={styles.timeVal}>{startTime}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dateSelectorBtn}
+              activeOpacity={0.85}
+              onPress={() => setDropoffPickerOpen(true)}
+            >
+              <Text style={styles.dateLabel}>RETURN DATE & TIME</Text>
+              <View style={styles.dateValRow}>
+                <Calendar size={14} color="#2D114D" />
+                <Text style={styles.dateVal}>{endDate}</Text>
+              </View>
+              <View style={styles.timeValRow}>
+                <Clock size={12} color="#64748B" />
+                <Text style={styles.timeVal}>{endTime}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* 4-Spec Grid */}
           <View style={styles.specsGrid}>
             <View style={styles.specCard}>
@@ -178,7 +218,7 @@ export default function VehicleDetailsScreen() {
             </View>
           </View>
 
-          {/* Transparent Rental Terms (Matches Website) */}
+          {/* Transparent Rental Terms */}
           <View style={styles.infoCard}>
             <View style={styles.infoCardHeader}>
               <FileText size={16} color="#2D114D" />
@@ -199,33 +239,6 @@ export default function VehicleDetailsScreen() {
             <View style={styles.termRow}>
               <Text style={styles.termKey}>Tax Invoicing</Text>
               <Text style={styles.termVal}>Dual GST Invoice (80/20 Split)</Text>
-            </View>
-          </View>
-
-          {/* Trip Dates Selector */}
-          <Text style={styles.sectionHeading}>Trip Schedule</Text>
-          <View style={styles.dateSelector}>
-            <Calendar size={18} color="#FF6000" style={{ marginRight: 10 }} />
-            <View style={styles.dateInputsRow}>
-              <View style={styles.dateField}>
-                <Text style={styles.dateLabel}>PICK-UP DATE</Text>
-                <TextInput
-                  style={styles.dateVal}
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  maxLength={10}
-                />
-              </View>
-              <View style={styles.verticalDivider} />
-              <View style={styles.dateField}>
-                <Text style={styles.dateLabel}>DROP-OFF DATE</Text>
-                <TextInput
-                  style={styles.dateVal}
-                  value={endDate}
-                  onChangeText={setEndDate}
-                  maxLength={10}
-                />
-              </View>
             </View>
           </View>
         </View>
@@ -258,6 +271,31 @@ export default function VehicleDetailsScreen() {
           <Text style={styles.bookBtnText}>{user ? 'Proceed to Book' : 'Log In to Book'}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Date & Time Modals */}
+      <DateTimePickerModal
+        visible={pickupPickerOpen}
+        title="Select Pick-up Date & Time"
+        selectedDate={startDate}
+        selectedTime={startTime}
+        onClose={() => setPickupPickerOpen(false)}
+        onSelect={(d, t) => {
+          setStartDate(d);
+          setStartTime(t);
+        }}
+      />
+
+      <DateTimePickerModal
+        visible={dropoffPickerOpen}
+        title="Select Return Date & Time"
+        selectedDate={endDate}
+        selectedTime={endTime}
+        onClose={() => setDropoffPickerOpen(false)}
+        onSelect={(d, t) => {
+          setEndDate(d);
+          setEndTime(t);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -368,6 +406,52 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#9A3412',
   },
+  sectionHeading: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E1B2E',
+    marginBottom: 8,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  dateSelectorBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 12,
+  },
+  dateLabel: {
+    fontSize: 9.5,
+    color: '#64748B',
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  dateValRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dateVal: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1E1B2E',
+  },
+  timeValRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  timeVal: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FF6000',
+  },
   specsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -450,47 +534,6 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: '#0F172A',
     fontWeight: '800',
-  },
-  sectionHeading: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1E1B2E',
-    marginBottom: 8,
-  },
-  dateSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 14,
-    padding: 14,
-  },
-  dateInputsRow: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  dateField: {
-    flex: 1,
-  },
-  dateLabel: {
-    fontSize: 10,
-    color: '#64748B',
-    fontWeight: '800',
-  },
-  dateVal: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1E1B2E',
-    padding: 0,
-    marginTop: 3,
-  },
-  verticalDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: '#E2E8F0',
-    marginHorizontal: 14,
   },
   footer: {
     position: 'absolute',
