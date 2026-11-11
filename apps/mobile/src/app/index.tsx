@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, getVehicleImageSource, getCarDistance, getVehicleTerms } from '@/services/api';
 import { DateTimePickerModal } from '@/components/datetime-picker-modal';
 import {
@@ -33,6 +34,13 @@ import {
   Tag,
   Building2,
   Plane,
+  Compass,
+  Crown,
+  Briefcase,
+  Zap,
+  SlidersHorizontal,
+  Flame,
+  CheckCircle2,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
@@ -40,34 +48,10 @@ const CARD_WIDTH = (W - 42) / 2;
 
 const CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Gandhinagar', 'Rajkot'];
 
-const BOOKING_TILES = [
-  {
-    id: 'daily',
-    title: 'Daily Drive',
-    sub: '4+ Hours',
-    badge: 'Flexible KMs',
-    image: require('../../assets/cars/swift.jpg'),
-  },
-  {
-    id: 'subscription',
-    title: 'SUBSCRIPTION',
-    sub: '7+ days',
-    badge: 'Save 25%',
-    image: require('../../assets/cars/creta.jpg'),
-  },
-  {
-    id: 'pass',
-    title: 'Weekday Pass',
-    sub: 'Mon to Fri',
-    badge: 'Limited Kms',
-    image: require('../../assets/cars/dzire.jpg'),
-  },
-];
-
 const OUR_BENEFITS = [
-  { icon: ShieldCheck, title: '100% Secured Trip', sub: 'Hassle Free' },
+  { icon: ShieldCheck, title: '100% Secured Trip', sub: 'Hassle-Free Handover' },
   { icon: MapPin, title: 'Doorstep Delivery', sub: 'Airport & Citywide' },
-  { icon: Star, title: '25k+ Top Rated', sub: 'Cars Across Gujarat' },
+  { icon: Star, title: '25k+ Top Rated', sub: 'Verified Private Cars' },
   { icon: Tag, title: 'Zero Security Deposit', sub: 'On DigiLocker KYC' },
 ];
 
@@ -82,11 +66,16 @@ const formatShortDate = (s: string) => {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = require('@/context/AuthContext').useAuth();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [bookingMode, setBookingMode] = useState<'self' | 'taxi'>('self');
   const [city, setCity] = useState('Ahmedabad');
   const [hubAddress, setHubAddress] = useState('Swami Vivekanand Bridge, Ahmedabad');
   const [deliveryAnywhere, setDeliveryAnywhere] = useState(true);
+  const [kmPackage, setKmPackage] = useState<'standard' | 'unlimited'>('standard');
+  const [activeDriveOption, setActiveDriveOption] = useState<string>('all');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchFeedback, setSearchFeedback] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   // Dates: Tomorrow to Day after tomorrow
@@ -138,14 +127,26 @@ export default function HomeScreen() {
     return Math.max(1, Math.ceil((b - a) / 864e5));
   }, [startDate, endDate]);
 
+  // Filter fleet based on drive option and mode
   const fleet = useMemo(() => {
     return vehicles.filter((v) => {
       const isTaxi = String(v.model || '').toLowerCase().includes('taxi');
       if (bookingMode === 'self' && isTaxi) return false;
       if (bookingMode === 'taxi' && !isTaxi) return false;
+
+      // Filter by drive option
+      if (activeDriveOption === 'yatra') {
+        // Outstation road trips: SUVs, Sedans & tourers
+        const cat = String(v.category || '').toUpperCase();
+        return cat.includes('SUV') || cat.includes('MUV') || String(v.model || '').toLowerCase().includes('thar');
+      }
+      if (activeDriveOption === 'business') {
+        // Executive business: Automatics and Sedans
+        return String(v.transmission || '').toLowerCase().includes('auto') || String(v.category || '').toUpperCase().includes('SEDAN');
+      }
       return true;
     });
-  }, [vehicles, bookingMode]);
+  }, [vehicles, bookingMode, activeDriveOption]);
 
   const openCar = (id: string) => {
     router.push({
@@ -156,6 +157,41 @@ export default function HomeScreen() {
 
   // Safe top padding guaranteeing clearance above the iPhone notch / Dynamic Island
   const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
+
+  // Handle Search Car Button
+  const handleSearchCars = () => {
+    setIsSearching(true);
+    setSearchFeedback(`Found ${fleet.length} verified cars in ${city} for ${formatShortDate(startDate)} → ${formatShortDate(endDate)}`);
+    setTimeout(() => {
+      setIsSearching(false);
+      scrollRef.current?.scrollTo({ y: 550, animated: true });
+    }, 300);
+  };
+
+  // Handle Selection of Safar Original Drive Options
+  const handleSelectDriveOption = (optionId: string) => {
+    setActiveDriveOption(optionId);
+    if (optionId === 'flexidrive') {
+      setKmPackage('standard');
+      setSearchFeedback('FlexiDrive™ selected: Flexible daily rate with 300 KMs included.');
+    } else if (optionId === 'yatra') {
+      setKmPackage('unlimited');
+      setSearchFeedback('Gujarat Yatra™ selected: Unlimited KMs package for outstation trips.');
+    } else if (optionId === 'clublease') {
+      // Set to 7 days ahead
+      const startD = new Date(startDate);
+      const newEnd = new Date(startD.getTime() + 7 * 864e5);
+      setEndDate(ymd(newEnd));
+      setSearchFeedback('Club Lease™ selected: 7-day extended booking with 25% discount unlocked.');
+    } else if (optionId === 'business') {
+      setKmPackage('standard');
+      setSearchFeedback('Business Exec™ selected: Automatic corporate sedans & SUVs.');
+    }
+    // Smooth scroll down to the cars fleet
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: 550, animated: true });
+    }, 200);
+  };
 
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>
@@ -204,16 +240,28 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ────────── SAFAR PURPLE & ORANGE BRANDING BANNER ────────── */}
-        <View style={s.heroBanner}>
-          <Text style={s.heroSub}>Book Self-drive Cars Now</Text>
-          <View style={s.titleDecorationRow}>
-            <View style={s.titleLine} />
-            <Text style={s.heroMainTitle}>Drive Daily{'\n'}Anywhere - Anytime</Text>
-            <View style={s.titleLine} />
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ────────── SAFAR GRADIENT HERO BANNER ────────── */}
+        <LinearGradient
+          colors={['#FAF5FF', '#F3EEFA', '#FDFBFF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.heroBanner}
+        >
+          <View style={s.heroTagBadge}>
+            <Sparkles size={11} color="#FF6000" />
+            <Text style={s.heroTagText}>GUJARAT'S PREMIER SELF DRIVE</Text>
           </View>
-        </View>
+
+          <Text style={s.heroMainTitle}>Your Journey. Your Rules.</Text>
+          <Text style={s.heroSubtitle}>
+            Verified cars with private number plates • Instant DigiLocker handover
+          </Text>
+        </LinearGradient>
 
         {/* ────────── SEARCH & CALENDAR CARD ────────── */}
         <View style={s.searchCard}>
@@ -259,6 +307,30 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* KM Package Selector: 300 kms vs Unlimited */}
+          <View style={s.kmSelectorRow}>
+            <TouchableOpacity
+              style={[s.kmPill, kmPackage === 'standard' && s.kmPillActive]}
+              onPress={() => setKmPackage('standard')}
+              activeOpacity={0.8}
+            >
+              <Text style={[s.kmPillText, kmPackage === 'standard' && s.kmPillTextActive]}>
+                300 Kms incl.
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[s.kmPill, kmPackage === 'unlimited' && s.kmPillActive]}
+              onPress={() => setKmPackage('unlimited')}
+              activeOpacity={0.8}
+            >
+              <Sparkles size={11} color={kmPackage === 'unlimited' ? '#FFD166' : '#FF6000'} />
+              <Text style={[s.kmPillText, kmPackage === 'unlimited' && s.kmPillTextActive]}>
+                Unlimited kms
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Delivery & Pick-up from Anywhere Checkbox */}
           <TouchableOpacity
             style={s.checkboxRow}
@@ -268,89 +340,360 @@ export default function HomeScreen() {
             <View style={[s.checkbox, deliveryAnywhere && s.checkboxActive]}>
               {deliveryAnywhere && <Check size={12} color="#FFF" strokeWidth={3} />}
             </View>
-            <Text style={s.checkboxLabel}>Delivery & Pick-up, from anywhere</Text>
+            <Text style={s.checkboxLabel}>Doorstep delivery & pickup from anywhere</Text>
           </TouchableOpacity>
 
-          {/* Safar Orange Search Car CTA Button */}
+          {/* Safar Vibrant Orange Gradient Search Car CTA Button */}
           <TouchableOpacity
             style={s.searchCarBtn}
-            onPress={() => {
-              // Smooth scroll to results
-            }}
+            onPress={handleSearchCars}
             activeOpacity={0.88}
           >
-            <Text style={s.searchCarBtnText}>Search Car</Text>
+            <LinearGradient
+              colors={['#FF6000', '#FF7A1A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.searchCarGradient}
+            >
+              {isSearching ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Search size={17} color="#FFFFFF" strokeWidth={2.4} />
+                  <Text style={s.searchCarBtnText}>Search Available Cars</Text>
+                  <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* ────────── FLEXI PICKUP & DROP NOTICE CARD ────────── */}
-        <View style={s.flexiCard}>
-          <View style={s.flexiBadge}>
-            <Text style={s.flexiBadgeText}>⇄ Flexi Pickup & Drop</Text>
+        {/* ────────── MODERN GRADIENT FLEXI NOTICE CARD ────────── */}
+        <LinearGradient
+          colors={['#FAF5FF', '#F4ECFB']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.flexiCard}
+        >
+          <View style={s.flexiTopRow}>
+            <LinearGradient
+              colors={['#2D114D', '#461979']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.flexiBadge}
+            >
+              <Sparkles size={11} color="#FFD166" />
+              <Text style={s.flexiBadgeText}>FLEXI DOORSTEP SERVICE</Text>
+            </LinearGradient>
+
+            <View style={s.flexiDistancePill}>
+              <MapPin size={11} color="#FF6000" />
+              <Text style={s.flexiDistanceText}>Airport & Citywide</Text>
+            </View>
           </View>
           <Text style={s.flexiText}>
-            Hosts can now deliver and collect the car from your chosen pickup and drop locations.
+            Hosts can deliver and collect your car directly at your doorstep, hotel, or Ahmedabad / Surat Airport.
           </Text>
-        </View>
+        </LinearGradient>
 
-        {/* ────────── BOOKING TYPE TILES (DAILY DRIVE / SUBSCRIPTION / PASS) ────────── */}
+        {/* ────────── ORIGINAL SAFAR DRIVE FORMATS (NOT ZOOMCAR COPIED) ────────── */}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionMainTitle}>Self Drive Options</Text>
+          <View>
+            <Text style={s.sectionMainTitle}>Safar Drive Formats</Text>
+            <Text style={s.sectionSubTitle}>Curated self-drive plans crafted for Gujarat</Text>
+          </View>
+          {activeDriveOption !== 'all' && (
+            <TouchableOpacity onPress={() => setActiveDriveOption('all')}>
+              <Text style={s.resetFilterText}>Show All</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <View style={s.bentoGrid}>
-          {/* Daily Drive Big Card (Left) */}
+        {/* 2x2 Clean Modern Grid of Distinctive Safar Formats */}
+        <View style={s.driveFormatsGrid}>
+          {/* Tile 1: Safar FlexiDrive™ */}
           <TouchableOpacity
-            style={s.bentoBigCard}
-            onPress={() => setBookingMode('self')}
+            style={[s.formatCard, activeDriveOption === 'flexidrive' && s.formatCardSelected]}
+            onPress={() => handleSelectDriveOption('flexidrive')}
             activeOpacity={0.85}
           >
-            <View style={s.bentoTag}>
-              <Text style={s.bentoTagText}>DAILY DRIVE</Text>
-            </View>
-            <Text style={s.bentoBigTitle}>Daily Drive</Text>
-            <Text style={s.bentoBigSub}>4+ Hours • Flexible KMs</Text>
-            <Image
-              source={BOOKING_TILES[0].image}
-              style={s.bentoBigImg}
-              resizeMode="contain"
-            />
+            <LinearGradient
+              colors={activeDriveOption === 'flexidrive' ? ['#2D114D', '#441473'] : ['#FAF5FF', '#F3EEFA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={s.formatCardGradient}
+            >
+              <View style={s.formatHeaderRow}>
+                <View
+                  style={[
+                    s.formatIconBox,
+                    activeDriveOption === 'flexidrive' ? s.formatIconBoxActive : s.formatIconBoxPurple,
+                  ]}
+                >
+                  <Zap size={18} color={activeDriveOption === 'flexidrive' ? '#FF6000' : '#2D114D'} />
+                </View>
+                <View
+                  style={[
+                    s.formatTagBadge,
+                    activeDriveOption === 'flexidrive' ? s.formatTagActive : s.formatTagDefault,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.formatTagText,
+                      activeDriveOption === 'flexidrive' ? s.formatTagTextActive : s.formatTagTextPurple,
+                    ]}
+                  >
+                    MOST POPULAR
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                style={[
+                  s.formatTitle,
+                  activeDriveOption === 'flexidrive' ? s.textWhite : s.textPurple,
+                ]}
+              >
+                FlexiDrive™
+              </Text>
+              <Text
+                style={[
+                  s.formatSub,
+                  activeDriveOption === 'flexidrive' ? s.textLightPurple : s.textMuted,
+                ]}
+              >
+                Hourly & Daily • Flexible return
+              </Text>
+              <View style={s.formatFooterRow}>
+                <Text
+                  style={[
+                    s.formatPerk,
+                    activeDriveOption === 'flexidrive' ? s.textGold : s.textOrange,
+                  ]}
+                >
+                  ⚡ Zero Security Deposit
+                </Text>
+                <ArrowRight
+                  size={14}
+                  color={activeDriveOption === 'flexidrive' ? '#FFFFFF' : '#2D114D'}
+                />
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
 
-          {/* Right Stack: Subscription & Weekday Pass */}
-          <View style={s.bentoRightCol}>
-            <TouchableOpacity
-              style={s.bentoSmallCard}
-              onPress={() => setBookingMode('self')}
-              activeOpacity={0.85}
+          {/* Tile 2: Safar Gujarat Yatra™ */}
+          <TouchableOpacity
+            style={[s.formatCard, activeDriveOption === 'yatra' && s.formatCardSelected]}
+            onPress={() => handleSelectDriveOption('yatra')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={activeDriveOption === 'yatra' ? ['#2D114D', '#441473'] : ['#FFF7ED', '#FFEDD5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={s.formatCardGradient}
             >
-              <View>
-                <Text style={s.bentoSmallTitle}>SUBSCRIPTION</Text>
-                <Text style={s.bentoSmallSub}>7+ days • Save 25%</Text>
+              <View style={s.formatHeaderRow}>
+                <View
+                  style={[
+                    s.formatIconBox,
+                    activeDriveOption === 'yatra' ? s.formatIconBoxActive : s.formatIconBoxOrange,
+                  ]}
+                >
+                  <Compass size={18} color={activeDriveOption === 'yatra' ? '#FF6000' : '#C2410C'} />
+                </View>
+                <View
+                  style={[
+                    s.formatTagBadge,
+                    activeDriveOption === 'yatra' ? s.formatTagActive : s.formatTagAmber,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.formatTagText,
+                      activeDriveOption === 'yatra' ? s.formatTagTextActive : s.formatTagTextAmber,
+                    ]}
+                  >
+                    UNLIMITED KMS
+                  </Text>
+                </View>
               </View>
-              <Image
-                source={BOOKING_TILES[1].image}
-                style={s.bentoSmallImg}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={s.bentoSmallCard}
-              onPress={() => setBookingMode('self')}
-              activeOpacity={0.85}
-            >
-              <View>
-                <Text style={s.bentoSmallTitle}>Weekday Pass</Text>
-                <Text style={s.bentoSmallSub}>Mon to Fri • City Pass</Text>
+              <Text
+                style={[
+                  s.formatTitle,
+                  activeDriveOption === 'yatra' ? s.textWhite : s.textDarkAmber,
+                ]}
+              >
+                Gujarat Yatra™
+              </Text>
+              <Text
+                style={[
+                  s.formatSub,
+                  activeDriveOption === 'yatra' ? s.textLightPurple : s.textMutedAmber,
+                ]}
+              >
+                Somnath • Dwarka • Gir • Kevadia
+              </Text>
+              <View style={s.formatFooterRow}>
+                <Text
+                  style={[
+                    s.formatPerk,
+                    activeDriveOption === 'yatra' ? s.textGold : s.textOrange,
+                  ]}
+                >
+                  🚗 Highway SUVs & 4x4
+                </Text>
+                <ArrowRight
+                  size={14}
+                  color={activeDriveOption === 'yatra' ? '#FFFFFF' : '#C2410C'}
+                />
               </View>
-              <Image
-                source={BOOKING_TILES[2].image}
-                style={s.bentoSmallImg}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-          </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Tile 3: Safar Club Lease™ */}
+          <TouchableOpacity
+            style={[s.formatCard, activeDriveOption === 'clublease' && s.formatCardSelected]}
+            onPress={() => handleSelectDriveOption('clublease')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={activeDriveOption === 'clublease' ? ['#2D114D', '#441473'] : ['#FAF5FF', '#F1E9FA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={s.formatCardGradient}
+            >
+              <View style={s.formatHeaderRow}>
+                <View
+                  style={[
+                    s.formatIconBox,
+                    activeDriveOption === 'clublease' ? s.formatIconBoxActive : s.formatIconBoxPurple,
+                  ]}
+                >
+                  <Crown size={18} color={activeDriveOption === 'clublease' ? '#FFD166' : '#6B21A8'} />
+                </View>
+                <View
+                  style={[
+                    s.formatTagBadge,
+                    activeDriveOption === 'clublease' ? s.formatTagActive : s.formatTagPurple,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.formatTagText,
+                      activeDriveOption === 'clublease' ? s.formatTagTextActive : s.formatTagTextPurple,
+                    ]}
+                  >
+                    SAVE UP TO 35%
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                style={[
+                  s.formatTitle,
+                  activeDriveOption === 'clublease' ? s.textWhite : s.textPurple,
+                ]}
+              >
+                Club Lease™
+              </Text>
+              <Text
+                style={[
+                  s.formatSub,
+                  activeDriveOption === 'clublease' ? s.textLightPurple : s.textMuted,
+                ]}
+              >
+                7 to 90 Days • Free Car Swap
+              </Text>
+              <View style={s.formatFooterRow}>
+                <Text
+                  style={[
+                    s.formatPerk,
+                    activeDriveOption === 'clublease' ? s.textGold : s.textOrange,
+                  ]}
+                >
+                  👑 Zero Maintenance
+                </Text>
+                <ArrowRight
+                  size={14}
+                  color={activeDriveOption === 'clublease' ? '#FFFFFF' : '#2D114D'}
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Tile 4: Safar Business Exec™ */}
+          <TouchableOpacity
+            style={[s.formatCard, activeDriveOption === 'business' && s.formatCardSelected]}
+            onPress={() => handleSelectDriveOption('business')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={activeDriveOption === 'business' ? ['#2D114D', '#441473'] : ['#F8FAFC', '#EEF2F6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={s.formatCardGradient}
+            >
+              <View style={s.formatHeaderRow}>
+                <View
+                  style={[
+                    s.formatIconBox,
+                    activeDriveOption === 'business' ? s.formatIconBoxActive : s.formatIconBoxBlue,
+                  ]}
+                >
+                  <Briefcase size={18} color={activeDriveOption === 'business' ? '#60A5FA' : '#1E40AF'} />
+                </View>
+                <View
+                  style={[
+                    s.formatTagBadge,
+                    activeDriveOption === 'business' ? s.formatTagActive : s.formatTagBlue,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.formatTagText,
+                      activeDriveOption === 'business' ? s.formatTagTextActive : s.formatTagTextBlue,
+                    ]}
+                  >
+                    MON – FRI PASS
+                  </Text>
+                </View>
+              </View>
+
+              <Text
+                style={[
+                  s.formatTitle,
+                  activeDriveOption === 'business' ? s.textWhite : s.textDarkBlue,
+                ]}
+              >
+                Business Exec™
+              </Text>
+              <Text
+                style={[
+                  s.formatSub,
+                  activeDriveOption === 'business' ? s.textLightPurple : s.textMutedBlue,
+                ]}
+              >
+                Ahmedabad & Surat Commute
+              </Text>
+              <View style={s.formatFooterRow}>
+                <Text
+                  style={[
+                    s.formatPerk,
+                    activeDriveOption === 'business' ? s.textGold : s.textBlue,
+                  ]}
+                >
+                  💼 GST Invoice Ready
+                </Text>
+                <ArrowRight
+                  size={14}
+                  color={activeDriveOption === 'business' ? '#FFFFFF' : '#1E40AF'}
+                />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         {/* ────────── OUR BENEFITS SECTION ────────── */}
@@ -359,7 +702,9 @@ export default function HomeScreen() {
             const Icon = item.icon;
             return (
               <View key={idx} style={s.benefitCard}>
-                <Icon size={16} color="#FF6000" />
+                <View style={s.benefitIconCircle}>
+                  <Icon size={14} color="#FF6000" />
+                </View>
                 <Text style={s.benefitTitle}>{item.title}</Text>
                 <Text style={s.benefitSub}>{item.sub}</Text>
               </View>
@@ -367,13 +712,24 @@ export default function HomeScreen() {
           })}
         </View>
 
+        {/* ────────── ACTIVE SEARCH / FILTER FEEDBACK BANNER ────────── */}
+        {searchFeedback && (
+          <View style={s.feedbackBanner}>
+            <CheckCircle2 size={16} color="#059669" />
+            <Text style={s.feedbackText}>{searchFeedback}</Text>
+          </View>
+        )}
+
         {/* ────────── "UNMATCHED SELECTION" HEADER ────────── */}
         <View style={s.selectionHeaderCard}>
-          <Text style={s.selectionTitle}>Unmatched Selection</Text>
-          <Text style={s.selectionSub}>Our Finest Cars for Your Next Adventure</Text>
-          <Text style={s.selectionDates}>
-            For your trip on {formatShortDate(startDate)} - {formatShortDate(endDate)} ({days} {days === 1 ? 'day' : 'days'})
-          </Text>
+          <Text style={s.selectionTitle}>Verified Gujarat Fleet</Text>
+          <Text style={s.selectionSub}>Sanitized cars with complete insurance & instant handover</Text>
+          <View style={s.selectionDatesPill}>
+            <Calendar size={11} color="#FF6000" />
+            <Text style={s.selectionDates}>
+              {formatShortDate(startDate)} – {formatShortDate(endDate)} ({days} {days === 1 ? 'day' : 'days'})
+            </Text>
+          </View>
         </View>
 
         {/* ────────── 2-COLUMN CAR BOX GRID ────────── */}
@@ -385,8 +741,14 @@ export default function HomeScreen() {
         ) : fleet.length === 0 ? (
           <View style={s.emptyBox}>
             <Car size={36} color="#9CA3AF" />
-            <Text style={s.emptyTitle}>No cars available for selected dates</Text>
-            <Text style={s.emptySub}>Try adjusting dates or city location.</Text>
+            <Text style={s.emptyTitle}>No cars available for selected filter</Text>
+            <Text style={s.emptySub}>Tap Show All or select another location/date.</Text>
+            <TouchableOpacity
+              style={s.resetEmptyBtn}
+              onPress={() => setActiveDriveOption('all')}
+            >
+              <Text style={s.resetEmptyBtnText}>Show All Available Cars</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={s.carGrid}>
@@ -456,9 +818,14 @@ export default function HomeScreen() {
                         </Text>
                       </View>
 
-                      <View style={s.carBoxBookBtn}>
+                      <LinearGradient
+                        colors={['#FF6000', '#FF7A1A']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={s.carBoxBookBtn}
+                      >
                         <Text style={s.carBoxBookText}>Book</Text>
-                      </View>
+                      </LinearGradient>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -625,39 +992,42 @@ const s = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  /* Hero Banner (Safar Purple & Orange) */
+  /* Hero Banner */
   heroBanner: {
-    backgroundColor: '#FAF5FF',
-    paddingTop: 18,
-    paddingBottom: 22,
+    paddingTop: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3E8FF',
+    borderBottomColor: '#EFE8F8',
   },
-  heroSub: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FF6000',
-    marginBottom: 4,
-  },
-  titleDecorationRow: {
+  heroTagBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    gap: 5,
+    backgroundColor: '#FFF1E8',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 6,
   },
-  titleLine: {
-    width: 36,
-    height: 3,
-    backgroundColor: '#FF6000',
-    borderRadius: 2,
+  heroTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FF6000',
+    letterSpacing: 0.8,
   },
   heroMainTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     color: '#2D114D',
     textAlign: 'center',
-    lineHeight: 24,
+  },
+  heroSubtitle: {
+    fontSize: 11.5,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 3,
   },
 
   /* Search Card */
@@ -665,22 +1035,22 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: -12,
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 16,
     borderWidth: 1,
     borderColor: '#EFEBF5',
     shadowColor: '#2D114D',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 4,
   },
   locationInputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAF8FD',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D8CEE8',
+    borderColor: '#E6DDF2',
     paddingHorizontal: 12,
     paddingVertical: 12,
     gap: 10,
@@ -698,10 +1068,10 @@ const s = StyleSheet.create({
   },
   dateBox: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAF8FD',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D8CEE8',
+    borderColor: '#E6DDF2',
     padding: 10,
   },
   dateBoxLabel: {
@@ -715,6 +1085,39 @@ const s = StyleSheet.create({
     color: '#2D114D',
     marginTop: 3,
   },
+
+  /* KM Selector Row */
+  kmSelectorRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  kmPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#F3EEFA',
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+  },
+  kmPillActive: {
+    backgroundColor: '#2D114D',
+    borderColor: '#2D114D',
+  },
+  kmPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2D114D',
+  },
+  kmPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -725,7 +1128,7 @@ const s = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
-    borderRadius: 4,
+    borderRadius: 5,
     borderWidth: 1.5,
     borderColor: '#9CA3AF',
     alignItems: 'center',
@@ -741,15 +1144,21 @@ const s = StyleSheet.create({
     fontWeight: '500',
   },
   searchCarBtn: {
-    backgroundColor: '#FF6000',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
+    borderRadius: 14,
     marginTop: 14,
+    overflow: 'hidden',
     shadowColor: '#FF6000',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  searchCarGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   searchCarBtnText: {
     color: '#FFFFFF',
@@ -761,113 +1170,195 @@ const s = StyleSheet.create({
   flexiCard: {
     marginHorizontal: 16,
     marginTop: 14,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: '#2D114D',
-    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E6D8F8',
+    padding: 14,
+  },
+  flexiTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
   flexiBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#2D114D',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    marginBottom: 6,
   },
   flexiBadgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  flexiDistancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  flexiDistanceText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FF6000',
   },
   flexiText: {
-    fontSize: 11,
-    color: '#374151',
-    lineHeight: 16,
-    fontWeight: '500',
+    fontSize: 11.5,
+    color: '#4B5563',
+    lineHeight: 16.5,
   },
 
-  /* Booking Bento Tiles */
+  /* Section Header */
   sectionHeader: {
-    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 22,
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   sectionMainTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '900',
     color: '#2D114D',
   },
-  bentoGrid: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    gap: 10,
+  sectionSubTitle: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
   },
-  bentoBigCard: {
-    flex: 1.1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#EFEBF5',
-    justifyContent: 'space-between',
-    minHeight: 180,
-  },
-  bentoTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFF7ED',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  bentoTagText: {
-    fontSize: 8,
+  resetFilterText: {
+    fontSize: 12,
     fontWeight: '800',
     color: '#FF6000',
   },
-  bentoBigTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#2D114D',
-    marginTop: 4,
-  },
-  bentoBigSub: {
-    fontSize: 10,
-    color: '#6B7280',
-  },
-  bentoBigImg: {
-    width: '100%',
-    height: 90,
-  },
-  bentoRightCol: {
-    flex: 1,
+
+  /* Drive Formats 2x2 Grid */
+  driveFormatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: 16,
     gap: 10,
   },
-  bentoSmallCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 10,
+  formatCard: {
+    width: (W - 42) / 2,
+    borderRadius: 18,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#EFEBF5',
+    shadowColor: '#2D114D',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  formatCardSelected: {
+    borderColor: '#FF6000',
+    borderWidth: 1.5,
+  },
+  formatCardGradient: {
+    padding: 12,
+    minHeight: 136,
+    justifyContent: 'space-between',
+  },
+  formatHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  bentoSmallTitle: {
-    fontSize: 12,
+  formatIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  formatIconBoxActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  formatIconBoxPurple: {
+    backgroundColor: '#F3EEFA',
+  },
+  formatIconBoxOrange: {
+    backgroundColor: '#FFEDD5',
+  },
+  formatIconBoxBlue: {
+    backgroundColor: '#DBEAFE',
+  },
+  formatTagBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  formatTagActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  formatTagDefault: {
+    backgroundColor: '#FFF1E8',
+  },
+  formatTagAmber: {
+    backgroundColor: '#FEF3C7',
+  },
+  formatTagPurple: {
+    backgroundColor: '#F3E8FF',
+  },
+  formatTagBlue: {
+    backgroundColor: '#DBEAFE',
+  },
+  formatTagText: {
+    fontSize: 8,
     fontWeight: '800',
+  },
+  formatTagTextActive: {
+    color: '#FFFFFF',
+  },
+  formatTagTextPurple: {
     color: '#2D114D',
   },
-  bentoSmallSub: {
-    fontSize: 9,
-    color: '#6B7280',
-    marginTop: 1,
+  formatTagTextAmber: {
+    color: '#92400E',
   },
-  bentoSmallImg: {
-    width: 60,
-    height: 40,
+  formatTagTextBlue: {
+    color: '#1E40AF',
   },
+  formatTitle: {
+    fontSize: 14.5,
+    fontWeight: '900',
+    marginTop: 6,
+  },
+  formatSub: {
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  formatFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+  },
+  formatPerk: {
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
+
+  /* Text Color Helpers */
+  textWhite: { color: '#FFFFFF' },
+  textPurple: { color: '#2D114D' },
+  textDarkAmber: { color: '#7C2D12' },
+  textDarkBlue: { color: '#0F172A' },
+  textLightPurple: { color: '#E9D5FF' },
+  textMuted: { color: '#6B7280' },
+  textMutedAmber: { color: '#9A3412' },
+  textMutedBlue: { color: '#64748B' },
+  textGold: { color: '#FFD166' },
+  textOrange: { color: '#FF6000' },
+  textBlue: { color: '#2563EB' },
 
   /* Benefits Row */
   benefitsRow: {
@@ -875,52 +1366,92 @@ const s = StyleSheet.create({
     flexWrap: 'wrap',
     marginHorizontal: 16,
     gap: 8,
-    marginTop: 16,
+    marginTop: 18,
   },
   benefitCard: {
     width: (W - 40) / 2,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 10,
     borderWidth: 1,
     borderColor: '#EFEBF5',
     gap: 3,
   },
+  benefitIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFF1E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   benefitTitle: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#2D114D',
     marginTop: 2,
   },
   benefitSub: {
-    fontSize: 9,
+    fontSize: 9.5,
     color: '#6B7280',
+  },
+
+  /* Feedback Banner */
+  feedbackBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 14,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    padding: 10,
+  },
+  feedbackText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#065F46',
+    flex: 1,
   },
 
   /* Unmatched Selection Header */
   selectionHeaderCard: {
     marginHorizontal: 16,
     marginTop: 20,
-    backgroundColor: '#F3EEFA',
-    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
   },
   selectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
     color: '#2D114D',
   },
   selectionSub: {
     fontSize: 11,
     color: '#6B7280',
     marginTop: 2,
+    textAlign: 'center',
+  },
+  selectionDatesPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 6,
   },
   selectionDates: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '800',
     color: '#FF6000',
-    marginTop: 4,
   },
 
   /* 2-Column Car Box Grid */
@@ -934,13 +1465,13 @@ const s = StyleSheet.create({
   carBoxCard: {
     width: CARD_WIDTH,
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#EFEBF5',
     overflow: 'hidden',
     shadowColor: '#2D114D',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
   },
   carBoxImageWrap: {
@@ -955,29 +1486,29 @@ const s = StyleSheet.create({
   },
   carBoxRating: {
     position: 'absolute',
-    top: 6,
-    left: 6,
+    top: 8,
+    left: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    backgroundColor: 'rgba(45, 17, 77, 0.85)',
-    borderRadius: 4,
-    paddingHorizontal: 5,
+    gap: 3,
+    backgroundColor: 'rgba(45, 17, 77, 0.82)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
     paddingVertical: 2,
   },
   carBoxRatingText: {
-    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
+    color: '#FFFFFF',
   },
   carBoxHeart: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: 8,
+    right: 8,
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(45, 17, 77, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -987,123 +1518,134 @@ const s = StyleSheet.create({
   carBoxTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   carBoxSpecs: {
     fontSize: 10,
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: 1,
   },
   carBoxDistance: {
-    fontSize: 10,
-    color: '#FF6000',
-    fontWeight: '600',
-    marginTop: 4,
+    fontSize: 9.5,
+    color: '#8A8F98',
+    marginTop: 3,
   },
   carBoxPriceRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-end',
+    justifyContent: 'space-between',
     marginTop: 8,
     paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
   carBoxPrice: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '900',
     color: '#2D114D',
   },
   carBoxUnit: {
-    fontSize: 9,
+    fontSize: 9.5,
+    fontWeight: '600',
     color: '#6B7280',
-    fontWeight: '500',
   },
   carBoxTripTotal: {
     fontSize: 9,
-    color: '#FF6000',
-    fontWeight: '700',
+    color: '#8A8F98',
+    marginTop: 1,
   },
   carBoxBookBtn: {
-    backgroundColor: '#2D114D',
-    borderRadius: 6,
-    paddingHorizontal: 8,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     paddingVertical: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   carBoxBookText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  loadingBox: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  emptyBox: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 30,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2D114D',
+  },
+  emptySub: {
+    fontSize: 11,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  resetEmptyBtn: {
+    backgroundColor: '#2D114D',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginTop: 6,
+  },
+  resetEmptyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
     fontWeight: '800',
   },
 
   /* Host Banner */
   hostBanner: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    backgroundColor: '#1E0A34',
+    borderRadius: 18,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 18,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#EFEBF5',
     gap: 12,
   },
   hostBannerTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#FFFFFF',
   },
   hostBannerSub: {
-    fontSize: 10,
-    color: '#6B7280',
-    marginTop: 2,
+    fontSize: 10.5,
+    color: '#D8B4FE',
+    marginTop: 3,
+    lineHeight: 15,
   },
   hostBannerAction: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FFF7ED',
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
+    borderRadius: 10,
   },
   hostBannerActionText: {
     fontSize: 11,
     fontWeight: '800',
     color: '#FF6000',
-  },
-
-  /* Empty & Loading */
-  loadingBox: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 8,
-  },
-  emptyBox: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    borderRadius: 14,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EFEBF5',
-    marginTop: 10,
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 8,
-  },
-  emptySub: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
   },
 
   /* City Modal */
@@ -1112,40 +1654,40 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
   citySheet: {
-    width: '82%',
+    width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 18,
+    gap: 6,
   },
   citySheetTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: '#2D114D',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   cityRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     gap: 10,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   cityRowActive: {
-    backgroundColor: '#FFF7ED',
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    backgroundColor: '#FAF5FF',
   },
   cityRowText: {
     flex: 1,
-    fontSize: 13,
-    color: '#374151',
+    fontSize: 14,
     fontWeight: '600',
+    color: '#374151',
   },
   cityRowTextActive: {
-    color: '#FF6000',
+    color: '#2D114D',
     fontWeight: '800',
   },
 });
