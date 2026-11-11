@@ -79,6 +79,11 @@ export class Msg91Service {
       body: JSON.stringify({}),
     });
     const payload = await this.parse(response);
+    console.log('[MSG91 OTP SEND RESPONSE]', {
+      status: response.status,
+      phone: this.providerPhone(phone),
+      payload,
+    });
     if (!this.successful(response, payload)) {
       throw new ServiceUnavailableException(this.providerError(payload));
     }
