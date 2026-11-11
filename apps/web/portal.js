@@ -1170,26 +1170,41 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
   });
 
   bindForm('#dialog-otp-request-form', async formData => {
-    const rawPhone = (formData.phone || '').trim().replace(/\D/g, '');
-    const phone = rawPhone.length === 10 ? '+91' + rawPhone : (formData.phone || '').trim();
+    const rawDigits = (formData.phone || '').trim().replace(/\D/g, '');
+    const phone = rawDigits.length === 10 ? '+91' + rawDigits : (formData.phone || '').trim();
 
     await ensureFirebaseLoaded();
     let useFirebasePhone = false;
     let confirmationResult = null;
+    let firebaseError = null;
+
     if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
       try {
-        if (!window.safarDialogRecaptcha) {
-          window.safarDialogRecaptcha = new firebase.auth.RecaptchaVerifier('dialog-recaptcha-box', {
-            size: 'invisible'
-          });
+        if (window.safarDialogRecaptcha) {
+          try { window.safarDialogRecaptcha.clear(); } catch (_) {}
+          window.safarDialogRecaptcha = null;
         }
+        window.safarDialogRecaptcha = new firebase.auth.RecaptchaVerifier('dialog-recaptcha-box', {
+          size: 'invisible'
+        });
+        toast('Sending real SMS OTP via Google Firebase…');
         confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarDialogRecaptcha);
         window.safarPhoneConfirmation = confirmationResult;
         useFirebasePhone = true;
-        toast('SMS OTP dispatched to ' + phone + ' via Google Firebase!');
+        toast('✅ SMS OTP sent to ' + phone + ' via Google Firebase!');
       } catch (err) {
+        firebaseError = err;
         console.warn('[Firebase Dialog Recaptcha / Phone Auth Note]', err.code || err.message, err);
+        if (err.code === 'auth/unauthorized-domain') {
+          toast(`Firebase Error: '${window.location.hostname}' is not in Authorized Domains in Firebase Console.`, true);
+        } else if (err.code === 'auth/operation-not-allowed') {
+          toast(`Firebase Error: Phone sign-in is disabled in Firebase Console -> Authentication -> Sign-in method.`, true);
+        } else {
+          toast(`Firebase SMS: ${err.message || err.code}`, true);
+        }
       }
+    } else {
+      toast('Firebase SDK is not available. Please check connection.', true);
     }
 
     let devOtpCode = null;
@@ -1399,20 +1414,35 @@ function auth(forceRegister, loginMode = 'otp') {
       await ensureFirebaseLoaded();
       let useFirebasePhone = false;
       let confirmationResult = null;
+      let firebaseError = null;
+
       if (typeof window !== 'undefined' && window.firebase && window.firebase.auth) {
         try {
-          if (!window.safarAuthRecaptcha) {
-            window.safarAuthRecaptcha = new firebase.auth.RecaptchaVerifier('auth-recaptcha-inline', {
-              size: 'invisible'
-            });
+          if (window.safarAuthRecaptcha) {
+            try { window.safarAuthRecaptcha.clear(); } catch (_) {}
+            window.safarAuthRecaptcha = null;
           }
+          window.safarAuthRecaptcha = new firebase.auth.RecaptchaVerifier('auth-recaptcha-inline', {
+            size: 'invisible'
+          });
+          toast('Sending real SMS OTP via Google Firebase…');
           confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarAuthRecaptcha);
           window.safarPhoneConfirmation = confirmationResult;
           useFirebasePhone = true;
-          toast('SMS OTP dispatched to ' + phone + ' via Google Firebase!');
+          toast('✅ Real SMS OTP sent to ' + phone + ' via Google Firebase!');
         } catch (err) {
-          console.warn('[Firebase Auth Recaptcha / Phone Auth Note]', err.code || err.message, err);
+          firebaseError = err;
+          console.warn('[Firebase Auth / Phone Auth Note]', err.code || err.message, err);
+          if (err.code === 'auth/unauthorized-domain') {
+            toast(`Firebase Error: '${window.location.hostname}' is not in Authorized Domains in Firebase Console.`, true);
+          } else if (err.code === 'auth/operation-not-allowed') {
+            toast(`Firebase Error: Phone sign-in is disabled in Firebase Console -> Authentication -> Sign-in method.`, true);
+          } else {
+            toast(`Firebase SMS: ${err.message || err.code}`, true);
+          }
         }
+      } else {
+        toast('Firebase SDK is not available. Please check connection.', true);
       }
 
       let devOtpCode = null;
