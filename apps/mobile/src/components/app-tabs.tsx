@@ -61,6 +61,7 @@ export default function AppTabs() {
   return (
     <Tabs tabBar={() => <SafarTabBar />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="cars" />
       <Tabs.Screen name="trips" />
       <Tabs.Screen name="verification" />
       <Tabs.Screen name="host" />

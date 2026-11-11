@@ -188,30 +188,52 @@ export default function HomeScreen() {
   // Safe top padding guaranteeing clearance above the iPhone notch / Dynamic Island
   const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
 
-  // Search Car Action
+  // Search Car Action -> Navigates to dedicated Car Listing Page
   const handleSearchCars = () => {
-    setIsSearching(true);
-    setTimeout(() => {
-      setIsSearching(false);
-      scrollRef.current?.scrollTo({ y: 530, animated: true });
-    }, 250);
+    router.push({
+      pathname: '/cars',
+      params: {
+        city,
+        hub: hubAddress,
+        startDate,
+        endDate,
+        startTime,
+        endTime,
+        kmPackage,
+        tier: selectedTier,
+        deliveryAnywhere: String(deliveryAnywhere),
+      },
+    });
   };
 
-  // Select Tier Action
+  // Select Tier Action -> Navigates to dedicated Car Listing Page with selected tier filter
   const handleSelectTier = (tierId: string) => {
     setSelectedTier(tierId);
+    let targetEnd = endDate;
+    let targetKm = kmPackage;
+
     if (tierId === 'outstation') {
-      setKmPackage('unlimited');
+      targetKm = 'unlimited';
     } else if (tierId === 'subscription') {
       const startD = new Date(startDate);
       const newEnd = new Date(startD.getTime() + 7 * 864e5);
-      setEndDate(ymd(newEnd));
-    } else {
-      setKmPackage('standard');
+      targetEnd = ymd(newEnd);
     }
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: 530, animated: true });
-    }, 150);
+
+    router.push({
+      pathname: '/cars',
+      params: {
+        city,
+        hub: hubAddress,
+        startDate,
+        endDate: targetEnd,
+        startTime,
+        endTime,
+        kmPackage: targetKm,
+        tier: tierId,
+        deliveryAnywhere: String(deliveryAnywhere),
+      },
+    });
   };
 
   return (
@@ -456,11 +478,14 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <View style={s.datesBadge}>
-            <Text style={s.datesBadgeText}>
-              {days} {days === 1 ? 'day' : 'days'}
-            </Text>
-          </View>
+          <TouchableOpacity
+            style={s.viewAllFleetBtn}
+            onPress={handleSearchCars}
+            activeOpacity={0.8}
+          >
+            <Text style={s.viewAllFleetBtnText}>View All ({vehicles.length})</Text>
+            <ArrowRight size={12} color="#FF6000" />
+          </TouchableOpacity>
         </View>
 
         {/* ────────── CAR GRID ────────── */}
@@ -1064,6 +1089,20 @@ const s = StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
     marginTop: 1,
+  },
+  viewAllFleetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFF1E8',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  viewAllFleetBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FF6000',
   },
   datesBadge: {
     backgroundColor: '#FAF5FF',
