@@ -229,14 +229,14 @@ function getCarStockPhoto(car) {
 
 function getVehicleCover(v) {
   const stock = getCarStockPhoto(v);
-  if (stock) return stock + '?v=20261111g';
+  if (stock) return stock + '?v=20261111h';
   if (v.images) {
     const u = v.images.split(',').map(s => s.trim()).filter(Boolean)[0];
     if (u && (u.startsWith('http') || u.startsWith('/'))) return u;
   }
   const front = v.media?.find(m => m.kind === 'FRONT');
   if (front?.id) return `/api/media/${front.id}`;
-  return 'cars/thar.jpg?v=20261111g';
+  return 'cars/thar.jpg?v=20261111h';
 }
 
 const badge = s => {
@@ -307,7 +307,7 @@ function brandMark(size = 34, light = false) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="${tile}"/><path d="M27 11.5c-2-1.6-4.4-2.2-7-2-4 .3-6.6 2.6-6.6 5.6 0 6.6 13.4 3.4 13.4 10 0 3.2-3 5.5-7.2 5.5-2.9 0-5.4-1-7.3-2.8" fill="none" stroke="${road}" stroke-width="3.4" stroke-linecap="round"/><circle cx="27.4" cy="11.6" r="2.4" fill="#F07818"/></svg>`;
 }
 function brandLockup(light = false) {
-  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261111g" alt="Safar Self Drive"><span class="ds-brand-word">Safar<small>SELF DRIVE</small></span></span>`;
+  return `<span class="ds-brand"><img class="ds-brand-logo" src="safar-logo.png?v=20261111h" alt="Safar Self Drive"><span class="ds-brand-word"><span class="ds-brand-main">safar</span><small class="ds-brand-sub">- SELF DRIVE -</small></span></span>`;
 }
 
 const page = location.pathname.split('/').pop() || 'index.html';
@@ -386,7 +386,7 @@ async function uploadFile(file, kind) {
 }
 function photoUrl(car) {
   const stock = getCarStockPhoto(car);
-  if (stock) return stock + '?v=20261111g';
+  if (stock) return stock + '?v=20261111h';
   if (car.images) {
     try {
       const p = JSON.parse(car.images);
@@ -398,7 +398,7 @@ function photoUrl(car) {
   }
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
   if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
-  return 'cars/thar.jpg?v=20261111g';
+  return 'cars/thar.jpg?v=20261111h';
 }
 function requireUser(roles) {
   if (!user) { location.replace('auth.html?redirect=' + encodeURIComponent(page + location.search)); return false; }
@@ -614,7 +614,7 @@ function shell() {
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=20261111g').catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=20261111h').catch(() => {});
     });
   }
 
@@ -671,8 +671,8 @@ function shell() {
       <div class="ds-foot-brand">
         <a href="index.html" style="text-decoration:none">
           <span class="ds-brand">
-            <img class="ds-brand-logo" src="safar-logo.png?v=20261111g" alt="Safar Self Drive">
-            <span class="ds-brand-word" style="color:#0F172A">Safar<small style="color:#FF6000">SELF DRIVE</small></span>
+            <img class="ds-brand-logo" src="safar-logo.png?v=20261111h" alt="Safar Self Drive">
+            <span class="ds-brand-word"><span class="ds-brand-main">safar</span><small class="ds-brand-sub">- SELF DRIVE -</small></span>
           </span>
         </a>
         <p style="margin-top:14px;max-width:320px;font-size:13.5px;line-height:1.6;color:#64748B">
@@ -898,7 +898,7 @@ async function home() {
           </ul>
           <div style="margin-top:12px"><a class="button btn-orange btn-lg" href="host-onboarding.html">Become a Host</a></div>
         </div>
-        <img src="cars/fortuner.jpg?v=20261111g" alt="Safar Self Drive Showroom Fleet" loading="lazy">
+        <img src="cars/fortuner.jpg?v=20261111h" alt="Safar Self Drive Showroom Fleet" loading="lazy">
       </div>
     </section>
 
@@ -1267,7 +1267,7 @@ function auth(forceRegister, loginMode = 'otp') {
     <div class="auth-box">
       <aside class="auth-banner">
         <div>
-          <img src="safar-logo.png?v=20261111g" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
+          <img src="safar-logo.png?v=20261111h" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
           <h1>Your Journey.<br>Your Rules.</h1>
           <p>Sign in with Google or mobile OTP to manage trips, verify with DigiLocker, and explore self-drive rentals across Gujarat &amp; Rajasthan.</p>
         </div>
@@ -1956,7 +1956,7 @@ async function carDetails(id) {
         <!-- Photo Gallery Card -->
         <div class="details-gallery" id="sec-gallery">
           <div class="details-main-img-box">
-            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261111g';">
+            <img id="car-hero-img" src="${photoUrl(car)}" alt="${esc(car.make)} ${esc(car.model)}" onerror="this.onerror=null;this.src='cars/thar.jpg?v=20261111h';">
             ${mediaList.length > 1 ? `<span class="gallery-counter" id="gallery-counter-lbl">1 / ${mediaList.length}</span>` : ''}
           </div>
 
