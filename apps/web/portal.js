@@ -1210,11 +1210,6 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
       }
     });
   });
-      if (typeof onSuccess === 'function') {
-        await onSuccess(login.user);
-      }
-    });
-  });
 }
 
 function showDigilockerRequiredModal(vehicleId) {
