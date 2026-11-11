@@ -1,25 +1,58 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Switch,
+  Modal,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Spacing } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
-import { SafarHeader } from '@/components/safar-header';
 import { apiRequest } from '@/services/api';
-import { Wallet, LogIn, Plus, LogOut, ShieldCheck, CreditCard, ChevronRight } from 'lucide-react-native';
+import {
+  Wallet,
+  User,
+  ShieldCheck,
+  CreditCard,
+  Gift,
+  Share2,
+  MapPin,
+  Heart,
+  Headphones,
+  FileText,
+  Star,
+  Settings,
+  LogOut,
+  ChevronRight,
+  Plus,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  X,
+  Phone,
+} from 'lucide-react-native';
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
-export default function WalletScreen() {
-  const colors = Colors.light;
-
-  const authContext = require('@/context/AuthContext');
-  const { user, logout, refreshProfile } = authContext.useAuth();
+export default function ProfileWalletScreen() {
+  const { user, logout, refreshProfile } = require('@/context/AuthContext').useAuth();
 
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+
+  // Settings modal
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [whatsappUpdates, setWhatsappUpdates] = useState(true);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -33,7 +66,7 @@ export default function WalletScreen() {
     setLoading(true);
     try {
       const data = await apiRequest('/wallet');
-      setBalance(Number(data.balance));
+      setBalance(Number(data.balance || 0));
     } catch (error) {
       console.error('Error fetching wallet:', error);
     } finally {
@@ -41,22 +74,22 @@ export default function WalletScreen() {
     }
   };
 
-  const handleDeposit = async (amount: number) => {
-    if (amount <= 0) {
+  const handleDeposit = async (amt: number) => {
+    if (amt <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-    
     setActionLoading(true);
     try {
       await apiRequest('/wallet/deposit', {
         method: 'POST',
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount: amt }),
       });
-      Alert.alert('Success', `INR ${amount.toLocaleString('en-IN')} added to your wallet.`);
+      Alert.alert('Success', `₹${amt.toLocaleString('en-IN')} added to your Safar Wallet.`);
       setDepositAmount('');
+      setDepositModalOpen(false);
       await fetchWallet();
-      refreshProfile(); // refresh auth user context
+      if (refreshProfile) refreshProfile();
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Deposit failed');
     } finally {
@@ -65,7 +98,7 @@ export default function WalletScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    Alert.alert('Sign Out', 'Are you sure you want to sign out of Safar Self Drive?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -78,344 +111,692 @@ export default function WalletScreen() {
     ]);
   };
 
-  // Guest State
-  if (!user) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <SafarHeader />
-        <View style={styles.center}>
-          <Wallet size={48} color={colors.textSecondary} style={{ marginBottom: Spacing.three }} />
-          <ThemedText style={styles.promptTitle}>Account & Wallet</ThemedText>
-          <ThemedText type="small" style={[styles.promptDesc, { color: colors.textSecondary }]}>
-            Sign in to access your Safar account, digital wallet, and booking invoices.
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.loginBtn, { backgroundColor: '#FF6000' }]}
-            onPress={() => router.push('/auth/login')}
-          >
-            <LogIn size={18} color="#FFFFFF" />
-            <ThemedText style={styles.loginBtnText}>Sign In</ThemedText>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const userName = user?.firstName
+    ? `${user.firstName} ${user.lastName || ''}`.trim()
+    : user?.name || 'Safar Guest';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <SafarHeader />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <ThemedText type="title">Profile & Wallet</ThemedText>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>
-              {user.email} • {user.role}
-            </ThemedText>
-          </View>
-        </View>
+    <SafeAreaView style={s.screen} edges={['top']}>
+      {/* ────────── HEADER ────────── */}
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Profile & Account</Text>
+      </View>
 
-        {/* Premium Digital Debit Card */}
-        <View style={[styles.cardContainer, { shadowColor: colors.primary }]}>
-          <View style={[styles.creditCard, { backgroundColor: colors.primary }]}>
-            <View style={styles.cardHeader}>
-              <ThemedText style={styles.cardBrand}>Safar Self Drive</ThemedText>
-              <CreditCard size={24} color="#FFFFFF" opacity={0.8} />
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        {/* ────────── USER CARD ────────── */}
+        {user ? (
+          <View style={s.userCard}>
+            <View style={s.userAvatarBox}>
+              <Text style={s.userAvatarInitial}>{userName.charAt(0).toUpperCase()}</Text>
             </View>
-
-            <View style={styles.cardMid}>
-              <ThemedText style={styles.cardBalanceLabel}>WALLET BALANCE</ThemedText>
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <ThemedText style={styles.cardBalanceValue}>
-                  ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </ThemedText>
-              )}
-            </View>
-
-            <View style={styles.cardFooter}>
-              <View>
-                <ThemedText style={styles.cardHolderLabel}>CARDHOLDER</ThemedText>
-                <ThemedText style={styles.cardHolderValue}>
-                  {user.firstName.toUpperCase()} {user.lastName.toUpperCase()}
-                </ThemedText>
+            <View style={{ flex: 1 }}>
+              <Text style={s.userNameText}>{userName}</Text>
+              <Text style={s.userContactText}>{user.phone || user.email || 'Verified Member'}</Text>
+              <View style={s.kycBadge}>
+                <ShieldCheck size={12} color="#059669" />
+                <Text style={s.kycBadgeText}>
+                  {user.isVerified ? 'DigiLocker KYC Verified' : 'Standard Member'}
+                </Text>
               </View>
-              <ThemedText style={styles.cardNumber}>•••• 2026</ThemedText>
             </View>
+            <TouchableOpacity
+              style={s.editProfileBtn}
+              onPress={() => router.push('/verification')}
+              activeOpacity={0.75}
+            >
+              <Text style={s.editProfileText}>KYC</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <View style={s.guestCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.guestTitle}>Welcome to Safar</Text>
+              <Text style={s.guestSub}>Sign in to manage bookings, wallet & host perks</Text>
+            </View>
+            <TouchableOpacity
+              style={s.loginBtn}
+              onPress={() => router.push('/auth/login')}
+              activeOpacity={0.8}
+            >
+              <Text style={s.loginBtnText}>Log In</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-        {/* Deposit Section */}
-        <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-          <ThemedText style={styles.sectionTitle}>Add Money to Wallet</ThemedText>
-          <ThemedText type="small" style={[styles.sectionDesc, { color: colors.textSecondary }]}>
-            Wallet top-ups are temporarily unavailable until a verified payment provider is connected.
-          </ThemedText>
+        {/* ────────── HOST SWITCH CALLOUT BANNER ────────── */}
+        <TouchableOpacity
+          style={s.hostSwitchBanner}
+          onPress={() => router.push('/host')}
+          activeOpacity={0.88}
+        >
+          <View style={s.hostBannerIcon}>
+            <Sparkles size={20} color="#FF7A00" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.hostBannerTitle}>Safar Host Center</Text>
+            <Text style={s.hostBannerSub}>Manage your hosted vehicles, guest handovers & earnings</Text>
+          </View>
+          <View style={s.switchModeBtn}>
+            <Text style={s.switchModeBtnText}>Open</Text>
+            <ArrowRight size={14} color="#FFF" />
+          </View>
+        </TouchableOpacity>
 
-          {/* Quick options */}
-          <View style={[styles.quickAddRow, { opacity: 0.45 }]}>
-            {QUICK_AMOUNTS.map(amount => (
+        {/* ────────── SAFAR WALLET CARD ────────── */}
+        <View style={s.walletCard}>
+          <View style={s.walletHeaderRow}>
+            <View style={s.walletIconBox}>
+              <Wallet size={18} color="#2D114D" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.walletTitle}>Safar Digital Cash</Text>
+              <Text style={s.walletSub}>Instant zero-fee booking checkout & refunds</Text>
+            </View>
+            <Text style={s.walletBalance}>₹{balance.toLocaleString('en-IN')}</Text>
+          </View>
+
+          {/* Quick Add Pills */}
+          <View style={s.quickAmountsRow}>
+            {QUICK_AMOUNTS.map((amt) => (
               <TouchableOpacity
-                key={amount}
-                style={[styles.quickPill, { backgroundColor: colors.backgroundElement }]}
-                onPress={() => handleDeposit(amount)}
-                disabled
+                key={amt}
+                style={s.quickAmtBtn}
+                onPress={() => handleDeposit(amt)}
+                disabled={actionLoading}
+                activeOpacity={0.75}
               >
-                <ThemedText style={[styles.quickPillText, { color: colors.primary }]}>+₹{amount}</ThemedText>
+                <Plus size={10} color="#2D114D" />
+                <Text style={s.quickAmtText}>₹{amt}</Text>
               </TouchableOpacity>
             ))}
-          </View>
-
-          {/* Custom Input */}
-          <View style={styles.customAddRow}>
-            <View style={[styles.inputWrapper, { borderColor: colors.border, backgroundColor: colors.background }]}>
-              <ThemedText style={styles.currencySymbol}>₹</ThemedText>
-              <TextInput
-                style={[styles.customInput, { color: colors.text }]}
-                placeholder="Enter custom amount"
-                placeholderTextColor={colors.textSecondary}
-                value={depositAmount}
-                onChangeText={setDepositAmount}
-                keyboardType="numeric"
-              />
-            </View>
-
             <TouchableOpacity
-              style={[styles.addBtn, { backgroundColor: colors.primary }]}
-              onPress={() => handleDeposit(Number(depositAmount))}
-              disabled
+              style={s.customAmtBtn}
+              onPress={() => setDepositModalOpen(true)}
+              activeOpacity={0.75}
             >
-              {actionLoading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Plus size={20} color="#FFFFFF" />
-              )}
+              <Text style={s.customAmtText}>Custom</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Profile Settings list */}
-        <View style={[styles.section, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-          <ThemedText style={styles.sectionTitle}>Account Verification</ThemedText>
-          
-          <View style={styles.settingItem}>
-            <ShieldCheck size={20} color={colors.success} />
-            <View style={styles.settingText}>
-              <ThemedText style={styles.settingLabel}>Driving License Verified</ThemedText>
-              <ThemedText type="small" style={{ color: colors.textSecondary }}>Required for unlocking cars</ThemedText>
-            </View>
-            <ThemedText style={{ color: colors.success, fontWeight: 'bold', fontSize: 13 }}>Verified</ThemedText>
+        {/* ────────── QUICK TILES MENU ────────── */}
+        <View style={s.menuSection}>
+          <Text style={s.menuSectionTitle}>Preferences & Services</Text>
+
+          <View style={s.menuGroup}>
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => router.push('/')}
+              activeOpacity={0.7}
+            >
+              <View style={s.menuIconBox}>
+                <MapPin size={16} color="#2D114D" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.menuItemTitle}>Change City</Text>
+                <Text style={s.menuItemSub}>Ahmedabad (Current)</Text>
+              </View>
+              <ChevronRight size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <View style={s.menuDivider} />
+
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => router.push('/verification')}
+              activeOpacity={0.7}
+            >
+              <View style={s.menuIconBox}>
+                <ShieldCheck size={16} color="#2D114D" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.menuItemTitle}>DigiLocker KYC Verification</Text>
+                <Text style={s.menuItemSub}>Required for Zero Security Deposit drives</Text>
+              </View>
+              <ChevronRight size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <View style={s.menuDivider} />
+
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => router.push('/trips')}
+              activeOpacity={0.7}
+            >
+              <View style={s.menuIconBox}>
+                <CreditCard size={16} color="#2D114D" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.menuItemTitle}>My Invoices & GST Bills</Text>
+                <Text style={s.menuItemSub}>Download GST-compliant tax invoices</Text>
+              </View>
+              <ChevronRight size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <View style={s.menuDivider} />
+
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => router.push('/guides')}
+              activeOpacity={0.7}
+            >
+              <View style={s.menuIconBox}>
+                <Headphones size={16} color="#2D114D" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.menuItemTitle}>Help & 24x7 Gujarat Desk</Text>
+                <Text style={s.menuItemSub}>FAQs, How It Works & Call Helpline</Text>
+              </View>
+              <ChevronRight size={18} color="#9CA3AF" />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Sign Out Button */}
-        <TouchableOpacity
-          style={[styles.logoutBtn, { borderColor: colors.error }]}
-          onPress={handleLogout}
-        >
-          <LogOut size={18} color={colors.error} />
-          <ThemedText style={[styles.logoutBtnText, { color: colors.error }]}>Sign Out</ThemedText>
-        </TouchableOpacity>
+        {/* ────────── MORE / SETTINGS ────────── */}
+        <View style={s.menuSection}>
+          <Text style={s.menuSectionTitle}>App & Account</Text>
+
+          <View style={s.menuGroup}>
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => setSettingsOpen(true)}
+              activeOpacity={0.7}
+            >
+              <View style={s.menuIconBox}>
+                <Settings size={16} color="#2D114D" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.menuItemTitle}>Settings</Text>
+                <Text style={s.menuItemSub}>Notifications & WhatsApp updates</Text>
+              </View>
+              <ChevronRight size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <View style={s.menuDivider} />
+
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => router.push('/guides')}
+              activeOpacity={0.7}
+            >
+              <View style={s.menuIconBox}>
+                <FileText size={16} color="#2D114D" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.menuItemTitle}>Terms & Policies</Text>
+                <Text style={s.menuItemSub}>Fuel, toll, damage & insurance policies</Text>
+              </View>
+              <ChevronRight size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            {user && (
+              <>
+                <View style={s.menuDivider} />
+                <TouchableOpacity
+                  style={s.menuItem}
+                  onPress={handleLogout}
+                  activeOpacity={0.7}
+                >
+                  <View style={[s.menuIconBox, { backgroundColor: '#FEE2E2' }]}>
+                    <LogOut size={16} color="#DC2626" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.menuItemTitle, { color: '#DC2626' }]}>Log Out</Text>
+                    <Text style={s.menuItemSub}>Sign out of your account</Text>
+                  </View>
+                  <ChevronRight size={18} color="#9CA3AF" />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* Version */}
+        <Text style={s.versionText}>Safar Self Drive · Version 2.4.0 (Gujarat Edition)</Text>
       </ScrollView>
+
+      {/* ────────── CUSTOM DEPOSIT MODAL ────────── */}
+      <Modal
+        visible={depositModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDepositModalOpen(false)}
+      >
+        <View style={s.modalBackdrop}>
+          <View style={s.modalSheet}>
+            <View style={s.modalGrabber} />
+            <Text style={s.modalTitle}>Add Money to Safar Cash</Text>
+            <Text style={s.modalSub}>Funds are instantly available for trip bookings</Text>
+
+            <TextInput
+              style={s.amtInput}
+              placeholder="Enter amount (e.g. 1500)"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="number-pad"
+              value={depositAmount}
+              onChangeText={setDepositAmount}
+            />
+
+            <TouchableOpacity
+              style={s.confirmDepositBtn}
+              onPress={() => handleDeposit(Number(depositAmount))}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={s.confirmDepositText}>Deposit Funds</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.cancelModalBtn}
+              onPress={() => setDepositModalOpen(false)}
+            >
+              <Text style={s.cancelModalText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ────────── SETTINGS MODAL ────────── */}
+      <Modal
+        visible={settingsOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSettingsOpen(false)}
+      >
+        <View style={s.modalBackdrop}>
+          <View style={s.modalSheet}>
+            <View style={s.modalGrabber} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={s.modalTitle}>App Settings</Text>
+              <TouchableOpacity onPress={() => setSettingsOpen(false)}>
+                <X size={20} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={s.settingRow}>
+              <View style={{ flex: 1, paddingRight: 10 }}>
+                <Text style={s.settingTitle}>Get Booking Info on Phone</Text>
+                <Text style={s.settingSub}>
+                  Receive quick communication on car location, trip extensions, and digital handover on WhatsApp.
+                </Text>
+              </View>
+              <Switch
+                value={whatsappUpdates}
+                onValueChange={setWhatsappUpdates}
+                trackColor={{ false: '#D1D5DB', true: '#2D114D' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const s = StyleSheet.create({
+  screen: {
     flex: 1,
+    backgroundColor: '#F8F6FB',
   },
   header: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
-  scrollContent: {
-    paddingBottom: 120,
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1F1235',
   },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.five,
+  content: {
+    padding: 16,
+    paddingBottom: 40,
   },
-  promptTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: Spacing.one,
-  },
-  promptDesc: {
-    textAlign: 'center',
-    marginBottom: Spacing.four,
-    lineHeight: 20,
-  },
-  loginBtn: {
+
+  /* User Card */
+  userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
-    paddingHorizontal: Spacing.four,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+    gap: 14,
+  },
+  userAvatarBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#2D114D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userAvatarInitial: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  userNameText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1F1235',
+  },
+  userContactText: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  kycBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  kycBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  editProfileBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 10,
-    gap: Spacing.two,
+    backgroundColor: '#F3EEFA',
+  },
+  editProfileText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#2D114D',
+  },
+
+  /* Guest Card */
+  guestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+  },
+  guestTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1F1235',
+  },
+  guestSub: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  loginBtn: {
+    backgroundColor: '#2D114D',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   loginBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 12,
+    fontWeight: '800',
   },
-  cardContainer: {
-    marginHorizontal: Spacing.three,
-    marginTop: Spacing.one,
-    marginBottom: Spacing.three,
-    borderRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 6,
-  },
-  creditCard: {
-    height: 200,
-    borderRadius: 20,
-    padding: Spacing.four,
-    justifyContent: 'space-between',
-    // Gradient overlay can be simulated with background opacity or style, primary has indigo
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardBrand: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  cardMid: {
-    marginVertical: Spacing.two,
-  },
-  cardBalanceLabel: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  cardBalanceValue: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: 'bold',
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  cardHolderLabel: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 8,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  cardHolderValue: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  cardNumber: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    opacity: 0.9,
-  },
-  section: {
-    marginHorizontal: Spacing.three,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  sectionDesc: {
-    lineHeight: 18,
-    marginBottom: Spacing.two,
-  },
-  quickAddRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    flexWrap: 'wrap',
-    marginBottom: Spacing.two,
-  },
-  quickPill: {
-    paddingVertical: Spacing.one + 2,
-    paddingHorizontal: Spacing.three,
-    borderRadius: 10,
-  },
-  quickPillText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  customAddRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  inputWrapper: {
-    flex: 1,
+
+  /* Host Switch Callout Banner */
+  hostSwitchBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: Spacing.two,
-    height: 44,
+    backgroundColor: '#1E0A34',
+    borderRadius: 18,
+    padding: 14,
+    marginTop: 14,
+    gap: 12,
   },
-  currencySymbol: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 4,
-  },
-  customInput: {
-    flex: 1,
-    fontSize: 14,
-    height: '100%',
-  },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.two,
-  },
-  settingText: {
-    flex: 1,
-    marginLeft: Spacing.three,
-  },
-  settingLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: Spacing.three,
-    borderWidth: 1.5,
+  hostBannerIcon: {
+    width: 38,
+    height: 38,
     borderRadius: 12,
-    height: 48,
-    gap: Spacing.two,
-    marginTop: Spacing.two,
+    backgroundColor: 'rgba(255, 122, 0, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logoutBtnText: {
-    fontWeight: 'bold',
-    fontSize: 14,
+  hostBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  hostBannerSub: {
+    fontSize: 10,
+    color: '#D8B4FE',
+    marginTop: 2,
+  },
+  switchModeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FF7A00',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  switchModeBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  /* Wallet Card */
+  walletCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+  },
+  walletHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  walletIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F3EEFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  walletTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1F1235',
+  },
+  walletSub: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  walletBalance: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  quickAmountsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  quickAmtBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quickAmtText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2D114D',
+  },
+  customAmtBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: '#EFE9F6',
+  },
+  customAmtText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2D114D',
+  },
+
+  /* Menu Sections */
+  menuSection: {
+    marginTop: 18,
+  },
+  menuSectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#8A8F98',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  menuGroup: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  menuIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#F3EEFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuItemTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1F1235',
+  },
+  menuItemSub: {
+    fontSize: 11,
+    color: '#8A8F98',
+    marginTop: 1,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginLeft: 58,
+  },
+
+  /* Version */
+  versionText: {
+    textAlign: 'center',
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 22,
+  },
+
+  /* Modals */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+  },
+  modalGrabber: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1F1235',
+  },
+  modalSub: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+    marginBottom: 16,
+  },
+  amtInput: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 14,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F1235',
+    marginBottom: 16,
+  },
+  confirmDepositBtn: {
+    backgroundColor: '#2D114D',
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  confirmDepositText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  cancelModalBtn: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  cancelModalText: {
+    color: '#6B7280',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  settingTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1F1235',
+  },
+  settingSub: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+    lineHeight: 16,
   },
 });

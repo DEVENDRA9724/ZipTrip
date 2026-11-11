@@ -1,60 +1,74 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, FlatList, TextInput, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  TextInput,
+  Dimensions,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, Spacing } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
-import { SafarHeader } from '@/components/safar-header';
+import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
-import { Calendar, AlertCircle, LogIn } from 'lucide-react-native';
+import {
+  CalendarDays,
+  RotateCcw,
+  ArrowRight,
+  ShieldCheck,
+  Star,
+  MapPin,
+  Clock,
+  Car,
+  FileText,
+  ChevronRight,
+  X,
+  Heart,
+  Key,
+} from 'lucide-react-native';
 
-const TRIP_STATUSES = ['Upcoming', 'Completed', 'Cancelled'];
+const { width: W } = Dimensions.get('window');
+
+const TABS = [
+  { key: 'Upcoming', label: 'Upcoming' },
+  { key: 'Completed', label: 'Completed' },
+  { key: 'Cancelled', label: 'Cancelled' },
+];
 
 export default function TripsScreen() {
-  const colors = Colors.light;
-
-  const authContext = require('@/context/AuthContext');
-  const { user } = authContext.useAuth();
+  const { user } = require('@/context/AuthContext').useAuth();
 
   const [activeTab, setActiveTab] = useState('Upcoming');
-  const [trips, setTrips] = useState<any[]>([]);
+  const [allBookings, setAllBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [ratingBooking, setRatingBooking] = useState<any | null>(null);
-  const [ratingTarget, setRatingTarget] = useState<'vehicle' | 'host'>('vehicle');
-  const [ratingValue, setRatingValue] = useState('5');
-  const [ratingComment, setRatingComment] = useState('');
-  const [ratingBusy, setRatingBusy] = useState(false);
+
+  // Review modal
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
       if (user) {
         fetchTrips();
       }
-    }, [user, activeTab])
+    }, [user])
   );
 
   const fetchTrips = async () => {
     setLoading(true);
     try {
       const data = await apiRequest('/bookings/my-trips');
-      
-      // Filter based on tab selection
-      const now = new Date();
-      const filtered = data.filter((booking: any) => {
-        if (booking.status === 'CANCELLED') {
-          return activeTab === 'Cancelled';
-        }
-        
-        const tripEnd = new Date(booking.endDate);
-        if (tripEnd < now || booking.status === 'COMPLETED') {
-          return activeTab === 'Completed';
-        }
-        
-        return activeTab === 'Upcoming';
-      });
-      
-      setTrips(filtered);
+      setAllBookings(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching trips:', error);
     } finally {
@@ -62,22 +76,34 @@ export default function TripsScreen() {
     }
   };
 
+  const filteredTrips = React.useMemo(() => {
+    const now = new Date();
+    return allBookings.filter((b) => {
+      if (b.status === 'CANCELLED') {
+        return activeTab === 'Cancelled';
+      }
+      const tripEnd = new Date(b.endDate);
+      const isCompleted = tripEnd < now || b.status === 'COMPLETED';
+      if (activeTab === 'Completed') return isCompleted;
+      if (activeTab === 'Upcoming') return !isCompleted;
+      return true;
+    });
+  }, [allBookings, activeTab]);
+
   const handleCancelBooking = (bookingId: string) => {
     Alert.alert(
       'Cancel Booking',
-      'Are you sure you want to cancel this booking? The cancellation policy will be applied and any eligible refund will be reviewed by Safar.',
+      'Are you sure you want to cancel this booking? Eligible refunds will be processed back to your Safar wallet or source account.',
       [
-        { text: 'No', style: 'cancel' },
+        { text: 'Keep Booking', style: 'cancel' },
         {
           text: 'Yes, Cancel',
           style: 'destructive',
           onPress: async () => {
             setActionLoading(bookingId);
             try {
-              await apiRequest(`/bookings/${bookingId}/cancel`, {
-                method: 'POST',
-              });
-              Alert.alert('Cancellation submitted', 'Your booking was cancelled. Any eligible refund is now pending administrator reconciliation.');
+              await apiRequest(`/bookings/${bookingId}/cancel`, { method: 'POST' });
+              Alert.alert('Booking Cancelled', 'Your cancellation has been processed.');
               fetchTrips();
             } catch (e: any) {
               Alert.alert('Error', e.message || 'Failed to cancel booking.');
@@ -90,381 +116,799 @@ export default function TripsScreen() {
     );
   };
 
-  const submitRating = async () => {
-    if (!ratingBooking) return;
-    const rating = Number(ratingValue);
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return Alert.alert('Rating required', 'Choose a rating from 1 to 5.');
-    setRatingBusy(true);
+  const submitReview = async () => {
+    if (!selectedBooking) return;
+    setSubmittingReview(true);
     try {
-      await apiRequest(ratingTarget === 'vehicle' ? '/reviews' : '/reviews/party', {
+      await apiRequest('/reviews', {
         method: 'POST',
-        body: JSON.stringify({ bookingId: ratingBooking.id, ...(ratingTarget === 'host' ? { targetRole: 'HOST' } : {}), rating, comment: ratingComment.trim() || undefined }),
+        body: JSON.stringify({
+          bookingId: selectedBooking.id,
+          vehicleId: selectedBooking.vehicleId,
+          rating,
+          comment,
+        }),
       });
-      setRatingBooking(null);
-      Alert.alert('Rating submitted', `Your ${ratingTarget} rating was saved.`);
+      Alert.alert('Thank you!', 'Your review has been submitted.');
+      setReviewModalOpen(false);
+      setSelectedBooking(null);
+      setComment('');
       fetchTrips();
-    } catch (error: any) {
-      Alert.alert('Rating failed', error.message || 'Could not save this rating.');
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not submit review.');
     } finally {
-      setRatingBusy(false);
+      setSubmittingReview(false);
     }
   };
 
-  const formatDateString = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+  // Helper date formatter
+  const formatTripDates = (startStr: string, endStr: string) => {
+    try {
+      const s = new Date(startStr);
+      const e = new Date(endStr);
+      const sFmt = s.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      const eFmt = e.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      return `${sFmt} → ${eFmt}`;
+    } catch {
+      return `${startStr} → ${endStr}`;
+    }
   };
 
-  const renderBookingCard = ({ item }: { item: any }) => {
-    const isUpcoming = activeTab === 'Upcoming';
-    
-    return (
-      <View style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-        <View style={styles.cardMain}>
-          <Image source={getVehicleImageSource(item.vehicle)} style={styles.carImage} />
-          
-          <View style={styles.cardContent}>
-            <View style={styles.refRow}>
-              <ThemedText type="small" style={styles.refText}>{item.bookingRef}</ThemedText>
-              <View style={[
-                styles.statusDot, 
-                { backgroundColor: item.status === 'CANCELLED' ? colors.error : colors.success }
-              ]} />
-            </View>
-
-            <ThemedText style={styles.carName}>{item.vehicle.make} {item.vehicle.model}</ThemedText>
-            
-            <View style={styles.infoRow}>
-              <Calendar size={14} color={colors.textSecondary} />
-              <ThemedText type="small" style={{ color: colors.textSecondary }}>
-                {formatDateString(item.startDate)} - {formatDateString(item.endDate)}
-              </ThemedText>
-            </View>
-
-            <ThemedText style={[styles.priceText, { color: colors.text }]}>
-              Paid: ₹{Number(item.totalAmount).toLocaleString('en-IN')}
-            </ThemedText>
-          </View>
+  return (
+    <SafeAreaView style={s.screen} edges={['top']}>
+      {/* ────────── HEADER ────────── */}
+      <View style={s.header}>
+        <View>
+          <Text style={s.headerTitle}>My Trips</Text>
+          <Text style={s.headerSub}>Manage your bookings & digital passes</Text>
         </View>
 
-        {isUpcoming && item.status === 'CONFIRMED' && (
-          <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
+        <TouchableOpacity
+          style={s.newDriveBtn}
+          onPress={() => router.push('/')}
+          activeOpacity={0.8}
+        >
+          <Text style={s.newDriveBtnText}>+ New Drive</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ────────── SUB TABS ────────── */}
+      <View style={s.tabBarWrap}>
+        {TABS.map((tab) => {
+          const active = tab.key === activeTab;
+          return (
             <TouchableOpacity
-              style={[styles.agreementBtn, { borderColor: colors.primary }]}
-              onPress={() => router.push({ pathname: '/booking/agreement' as any, params: { id: item.id } })}
+              key={tab.key}
+              style={[s.tabItem, active && s.tabItemActive]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.75}
             >
-              <ThemedText style={[styles.agreementBtnText, { color: colors.primary }]}>Agreement</ThemedText>
+              <Text style={[s.tabText, active && s.tabTextActive]}>{tab.label}</Text>
+              {active && <View style={s.tabUnderline} />}
             </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* ────────── CONTENT ────────── */}
+      {!user ? (
+        <View style={s.guestBox}>
+          <Car size={48} color="#2D114D" />
+          <Text style={s.guestTitle}>Sign in to view your trips</Text>
+          <Text style={s.guestSub}>
+            Track upcoming bookings, download invoices, and access your digital vehicle handover pass.
+          </Text>
+          <TouchableOpacity style={s.loginBtn} onPress={() => router.push('/auth/login')}>
+            <Text style={s.loginBtnText}>Log In to Your Account</Text>
+          </TouchableOpacity>
+        </View>
+      ) : loading ? (
+        <View style={s.loadingBox}>
+          <ActivityIndicator size="large" color="#2D114D" />
+          <Text style={s.loadingText}>Fetching your trips…</Text>
+        </View>
+      ) : filteredTrips.length === 0 ? (
+        <ScrollView contentContainerStyle={s.emptyScroll}>
+          <View style={s.emptyCard}>
+            <View style={s.emptyIconCircle}>
+              <CalendarDays size={36} color="#2D114D" />
+            </View>
+            <Text style={s.emptyTitle}>No {activeTab.toLowerCase()} trips found</Text>
+            <Text style={s.emptySub}>
+              {activeTab === 'Upcoming'
+                ? "You don't have any active or upcoming drives. Plan your next weekend getaway now!"
+                : `No ${activeTab.toLowerCase()} bookings recorded in your account history.`}
+            </Text>
+            <TouchableOpacity style={s.browseBtn} onPress={() => router.push('/')}>
+              <Text style={s.browseBtnText}>Explore Available Cars</Text>
+              <ArrowRight size={16} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : (
+        <ScrollView
+          contentContainerStyle={s.listContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {filteredTrips.map((booking) => {
+            const vehicle = booking.vehicle || {};
+            const isCompleted = activeTab === 'Completed';
+            const isCancelled = booking.status === 'CANCELLED';
+            const isConfirmed = booking.status === 'CONFIRMED' || booking.status === 'ACTIVE';
+
+            return (
+              <View key={booking.id} style={s.tripCard}>
+                {/* Car Showcase Image */}
+                <View style={s.cardImageContainer}>
+                  <Image
+                    source={getVehicleImageSource(vehicle)}
+                    style={s.cardCarImage}
+                    resizeMode="contain"
+                  />
+                  {/* Heart / Wishlist icon */}
+                  <TouchableOpacity style={s.heartIconBox} activeOpacity={0.8}>
+                    <Heart size={16} color="#2D114D" />
+                  </TouchableOpacity>
+
+                  {/* Dots carousel indicator */}
+                  <View style={s.dotsRow}>
+                    <View style={[s.dot, s.dotActive]} />
+                    <View style={s.dot} />
+                    <View style={s.dot} />
+                    <View style={s.dot} />
+                  </View>
+                </View>
+
+                {/* Card Body */}
+                <View style={s.cardBody}>
+                  {/* Car Name & Status Badge */}
+                  <View style={s.cardTitleRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.carMake}>{vehicle.make || 'Safar'} · {vehicle.year || '2025'}</Text>
+                      <Text style={s.carModel}>{vehicle.model || 'Self Drive Car'}</Text>
+                    </View>
+
+                    <View
+                      style={[
+                        s.statusBadge,
+                        isCompleted && s.statusCompleted,
+                        isConfirmed && s.statusConfirmed,
+                        isCancelled && s.statusCancelled,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          s.statusText,
+                          isCompleted && s.statusTextCompleted,
+                          isConfirmed && s.statusTextConfirmed,
+                          isCancelled && s.statusTextCancelled,
+                        ]}
+                      >
+                        {booking.status}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Date & Time Row */}
+                  <View style={s.dateBox}>
+                    <Clock size={13} color="#6B7280" />
+                    <Text style={s.dateRangeText}>
+                      {formatTripDates(booking.startDate, booking.endDate)}
+                    </Text>
+                  </View>
+
+                  {/* Pickup Location */}
+                  <View style={s.locationBox}>
+                    <MapPin size={13} color="#FF6000" />
+                    <Text style={s.locationText}>
+                      Pickup: {booking.pickupHub || vehicle.city || 'Ahmedabad Hub'}
+                    </Text>
+                  </View>
+
+                  {/* Price & Fare Details */}
+                  <View style={s.fareRow}>
+                    <View>
+                      <Text style={s.fareLabel}>Total Fare Paid</Text>
+                      <Text style={s.fareValue}>
+                        ₹{Number(booking.totalAmount || booking.baseFare || 0).toLocaleString('en-IN')}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={s.depositLabel}>Security Deposit</Text>
+                      <Text style={s.depositValue}>
+                        {Number(booking.securityDeposit || 0) === 0 ? 'Zero Deposit (KYC)' : `₹${booking.securityDeposit} (Refunded)`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={s.cardDivider} />
+
+                  {/* Actions Row */}
+                  <View style={s.actionsRow}>
+                    {isCompleted ? (
+                      <>
+                        <TouchableOpacity
+                          style={s.bookAgainBtn}
+                          onPress={() => router.push({ pathname: '/details/[id]', params: { id: String(vehicle.id || booking.vehicleId) } })}
+                          activeOpacity={0.8}
+                        >
+                          <RotateCcw size={15} color="#2D114D" />
+                          <Text style={s.bookAgainText}>Book Again</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={s.rateBtn}
+                          onPress={() => {
+                            setSelectedBooking(booking);
+                            setReviewModalOpen(true);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Star size={14} color="#FF6000" />
+                          <Text style={s.rateBtnText}>Rate Drive</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : isConfirmed ? (
+                      <>
+                        <TouchableOpacity
+                          style={s.handoverPassBtn}
+                          onPress={() => {
+                            Alert.alert(
+                              'Digital Handover Pass',
+                              `Booking ID: ${booking.bookingId || booking.id}\nVehicle: ${vehicle.make} ${vehicle.model}\nPickup: ${booking.pickupHub || 'Ahmedabad Hub'}\n\nPresent your DigiLocker verified driving licence at pickup to collect keys.`
+                            );
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Key size={14} color="#FFF" />
+                          <Text style={s.handoverPassText}>Handover Pass</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={s.cancelTripBtn}
+                          onPress={() => handleCancelBooking(booking.id)}
+                          activeOpacity={0.8}
+                          disabled={actionLoading === booking.id}
+                        >
+                          {actionLoading === booking.id ? (
+                            <ActivityIndicator size="small" color="#EF4444" />
+                          ) : (
+                            <Text style={s.cancelTripText}>Cancel</Text>
+                          )}
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <TouchableOpacity
+                        style={s.bookAgainBtn}
+                        onPress={() => router.push('/')}
+                        activeOpacity={0.8}
+                      >
+                        <RotateCcw size={15} color="#2D114D" />
+                        <Text style={s.bookAgainText}>Search Other Cars</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {/* ────────── REVIEW MODAL ────────── */}
+      <Modal
+        visible={reviewModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReviewModalOpen(false)}
+      >
+        <View style={s.modalBackdrop}>
+          <View style={s.modalSheet}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Rate Your Drive</Text>
+              <TouchableOpacity onPress={() => setReviewModalOpen(false)}>
+                <X size={20} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={s.modalSubtitle}>
+              How was your experience with {selectedBooking?.vehicle?.make} {selectedBooking?.vehicle?.model}?
+            </Text>
+
+            {/* Stars */}
+            <View style={s.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity
+                  key={star}
+                  onPress={() => setRating(star)}
+                  style={{ padding: 6 }}
+                >
+                  <Star
+                    size={32}
+                    color="#FFB800"
+                    fill={star <= rating ? '#FFB800' : 'transparent'}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={s.reviewInput}
+              placeholder="Tell us about the car condition, cleanliness, handover..."
+              placeholderTextColor="#9CA3AF"
+              multiline
+              numberOfLines={4}
+              value={comment}
+              onChangeText={setComment}
+            />
+
             <TouchableOpacity
-              style={[styles.cancelBtn, { borderColor: colors.error }]}
-              onPress={() => handleCancelBooking(item.id)}
-              disabled={actionLoading === item.id}
+              style={s.submitReviewBtn}
+              onPress={submitReview}
+              disabled={submittingReview}
             >
-              {actionLoading === item.id ? (
-                <ActivityIndicator size="small" color={colors.error} />
+              {submittingReview ? (
+                <ActivityIndicator color="#FFF" />
               ) : (
-                <ThemedText style={[styles.cancelBtnText, { color: colors.error }]}>Cancel Booking</ThemedText>
+                <Text style={s.submitReviewText}>Submit Review</Text>
               )}
             </TouchableOpacity>
           </View>
-        )}
-        {item.status === 'COMPLETED' && (
-          <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
-            <TouchableOpacity style={[styles.agreementBtn, { borderColor: colors.primary }]} onPress={() => { setRatingBooking(item); setRatingTarget('vehicle'); setRatingValue('5'); setRatingComment(''); }}>
-              <ThemedText style={[styles.agreementBtnText, { color: colors.primary }]}>Rate vehicle</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.primary }]} onPress={() => { setRatingBooking(item); setRatingTarget('host'); setRatingValue('5'); setRatingComment(''); }}>
-              <ThemedText style={[styles.cancelBtnText, { color: colors.primary }]}>Rate host</ThemedText>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  // Render Login Prompt if Guest
-  if (!user) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <SafarHeader />
-        <View style={styles.center}>
-          <AlertCircle size={48} color={colors.textSecondary} style={{ marginBottom: Spacing.three }} />
-          <ThemedText style={styles.promptTitle}>View Your Bookings</ThemedText>
-          <ThemedText type="small" style={[styles.promptDesc, { color: colors.textSecondary }]}>
-            Please sign in to view your upcoming, completed, and cancelled trips.
-          </ThemedText>
-          <TouchableOpacity
-            style={[styles.loginBtn, { backgroundColor: '#FF6000' }]}
-            onPress={() => router.push('/auth/login')}
-          >
-            <LogIn size={18} color="#FFFFFF" />
-            <ThemedText style={styles.loginBtnText}>Sign In</ThemedText>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <SafarHeader />
-      <View style={styles.header}>
-        <ThemedText type="title">My Trips</ThemedText>
-        <ThemedText type="small" style={{ color: colors.textSecondary }}>Manage your self-drive bookings & digital lease agreements</ThemedText>
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        {TRIP_STATUSES.map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab,
-              activeTab === tab && [styles.tabActive, { borderBottomColor: colors.primary }]
-            ]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <ThemedText style={[
-              styles.tabText,
-              { color: colors.textSecondary },
-              activeTab === tab && { color: colors.primary, fontWeight: 'bold' }
-            ]}>
-              {tab}
-            </ThemedText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Booking List */}
-      {loading ? (
-        <View style={styles.listCenter}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : trips.length === 0 ? (
-        <View style={styles.listCenter}>
-          <Calendar size={36} color={colors.textSecondary} style={{ marginBottom: Spacing.two }} />
-          <ThemedText style={{ color: colors.textSecondary }}>No {activeTab.toLowerCase()} trips found.</ThemedText>
-        </View>
-      ) : (
-        <FlatList
-          data={trips}
-          renderItem={renderBookingCard}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-      <Modal visible={Boolean(ratingBooking)} animationType="slide" transparent onRequestClose={() => { if (!ratingBusy) setRatingBooking(null); }}>
-        <View style={styles.modalBg}>
-          <SafeAreaView style={[styles.ratingModal, { backgroundColor: colors.background }]}>
-            <View style={styles.modalHeader}>
-              <ThemedText style={styles.modalTitle}>Rate {ratingTarget}</ThemedText>
-              <TouchableOpacity disabled={ratingBusy} onPress={() => setRatingBooking(null)}><ThemedText style={{ color: colors.error, fontWeight: 'bold' }}>Close</ThemedText></TouchableOpacity>
-            </View>
-            <View style={styles.ratingForm}>
-              <ThemedText type="small" style={{ color: colors.textSecondary }}>Booking {ratingBooking?.bookingRef || ''}</ThemedText>
-              <TextInput style={[styles.ratingInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]} value={ratingValue} onChangeText={setRatingValue} keyboardType="numeric" placeholder="Rating 1 to 5" placeholderTextColor={colors.textSecondary} />
-              <TextInput style={[styles.ratingInput, styles.ratingComment, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]} value={ratingComment} onChangeText={setRatingComment} multiline placeholder="Optional comment" placeholderTextColor={colors.textSecondary} />
-              <TouchableOpacity style={[styles.loginBtn, { backgroundColor: colors.primary }]} onPress={submitRating} disabled={ratingBusy}>{ratingBusy ? <ActivityIndicator color="#FFFFFF" /> : <ThemedText style={styles.loginBtnText}>Submit Rating</ThemedText>}</TouchableOpacity>
-            </View>
-          </SafeAreaView>
         </View>
       </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
+const s = StyleSheet.create({
+  screen: {
     flex: 1,
+    backgroundColor: '#F8F6FB',
   },
   header: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.five,
-  },
-  promptTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: Spacing.one,
-  },
-  promptDesc: {
-    textAlign: 'center',
-    marginBottom: Spacing.four,
-    lineHeight: 20,
-  },
-  loginBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 48,
-    paddingHorizontal: Spacing.four,
-    borderRadius: 10,
-    gap: Spacing.two,
-  },
-  loginBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    marginHorizontal: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    marginBottom: Spacing.two,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.two,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    // borderBottomColor set dynamically
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  listCenter: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 80,
-  },
-  list: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: 100,
-    gap: Spacing.three,
-  },
-  card: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardMain: {
-    flexDirection: 'row',
-    padding: Spacing.three,
-  },
-  carImage: {
-    width: 90,
-    height: 70,
-    borderRadius: 10,
-    resizeMode: 'cover',
-  },
-  cardContent: {
-    flex: 1,
-    marginLeft: Spacing.three,
-  },
-  refRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.half,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
-  refText: {
-    fontFamily: 'monospace',
-    fontWeight: 'bold',
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1F1235',
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  headerSub: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
   },
-  carName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: Spacing.half,
+  newDriveBtn: {
+    backgroundColor: '#2D114D',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
-  infoRow: {
+  newDriveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  /* Tabs */
+  tabBarWrap: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    position: 'relative',
+  },
+  tabItemActive: {},
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  tabTextActive: {
+    color: '#2D114D',
+    fontWeight: '800',
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 20,
+    right: 20,
+    height: 3,
+    backgroundColor: '#2D114D',
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+  },
+
+  /* List & Cards */
+  listContainer: {
+    padding: 16,
+    paddingBottom: 36,
+  },
+  tripCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+    overflow: 'hidden',
+    shadowColor: '#2D114D',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  cardImageContainer: {
+    height: 180,
+    backgroundColor: '#FAF8FC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  cardCarImage: {
+    width: '90%',
+    height: '90%',
+  },
+  heartIconBox: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dotsRow: {
+    position: 'absolute',
+    bottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.one,
-    marginBottom: Spacing.half,
+    gap: 6,
   },
-  priceText: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: Spacing.half,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(45, 17, 77, 0.25)',
   },
-  cardActions: {
-    borderTopWidth: 1,
-    padding: Spacing.two,
+  dotActive: {
+    width: 14,
+    backgroundColor: '#2D114D',
+  },
+  cardBody: {
+    padding: 16,
+  },
+  cardTitleRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  modalBg: {
+  carMake: {
+    fontSize: 11,
+    color: '#8A8F98',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  carModel: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#1F1235',
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusCompleted: {
+    backgroundColor: '#EFF6FF',
+  },
+  statusConfirmed: {
+    backgroundColor: '#ECFDF5',
+  },
+  statusCancelled: {
+    backgroundColor: '#FEF2F2',
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  statusTextCompleted: {
+    color: '#2563EB',
+  },
+  statusTextConfirmed: {
+    color: '#059669',
+  },
+  statusTextCancelled: {
+    color: '#DC2626',
+  },
+  dateBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  dateRangeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  locationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  locationText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  fareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 12,
+  },
+  fareLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  fareValue: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#1F1235',
+    marginTop: 1,
+  },
+  depositLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  depositValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+    marginTop: 1,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginVertical: 14,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  bookAgainBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: '#2D114D',
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  bookAgainText: {
+    color: '#2D114D',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  rateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  rateBtnText: {
+    color: '#EA580C',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  handoverPassBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#2D114D',
+    borderRadius: 12,
+    paddingVertical: 11,
+  },
+  handoverPassText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  cancelTripBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+  },
+  cancelTripText: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  /* Empty & Guest States */
+  emptyScroll: {
+    flexGrow: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  emptyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEBF5',
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F3EEFA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1F1235',
+  },
+  emptySub: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  browseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#2D114D',
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  browseBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  guestBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+  },
+  guestTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1F1235',
+    marginTop: 14,
+  },
+  guestSub: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  loginBtn: {
+    backgroundColor: '#2D114D',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  loginBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  loadingBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 10,
+  },
+
+  /* Review Modal */
+  modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  ratingModal: {
-    minHeight: '42%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
   },
   modalHeader: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1F1235',
   },
-  ratingForm: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: Spacing.five,
-    gap: Spacing.two,
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 16,
   },
-  ratingInput: {
+  starsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 18,
+  },
+  reviewInput: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 12,
+    fontSize: 13,
+    color: '#1F2937',
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.two,
-    fontSize: 15,
-  },
-  ratingComment: {
-    minHeight: 90,
+    borderColor: '#E5E7EB',
     textAlignVertical: 'top',
+    minHeight: 90,
   },
-  cancelBtn: {
-    borderWidth: 1.5,
-    borderRadius: 8,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
+  submitReviewBtn: {
+    backgroundColor: '#2D114D',
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 16,
   },
-  cancelBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  agreementBtn: {
-    borderWidth: 1.5,
-    borderRadius: 8,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-    marginRight: Spacing.two,
-  },
-  agreementBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
+  submitReviewText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
