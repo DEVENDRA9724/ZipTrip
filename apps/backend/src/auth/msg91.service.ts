@@ -68,9 +68,31 @@ export class Msg91Service {
 
   async sendOtp(phone: string) {
     const { authkey, templateId } = this.config();
+    const mobile = this.providerPhone(phone);
+
+    // 1. Try modern MSG91 OTP Widget API (v5)
+    try {
+      const widgetRes = await fetch('https://api.msg91.com/api/v5/widget/sendOtp', {
+        method: 'POST',
+        headers: { authkey, 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ widgetId: templateId, identifier: mobile }),
+      });
+      const widgetPayload = await this.parse(widgetRes);
+      console.log('[MSG91 WIDGET SEND RESPONSE]', { status: widgetRes.status, phone: mobile, widgetPayload });
+      if (this.successful(widgetRes, widgetPayload)) {
+        return {
+          requestId: widgetPayload.reqId || widgetPayload.requestId || widgetPayload.request_id || null,
+          method: 'widget',
+        };
+      }
+    } catch (widgetErr) {
+      console.warn('[MSG91 Widget API fallback]', widgetErr);
+    }
+
+    // 2. Fallback to classic SendOTP API (v5)
     const url = new URL(process.env.MSG91_OTP_SEND_URL || 'https://control.msg91.com/api/v5/otp');
     url.searchParams.set('template_id', templateId);
-    url.searchParams.set('mobile', this.providerPhone(phone));
+    url.searchParams.set('mobile', mobile);
     url.searchParams.set('otp_length', '6');
     url.searchParams.set('otp_expiry', '10');
     const response = await fetch(url, {
@@ -81,21 +103,44 @@ export class Msg91Service {
     const payload = await this.parse(response);
     console.log('[MSG91 OTP SEND RESPONSE]', {
       status: response.status,
-      phone: this.providerPhone(phone),
+      phone: mobile,
       payload,
     });
     if (!this.successful(response, payload)) {
       throw new ServiceUnavailableException(this.providerError(payload));
     }
-    return { requestId: payload.request_id || payload.reqId || payload.requestId || null };
+    return { requestId: payload.request_id || payload.reqId || payload.requestId || null, method: 'classic' };
   }
 
-  async verifyOtp(phone: string, otp: string) {
-    const { authkey } = this.config();
+  async verifyOtp(phone: string, otp: string, reqId?: string) {
+    const { authkey, templateId } = this.config();
     const code = String(otp || '').trim();
     if (!/^\d{6}$/.test(code)) throw new BadRequestException('Enter a valid 6-digit OTP');
+    const mobile = this.providerPhone(phone);
+
+    // 1. Try Widget verify
+    try {
+      const body: Record<string, string> = { widgetId: templateId, otp: code };
+      if (reqId) body.reqId = reqId;
+      else body.identifier = mobile;
+
+      const widgetRes = await fetch('https://api.msg91.com/api/v5/widget/verifyOtp', {
+        method: 'POST',
+        headers: { authkey, 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const widgetPayload = await this.parse(widgetRes);
+      console.log('[MSG91 WIDGET VERIFY RESPONSE]', { status: widgetRes.status, widgetPayload });
+      if (this.successful(widgetRes, widgetPayload)) {
+        return { verified: true };
+      }
+    } catch (widgetErr) {
+      console.warn('[MSG91 Widget Verify fallback]', widgetErr);
+    }
+
+    // 2. Fallback to classic verify
     const url = new URL(process.env.MSG91_OTP_VERIFY_URL || 'https://control.msg91.com/api/v5/otp/verify');
-    url.searchParams.set('mobile', this.providerPhone(phone));
+    url.searchParams.set('mobile', mobile);
     url.searchParams.set('otp', code);
     const response = await fetch(url, {
       method: 'GET',
