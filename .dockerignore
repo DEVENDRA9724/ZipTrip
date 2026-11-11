@@ -1,0 +1,13 @@
+node_modules
+.git
+.gitignore
+.vscode
+*.log
+apps/backend/portal.db*
+apps/backend/node_modules
+apps/backend/dist
+apps/backend/.env*
+apps/mobile/node_modules
+apps/mobile/.expo
+*.docx
+*.zip

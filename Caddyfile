@@ -1,0 +1,48 @@
+{
+    # Global options
+    email {$ACME_EMAIL:admin@safarselfdrive.com}
+    admin off
+}
+
+# Production Safar Self Drive Domain
+{$DOMAIN:safarselfdrive.com}, www.{$DOMAIN:safarselfdrive.com} {
+    # Automatic TLS enabled by Caddy
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Compress all standard text and asset responses
+    encode zstd gzip
+
+    # API endpoints routed to NestJS backend cluster
+    handle /api/* {
+        reverse_proxy backend:3000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Web frontend portal routed to Nginx static cache
+    handle {
+        reverse_proxy web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}

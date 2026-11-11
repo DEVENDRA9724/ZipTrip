@@ -1,0 +1,6 @@
+.git
+.gitignore
+*.md
+Dockerfile
+nginx.conf
+.DS_Store

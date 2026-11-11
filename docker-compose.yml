@@ -2,27 +2,84 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine
-    container_name: ziptrip_postgres
-    restart: always
+    image: postgres:16-alpine
+    container_name: safar-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: rootpassword
-      POSTGRES_DB: ziptrip
+      POSTGRES_USER: safar_user
+      POSTGRES_PASSWORD: safar_password
+      POSTGRES_DB: safar_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safar_user -d safar_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safar-network
 
   redis:
     image: redis:7-alpine
-    container_name: ziptrip_redis
-    restart: always
+    container_name: safar-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safar-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: safar-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://safar_user:safar_password@postgres:5432/safar_db?schema=public
+      POSTGRES_DATABASE_URL: postgresql://safar_user:safar_password@postgres:5432/safar_db?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: safar_local_development_secret_32chars_long_key
+      RUN_MIGRATIONS_ON_STARTUP: "true"
+      WEB_ORIGIN: "http://localhost:8080,http://localhost:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - safar-network
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: safar-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - safar-network
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  safar-network:
+    driver: bridge

@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: safar-db-migration
+  namespace: safar-production
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      name: safar-db-migration
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: prisma-migrate
+          image: ghcr.io/safar/safar-backend:latest
+          command: ["npx", "prisma", "migrate", "deploy", "--config", "prisma.postgres.config.ts"]
+          envFrom:
+            - configMapRef:
+                name: safar-backend-config
+            - secretRef:
+                name: safar-backend-secrets

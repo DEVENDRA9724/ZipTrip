@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: safar-backend-config
+  namespace: safar-production
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  AWS_REGION: "ap-south-1"
+  S3_BUCKET: "safar-production-media"
+  S3_PREFIX: "safar-media"
+  WEB_ORIGIN: "https://safarselfdrive.com,https://www.safarselfdrive.com"
+  SANDBOX_ENV: "live"
+  KYC_REDIRECT_URL: "https://safarselfdrive.com/kyc.html"
+  BUSINESS_NAME: "Safar Self Drive"
+  BUSINESS_LEGAL_NAME: "Safar Car Rentals Private Limited"
+  BUSINESS_GSTIN: "24AAACS1234F1Z5"
+  BUSINESS_PHONE: "+91 99000 00001"
+  BUSINESS_EMAIL: "support@safarselfdrive.com"
