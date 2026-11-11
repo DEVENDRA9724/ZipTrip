@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { apiRequest, parseImageList } from '@/services/api';
+import { SafarHeader } from '@/components/safar-header';
+import { apiRequest, getVehicleImageSource } from '@/services/api';
 import { Landmark, LogIn, Plus, Sparkles, Car, IndianRupee, Layers, ChevronRight, Check } from 'lucide-react-native';
 
 const CAR_TEMPLATES = [
@@ -161,17 +162,15 @@ export default function HostScreen() {
   if (!user) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <ThemedText type="title">Host Center</ThemedText>
-        </View>
+        <SafarHeader />
         <View style={styles.center}>
           <Car size={48} color={colors.textSecondary} style={{ marginBottom: Spacing.three }} />
-          <ThemedText style={styles.promptTitle}>Earn with Your Car</ThemedText>
+          <ThemedText style={styles.promptTitle}>Safar Fleet Partner Hub</ThemedText>
           <ThemedText type="small" style={[styles.promptDesc, { color: colors.textSecondary }]}>
-            Sign in to list your idle cars, track bookings, and manage host payouts.
+            Sign in to list your verified fleet vehicles, perform 8-angle handover inspections, and track 80% lease payouts.
           </ThemedText>
           <TouchableOpacity
-            style={[styles.loginBtn, { backgroundColor: colors.primary }]}
+            style={[styles.loginBtn, { backgroundColor: '#FF6000' }]}
             onPress={() => router.push('/auth/login')}
           >
             <LogIn size={18} color="#FFFFFF" />
@@ -184,6 +183,7 @@ export default function HostScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafarHeader />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
@@ -256,7 +256,7 @@ export default function HostScreen() {
 
               return (
                 <View key={car.id} style={[styles.carItem, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-                  <Image source={{ uri: parseImageList(car.images)[0] }} style={styles.carItemImage} />
+                  <Image source={getVehicleImageSource(car)} style={styles.carItemImage} />
                   <View style={styles.carItemContent}>
                     <ThemedText style={styles.carItemTitle}>{car.make} {car.model}</ThemedText>
                     <ThemedText type="small" style={{ color: colors.textSecondary }}>

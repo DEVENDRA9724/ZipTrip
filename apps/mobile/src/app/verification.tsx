@@ -6,6 +6,7 @@ import { CheckCircle2, ExternalLink, FileCheck2, LogIn, RefreshCw, ShieldCheck, 
 
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { SafarHeader } from '@/components/safar-header';
 import { apiRequest } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -62,11 +63,12 @@ export default function VerificationScreen() {
 
   if (!user) return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafarHeader />
       <View style={styles.center}>
         <ShieldCheck size={52} color={colors.primary} />
         <ThemedText style={styles.title}>Identity verification</ThemedText>
         <ThemedText style={[styles.muted, { color: colors.textSecondary }]}>Sign in to complete Aadhaar and driving licence verification.</ThemedText>
-        <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/auth/login')}>
+        <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#FF6000' }]} onPress={() => router.push('/auth/login')}>
           <LogIn size={18} color="#fff" /><ThemedText style={styles.primaryButtonText}>Sign in</ThemedText>
         </TouchableOpacity>
       </View>
@@ -76,6 +78,7 @@ export default function VerificationScreen() {
   const latestSession = sessions[0];
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafarHeader />
       <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}><ThemedText style={styles.title}>Verification centre</ThemedText><ThemedText style={[styles.muted, { color: colors.textSecondary }]}>Securely verify your identity before booking.</ThemedText></View>

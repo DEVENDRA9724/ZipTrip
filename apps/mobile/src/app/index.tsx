@@ -1,16 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator, FlatList, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  FlatList,
+  Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
-import { apiRequest, parseImageList } from '@/services/api';
-import { Search, MapPin, Calendar, Map, List, LogIn, User, Star, SlidersHorizontal, Eye } from 'lucide-react-native';
+import {
+  apiRequest,
+  getVehicleImageSource,
+  getCarDistance,
+  getVehicleTerms,
+} from '@/services/api';
+import { SafarHeader } from '@/components/safar-header';
+import {
+  Search,
+  MapPin,
+  Calendar,
+  Star,
+  SlidersHorizontal,
+  ShieldCheck,
+  Gauge,
+  Fuel,
+  Users,
+  CheckCircle2,
+  X,
+  RotateCcw,
+} from 'lucide-react-native';
 
-const { width } = Dimensions.get('window');
+const CITIES = ['All', 'Ahmedabad', 'Surat', 'Vadodara', 'Gandhinagar', 'Rajkot'];
 
-const CITIES = ['All', 'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'];
-const CATEGORIES = ['All', 'Self Drive', 'Taxi', 'SUV', 'Luxury', 'Sedan', 'Hatchback'];
+const QUICK_CHIPS = [
+  { id: 'all', label: 'All Verified Cars' },
+  { id: 'suv', label: 'SUV & 4×4' },
+  { id: 'sedan', label: 'Sedan' },
+  { id: 'hatchback', label: 'Hatchback' },
+  { id: 'auto', label: 'Automatic' },
+  { id: 'diesel', label: 'Diesel' },
+  { id: '7seat', label: '6/7 Seater' },
+  { id: 'near', label: 'Within 5 km' },
+  { id: 'new', label: 'Model 2023+' },
+];
+
+const BRANDS = ['All Brands', 'Mahindra', 'Toyota', 'Hyundai', 'Maruti Suzuki', 'BMW', 'Honda', 'Kia'];
+
+const HUB_ADDRESSES: Record<string, string> = {
+  Ahmedabad: 'SG Highway, Bodakdev, Ahmedabad, Gujarat 380054',
+  Gandhinagar: 'Infocity Circle, Gandhinagar, Gujarat 382007',
+  Surat: 'Dumas Road, Vesu, Surat, Gujarat 395007',
+  Vadodara: 'RC Dutt Road, Alkapuri, Vadodara, Gujarat 390007',
+  Rajkot: 'Kalawad Road, Rajkot, Gujarat 360005',
+};
+
 const dateInputValue = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -18,56 +66,41 @@ const dateInputValue = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function SearchScreen() {
-  const colors = Colors.light;
-
-  const authContext = require('@/context/AuthContext');
-  const { user } = authContext.useAuth();
-
-  // Search & Filter States
+export default function ExploreCarsScreen() {
   const [selectedCity, setSelectedCity] = useState('All');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeChip, setActiveChip] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [kmPlan, setKmPlan] = useState<'300' | 'unlimited'>('300');
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  
+
+  // Advanced Filter Modal State (matching website left sidebar)
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [cityModalOpen, setCityModalOpen] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState('All Brands');
+  const [selectedTransmission, setSelectedTransmission] = useState<'All' | 'Automatic' | 'Manual'>('All');
+  const [selectedFuel, setSelectedFuel] = useState<'All' | 'Petrol' | 'Diesel'>('All');
+  const [maxBudget, setMaxBudget] = useState<number>(15000);
+
   // Date booking states
   const [startDate, setStartDate] = useState(() => dateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)));
   const [endDate, setEndDate] = useState(() => dateInputValue(new Date(Date.now() + 48 * 60 * 60 * 1000)));
 
-  // Selected Pin on Map
-  const [activePin, setActivePin] = useState<any>(null);
-
   useFocusEffect(
     React.useCallback(() => {
       fetchVehicles();
-    }, [selectedCity, selectedCategory, searchQuery])
+    }, [selectedCity])
   );
 
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      let endpoint = selectedCity === 'All' ? '/vehicles' : `/vehicles?city=${encodeURIComponent(selectedCity)}`;
-      if (selectedCategory !== 'All') {
-        if (selectedCategory === 'Self Drive') {
-          endpoint += `&search=Self Drive`;
-        } else if (selectedCategory === 'Taxi') {
-          endpoint += `&search=Taxi`;
-        } else {
-          endpoint += `&category=${selectedCategory}`;
-        }
-      }
-      if (searchQuery) {
-        endpoint += `&search=${searchQuery}`;
-      }
+      const endpoint =
+        selectedCity === 'All'
+          ? '/vehicles'
+          : `/vehicles?city=${encodeURIComponent(selectedCity)}`;
       const data = await apiRequest(endpoint);
-      setVehicles(data);
-      if (data.length > 0) {
-        setActivePin(data[0]); // default active pin on map
-      } else {
-        setActivePin(null);
-      }
+      setVehicles(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
     } finally {
@@ -75,351 +108,557 @@ export default function SearchScreen() {
     }
   };
 
+  const resetAllFilters = () => {
+    setSelectedCity('All');
+    setActiveChip('all');
+    setSearchQuery('');
+    setSelectedBrand('All Brands');
+    setSelectedTransmission('All');
+    setSelectedFuel('All');
+    setMaxBudget(15000);
+  };
+
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      // Remove legacy taxi records if any so only pure self-drive fleet shows
+      if (String(v.model || '').toLowerCase().includes('taxi')) return false;
+
+      const text = `${v.make || ''} ${v.model || ''} ${v.category || ''} ${v.locationCity || ''} ${v.transmission || ''} ${v.fuelType || ''}`.toLowerCase();
+      if (searchQuery.trim() && !text.includes(searchQuery.trim().toLowerCase())) {
+        return false;
+      }
+
+      if (selectedBrand !== 'All Brands' && !String(v.make || '').toLowerCase().includes(selectedBrand.toLowerCase())) {
+        return false;
+      }
+
+      if (selectedTransmission !== 'All' && String(v.transmission || '').toLowerCase() !== selectedTransmission.toLowerCase()) {
+        return false;
+      }
+
+      if (selectedFuel !== 'All' && String(v.fuelType || '').toLowerCase() !== selectedFuel.toLowerCase()) {
+        return false;
+      }
+
+      if (Number(v.pricePerDay || 0) > maxBudget) {
+        return false;
+      }
+
+      // Quick Chip Filters
+      const cat = String(v.category || '').toLowerCase();
+      const trans = String(v.transmission || '').toLowerCase();
+      const fuel = String(v.fuelType || '').toLowerCase();
+      const seats = Number(v.seats || 5);
+      const year = Number(v.year || 2024);
+      const dist = getCarDistance(v);
+
+      if (activeChip === 'suv' && !cat.includes('suv') && !cat.includes('muv') && !text.includes('thar')) return false;
+      if (activeChip === 'sedan' && !cat.includes('sedan') && !cat.includes('luxury')) return false;
+      if (activeChip === 'hatchback' && !cat.includes('hatchback')) return false;
+      if (activeChip === 'auto' && !trans.includes('auto')) return false;
+      if (activeChip === 'diesel' && !fuel.includes('diesel')) return false;
+      if (activeChip === '7seat' && seats < 6) return false;
+      if (activeChip === 'near' && dist > 5.0) return false;
+      if (activeChip === 'new' && year < 2023) return false;
+
+      return true;
+    });
+  }, [vehicles, searchQuery, selectedBrand, selectedTransmission, selectedFuel, maxBudget, activeChip]);
+
   const getAverageRating = (reviews: any[]) => {
-    if (!reviews || reviews.length === 0) return 'New';
-    const sum = reviews.reduce((acc, curr) => acc + curr.rating, 0);
+    if (!reviews || reviews.length === 0) return null;
+    const sum = reviews.reduce((acc, curr) => acc + Number(curr.rating || 5), 0);
     return (sum / reviews.length).toFixed(1);
   };
 
   const renderVehicleCard = ({ item }: { item: any }) => {
-    const images = parseImageList(item.images);
     const rating = getAverageRating(item.reviews);
-    const isTaxi = item.model.includes('Taxi') || item.category === 'Luxury';
-    
+    const distance = getCarDistance(item);
+    const terms = getVehicleTerms(item);
+    const baseRate = Number(item.pricePerDay || 2500);
+    const displayRate = kmPlan === 'unlimited' ? Math.round(baseRate * 1.25) : baseRate;
+    const hubAddress =
+      item.pickupAddress ||
+      HUB_ADDRESSES[item.locationCity] ||
+      `${item.locationCity || 'Ahmedabad'}, Gujarat`;
+
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
-        onPress={() => router.push({
-          pathname: '/details/[id]',
-          params: { id: String(item.id), startDate, endDate }
-        })}
+        activeOpacity={0.92}
+        style={styles.card}
+        onPress={() =>
+          router.push({
+            pathname: '/details/[id]',
+            params: { id: String(item.id), startDate, endDate },
+          })
+        }
       >
-        <View style={{ position: 'relative' }}>
-          <Image source={{ uri: images[0] }} style={styles.cardImage} />
-          <View style={{
-            position: 'absolute',
-            top: 12,
-            left: 12,
-            backgroundColor: isTaxi ? '#5B1F7C' : '#F47B20',
-            paddingVertical: 4,
-            paddingHorizontal: 10,
-            borderRadius: 8,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3,
-            elevation: 4,
-          }}>
-            <ThemedText style={{ color: '#FFFFFF', fontSize: 11, fontWeight: 'bold' }}>
-              {isTaxi ? '🚖 Taxi with Driver' : '🔑 Private Plate Self-Drive'}
-            </ThemedText>
+        {/* Studio Car Image Stage */}
+        <View style={styles.imageStage}>
+          <Image
+            source={getVehicleImageSource(item)}
+            style={styles.carStudioImage}
+            resizeMode="cover"
+          />
+
+          {/* Top-Left Verified Listing Pill (Matches Website) */}
+          <View style={styles.verifiedBadge}>
+            <ShieldCheck size={13} color="#0D9488" strokeWidth={2.5} />
+            <Text style={styles.verifiedBadgeText}>Verified Listing</Text>
           </View>
         </View>
-        
-        <View style={styles.cardContent}>
-          <View style={styles.cardHeader}>
+
+        {/* Card Body */}
+        <View style={styles.cardBody}>
+          <View style={styles.titleRow}>
             <View style={{ flex: 1, paddingRight: 8 }}>
-              <ThemedText style={styles.carName}>{item.make} {item.model}</ThemedText>
-              <ThemedText type="small" style={{ color: colors.textSecondary }}>
-                {item.locationCity}, Gujarat • {item.category} • {item.transmission} • {item.fuelType}
-              </ThemedText>
+              <Text style={styles.carTitle} numberOfLines={1}>
+                {item.make} {item.model}
+              </Text>
+              <Text style={styles.carSubMeta}>
+                {item.year || 2024} • {item.category || 'SUV'}
+              </Text>
             </View>
-            <View style={[styles.ratingBadge, { backgroundColor: colors.backgroundElement }]}>
-              <Star size={14} color="#FBBF24" fill="#FBBF24" />
-              <ThemedText style={styles.ratingText}>{rating}</ThemedText>
+            {rating ? (
+              <View style={styles.ratingPill}>
+                <Star size={12} color="#F59E0B" fill="#F59E0B" />
+                <Text style={styles.ratingPillText}>{rating}</Text>
+              </View>
+            ) : (
+              <Text style={styles.newListingTag}>New listing</Text>
+            )}
+          </View>
+
+          {/* Clean Spec Row (Vector Icons - Zero Emojis) */}
+          <View style={styles.specRow}>
+            <View style={styles.specItem}>
+              <Gauge size={13} color="#475569" />
+              <Text style={styles.specText}>{item.transmission || 'Automatic'}</Text>
+            </View>
+            <View style={styles.specItem}>
+              <Fuel size={13} color="#475569" />
+              <Text style={styles.specText}>{item.fuelType || 'Petrol'}</Text>
+            </View>
+            <View style={styles.specItem}>
+              <Users size={13} color="#475569" />
+              <Text style={styles.specText}>{item.seats || 5} Seats</Text>
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          {/* Hub Address & Distance */}
+          <View style={styles.locationRow}>
+            <MapPin size={14} color="#64748B" style={{ marginTop: 2 }} />
+            <Text style={styles.locationText} numberOfLines={2}>
+              {hubAddress} • <Text style={styles.distanceBold}>{distance} km away</Text>
+            </Text>
+          </View>
 
-          <View style={styles.cardFooter}>
+          {/* Available Status */}
+          <View style={styles.availableRow}>
+            <CheckCircle2 size={13} color="#0D9488" />
+            <Text style={styles.availableText}>Available for selected dates</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Price & CTA Footer */}
+          <View style={styles.priceFooter}>
             <View>
-              <ThemedText style={[styles.price, { color: isTaxi ? '#5B1F7C' : colors.primary }]}>
-                ₹{Number(item.pricePerDay).toLocaleString('en-IN')}
-                <ThemedText type="small" style={{ color: colors.textSecondary }}>
-                  {isTaxi ? '/day (or per KM)' : '/day'}
-                </ThemedText>
-              </ThemedText>
-              <ThemedText type="small" style={{ color: colors.textSecondary }}>
-                {isTaxi ? 'All Gujarat Taxi Service' : 'Private No. • Excl. fuel'}
-              </ThemedText>
-            </View>
-            <View style={[styles.detailsBtn, { backgroundColor: isTaxi ? '#5B1F7C' : colors.primary }]}>
-              <ThemedText style={styles.detailsBtnText}>View Details</ThemedText>
+              <View style={styles.priceLine}>
+                <Text style={styles.priceAmount}>
+                  ₹{displayRate.toLocaleString('en-IN')}
+                </Text>
+                <Text style={styles.pricePerDay}> / day</Text>
+              </View>
+              <Text style={styles.kmTermsText}>
+                {kmPlan === 'unlimited'
+                  ? 'Unlimited kms incl. • Fastag active'
+                  : `${terms.kmPerDay} km/day incl. • ₹${terms.excessKmRate}/km extra`}
+              </Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.viewDetailsBtn}
+            onPress={() =>
+              router.push({
+                pathname: '/details/[id]',
+                params: { id: String(item.id), startDate, endDate },
+              })
+            }
+          >
+            <Text style={styles.viewDetailsBtnText}>View Details</Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Render Premium Mock Map View
-  const renderMapView = () => {
-    return (
-      <View style={[styles.mapContainer, { backgroundColor: colors.backgroundElement }]}>
-        {/* Mock Map Vector Grid Background */}
-        <View style={styles.mapGrid}>
-          {/* Mock Roads */}
-          <View style={[styles.mapRoad, styles.roadH1, { backgroundColor: colors.border }]} />
-          <View style={[styles.mapRoad, styles.roadH2, { backgroundColor: colors.border }]} />
-          <View style={[styles.mapRoad, styles.roadV1, { backgroundColor: colors.border }]} />
-          <View style={[styles.mapRoad, styles.roadV2, { backgroundColor: colors.border }]} />
+  const renderListHeader = () => (
+    <View style={styles.listHeaderWrap}>
+      {/* Website Promo Banner */}
+      <View style={styles.promoBanner}>
+        <View style={styles.promoTopRow}>
+          <Text style={styles.promoEyebrow}>BOOK VERIFIED SELF-DRIVE CARS</Text>
+          <View style={styles.verifiedFleetPill}>
+            <ShieldCheck size={12} color="#0D9488" strokeWidth={2.5} />
+            <Text style={styles.verifiedFleetPillText}>100% Verified Fleet</Text>
+          </View>
+        </View>
+        <Text style={styles.promoHeadline}>Drive Daily Anywhere — Anytime</Text>
+      </View>
 
-          {/* Map Pins representing car locations */}
-          {vehicles.map((car, index) => {
-            // Mock some offsets based on car index for map positioning
-            const topOffset = 150 + (index * 80) % 250;
-            const leftOffset = 40 + (index * 110) % 280;
-            const isSelected = activePin?.id === car.id;
+      {/* Trip Schedule & Pickup Hub Card */}
+      <View style={styles.scheduleCard}>
+        <View style={styles.scheduleHeaderRow}>
+          <View>
+            <Text style={styles.scheduleTitle}>Trip Schedule & Pickup Hub</Text>
+            <Text style={styles.scheduleSub}>
+              Transparent Pricing • Digital Lease Agreement • Verified Handover
+            </Text>
+          </View>
+        </View>
 
+        {/* City Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cityTabsRow}
+        >
+          {CITIES.map((city) => {
+            const active = selectedCity === city;
             return (
               <TouchableOpacity
-                key={car.id}
-                style={[
-                  styles.mapPin,
-                  { top: topOffset, left: leftOffset },
-                  isSelected && [styles.mapPinSelected, { shadowColor: colors.primary }]
-                ]}
-                onPress={() => setActivePin(car)}
+                key={city}
+                style={[styles.cityTab, active && styles.cityTabActive]}
+                onPress={() => setSelectedCity(city)}
               >
-                <View style={[
-                  styles.pinBubble, 
-                  { backgroundColor: isSelected ? colors.primary : colors.cardBg, borderColor: colors.border }
-                ]}>
-                  <ThemedText style={[styles.pinText, { color: isSelected ? '#FFFFFF' : colors.text }]}>
-                    ₹{(Number(car.pricePerDay) / 1000).toFixed(1)}k
-                  </ThemedText>
-                </View>
-                <View style={[styles.pinTail, { borderTopColor: isSelected ? colors.primary : colors.cardBg }]} />
+                <Text style={[styles.cityTabText, active && styles.cityTabTextActive]}>
+                  {city === 'All' ? 'All Cities (Gujarat)' : city}
+                </Text>
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
 
-        {/* Floating Selected Car Card at bottom of Map */}
-        {activePin && (
-          <View style={[styles.mapFloatingCardContainer, { maxWidth: MaxContentWidth }]}>
-            <TouchableOpacity
-              style={[styles.floatingCard, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
-              onPress={() => router.push({
-                pathname: '/details/[id]',
-                params: { id: String(activePin.id), startDate, endDate }
-              })}
-            >
-              <Image source={{ uri: parseImageList(activePin.images)[0] }} style={styles.floatingCardImage} />
-              <View style={styles.floatingCardContent}>
-                <ThemedText style={styles.floatingCarName}>{activePin.make} {activePin.model}</ThemedText>
-                <ThemedText type="small" style={{ color: colors.textSecondary }}>
-                  {activePin.transmission} • {activePin.fuelType}
-                </ThemedText>
-                <View style={styles.floatingCardFooter}>
-                  <ThemedText style={[styles.floatingPrice, { color: colors.primary }]}>
-                    ₹{Number(activePin.pricePerDay).toLocaleString('en-IN')}/day
-                  </ThemedText>
-                  <View style={styles.ratingRow}>
-                    <Star size={12} color="#FBBF24" fill="#FBBF24" />
-                    <ThemedText style={styles.floatingRatingText}>
-                      {getAverageRating(activePin.reviews)}
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header bar */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Image 
-            source={require('../../assets/logo.png')} 
-            style={{ width: 48, height: 48, resizeMode: 'contain' }} 
-          />
-          <View>
-            <ThemedText type="title" style={styles.logoText}>Safar Self Drive</ThemedText>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>
-              {user ? `Welcome, ${user.firstName}!` : 'Your Journey. Your Rules.'}
-            </ThemedText>
-          </View>
-        </View>
-        {user ? (
-          <TouchableOpacity 
-            style={[styles.profileBtn, { backgroundColor: colors.backgroundElement }]}
-            onPress={() => router.push('/wallet')}
-          >
-            <User size={20} color={colors.text} />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.loginBtn, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/auth/login')}
-          >
-            <LogIn size={18} color="#FFFFFF" />
-            <ThemedText style={styles.loginBtnText}>Login</ThemedText>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContent} stickyHeaderIndices={[1]} showsVerticalScrollIndicator={false}>
-        {/* Gujarat Dual Services Announcement Card */}
-        <View style={{
-          marginHorizontal: Spacing.three,
-          marginTop: Spacing.one,
-          marginBottom: Spacing.two,
-          padding: Spacing.three,
-          borderRadius: 16,
-          backgroundColor: colors.cardBg,
-          borderColor: colors.border,
-          borderWidth: 1,
-        }}>
-          <ThemedText style={{ fontSize: 13, fontWeight: 'bold', color: '#F47B20', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-            Gujarat's Premier Car Portal
-          </ThemedText>
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-            <View style={{ flex: 1, backgroundColor: '#F47B2015', borderRadius: 10, padding: 8, borderWidth: 1, borderColor: '#F47B2040' }}>
-              <ThemedText style={{ fontWeight: 'bold', fontSize: 12, color: '#F47B20' }}>🔑 Self Drive</ThemedText>
-              <ThemedText style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Private Number Vehicles</ThemedText>
+        {/* Pick-up & Drop-off Date Row */}
+        <View style={styles.dateRow}>
+          <View style={styles.dateBox}>
+            <Text style={styles.dateBoxLabel}>PICK-UP DATE</Text>
+            <View style={styles.dateInputRow}>
+              <Calendar size={14} color="#FF6000" />
+              <TextInput
+                style={styles.dateInput}
+                value={startDate}
+                onChangeText={setStartDate}
+                placeholder="YYYY-MM-DD"
+                maxLength={10}
+              />
             </View>
-            <View style={{ flex: 1, backgroundColor: '#5B1F7C15', borderRadius: 10, padding: 8, borderWidth: 1, borderColor: '#5B1F7C40' }}>
-              <ThemedText style={{ fontWeight: 'bold', fontSize: 12, color: '#7B3FA0' }}>🚖 Taxi with Driver</ThemedText>
-              <ThemedText style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Per KM Rate Across Gujarat</ThemedText>
+          </View>
+
+          <View style={styles.dateBox}>
+            <Text style={styles.dateBoxLabel}>DROP-OFF DATE</Text>
+            <View style={styles.dateInputRow}>
+              <Calendar size={14} color="#2D114D" />
+              <TextInput
+                style={styles.dateInput}
+                value={endDate}
+                onChangeText={setEndDate}
+                placeholder="YYYY-MM-DD"
+                maxLength={10}
+              />
             </View>
           </View>
         </View>
 
-        {/* Search Parameters Box */}
-        <View style={[styles.searchBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-          {/* City Selector */}
-          <View style={styles.searchRow}>
-            <MapPin size={18} color={colors.primary} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.one }}>
-              {CITIES.map(city => (
-                <TouchableOpacity
-                  key={city}
-                  style={[
-                    styles.cityTab,
-                    selectedCity === city && [styles.cityTabActive, { backgroundColor: colors.backgroundElement }]
-                  ]}
-                  onPress={() => setSelectedCity(city)}
-                >
-                  <ThemedText style={[styles.cityTabText, selectedCity === city && { color: colors.primary, fontWeight: 'bold' }]}>
-                    {city}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          <View style={[styles.subDivider, { backgroundColor: colors.border }]} />
-
-          {/* Date Picker row */}
-          <View style={styles.searchRow}>
-            <Calendar size={18} color={colors.secondary} />
-            <View style={styles.dateInputs}>
-              <View style={styles.dateInputWrapper}>
-                <ThemedText type="small" style={styles.dateLabel}>Start Date</ThemedText>
-                <TextInput
-                  style={[styles.dateInput, { color: colors.text }]}
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  placeholder="YYYY-MM-DD"
-                  maxLength={10}
-                />
-              </View>
-              <View style={[styles.verLine, { backgroundColor: colors.border }]} />
-              <View style={styles.dateInputWrapper}>
-                <ThemedText type="small" style={styles.dateLabel}>End Date</ThemedText>
-                <TextInput
-                  style={[styles.dateInput, { color: colors.text }]}
-                  value={endDate}
-                  onChangeText={setEndDate}
-                  placeholder="YYYY-MM-DD"
-                  maxLength={10}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Filter bar (Sticky) */}
-        <View style={[styles.stickyFilterBar, { backgroundColor: colors.background }]}>
-          <View style={styles.searchBarContainer}>
-            <Search size={16} color={colors.textSecondary} style={styles.searchIcon} />
+        {/* Search Input + Filter Sidebar Button */}
+        <View style={styles.searchFilterRow}>
+          <View style={styles.searchBox}>
+            <Search size={16} color="#64748B" />
             <TextInput
-              style={[styles.searchInput, { color: colors.text, backgroundColor: colors.cardBg, borderColor: colors.border }]}
-              placeholder="Search make or model..."
-              placeholderTextColor={colors.textSecondary}
+              style={styles.searchInput}
+              placeholder="Search make, model, transmission, fuel..."
+              placeholderTextColor="#94A3B8"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <X size={16} color="#94A3B8" />
+              </TouchableOpacity>
+            )}
           </View>
 
-          <View style={styles.filterControlsRow}>
-            {/* Category pills list */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-              {CATEGORIES.map(category => (
+          <TouchableOpacity
+            style={styles.filterTriggerBtn}
+            activeOpacity={0.85}
+            onPress={() => setFilterModalOpen(true)}
+          >
+            <SlidersHorizontal size={16} color="#2D114D" />
+            <Text style={styles.filterTriggerText}>Filters</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* KM Plan Toggle (300 Kms incl. / Unlimited kms) */}
+        <View style={styles.kmToggleWrap}>
+          <TouchableOpacity
+            style={[styles.kmToggleBtn, kmPlan === '300' && styles.kmToggleBtnActive]}
+            onPress={() => setKmPlan('300')}
+          >
+            <Text style={[styles.kmToggleText, kmPlan === '300' && styles.kmToggleTextActive]}>
+              300 Kms incl.
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.kmToggleBtn, kmPlan === 'unlimited' && styles.kmToggleBtnActive]}
+            onPress={() => setKmPlan('unlimited')}
+          >
+            <Text style={[styles.kmToggleText, kmPlan === 'unlimited' && styles.kmToggleTextActive]}>
+              Unlimited kms
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Quick Filter Chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsScroll}
+      >
+        {QUICK_CHIPS.map((chip) => {
+          const active = activeChip === chip.id;
+          return (
+            <TouchableOpacity
+              key={chip.id}
+              style={[styles.chipPill, active && styles.chipPillActive]}
+              onPress={() => setActiveChip(chip.id)}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {chip.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Results Count Bar */}
+      <View style={styles.resultsCountBar}>
+        <Text style={styles.resultsCountTitle}>
+          Showing {filteredVehicles.length} Verified Cars Available for Your Trip
+        </Text>
+        <Text style={styles.resultsCountSub}>
+          Base fare includes 300 km/day • Refundable deposit shown at checkout
+        </Text>
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Sticky Website-Identical Brand Navbar */}
+      <SafarHeader
+        selectedCity={selectedCity}
+        onPressCity={() => setCityModalOpen(true)}
+      />
+
+      {loading ? (
+        <View style={styles.loaderCenter}>
+          <ActivityIndicator size="large" color="#FF6000" />
+          <Text style={styles.loaderText}>Loading verified Safar fleet...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredVehicles}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderVehicleCard}
+          ListHeaderComponent={renderListHeader}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyTitle}>No matching vehicles found</Text>
+              <Text style={styles.emptySub}>
+                Try resetting your filters or selecting All Cities (Gujarat).
+              </Text>
+              <TouchableOpacity style={styles.resetBtn} onPress={resetAllFilters}>
+                <RotateCcw size={14} color="#FFFFFF" />
+                <Text style={styles.resetBtnText}>Reset All Filters</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
+
+      {/* City Selection Modal */}
+      <Modal
+        visible={cityModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCityModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.cityModalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Gujarat Pickup Hub</Text>
+              <TouchableOpacity onPress={() => setCityModalOpen(false)}>
+                <X size={20} color="#475569" />
+              </TouchableOpacity>
+            </View>
+            {CITIES.map((city) => {
+              const active = selectedCity === city;
+              return (
                 <TouchableOpacity
-                  key={category}
-                  style={[
-                    styles.categoryPill,
-                    { backgroundColor: colors.cardBg, borderColor: colors.border },
-                    selectedCategory === category && [styles.categoryPillActive, { backgroundColor: colors.primary, borderColor: colors.primary }]
-                  ]}
-                  onPress={() => setSelectedCategory(category)}
+                  key={city}
+                  style={[styles.cityOptionRow, active && styles.cityOptionRowActive]}
+                  onPress={() => {
+                    setSelectedCity(city);
+                    setCityModalOpen(false);
+                  }}
                 >
-                  <ThemedText style={[
-                    styles.categoryText, 
-                    { color: colors.textSecondary },
-                    selectedCategory === category && { color: '#FFFFFF', fontWeight: 'bold' }
-                  ]}>
-                    {category}
-                  </ThemedText>
+                  <MapPin size={16} color={active ? '#FF6000' : '#64748B'} />
+                  <Text style={[styles.cityOptionText, active && styles.cityOptionTextActive]}>
+                    {city === 'All' ? 'All Cities (Gujarat)' : `${city} Hub`}
+                  </Text>
                 </TouchableOpacity>
-              ))}
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Filters Drawer Modal (Matches Website Left Sidebar) */}
+      <Modal
+        visible={filterModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFilterModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.filterSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filters</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <TouchableOpacity onPress={resetAllFilters}>
+                  <Text style={styles.resetLinkText}>Reset All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setFilterModalOpen(false)}>
+                  <X size={22} color="#1E1B2E" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
+              {/* Daily Rate Budget */}
+              <Text style={styles.filterGroupTitle}>Daily Rate Budget</Text>
+              <View style={styles.filterOptionsWrap}>
+                {[3000, 5000, 8000, 15000].map((budget) => (
+                  <TouchableOpacity
+                    key={budget}
+                    style={[
+                      styles.filterOptionPill,
+                      maxBudget === budget && styles.filterOptionPillActive,
+                    ]}
+                    onPress={() => setMaxBudget(budget)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        maxBudget === budget && styles.filterOptionTextActive,
+                      ]}
+                    >
+                      {budget === 15000 ? 'Any Budget' : `Up to ₹${budget.toLocaleString('en-IN')}`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Car Brand / Make */}
+              <Text style={styles.filterGroupTitle}>Car Brand / Make</Text>
+              <View style={styles.filterOptionsWrap}>
+                {BRANDS.map((brand) => (
+                  <TouchableOpacity
+                    key={brand}
+                    style={[
+                      styles.filterOptionPill,
+                      selectedBrand === brand && styles.filterOptionPillActive,
+                    ]}
+                    onPress={() => setSelectedBrand(brand)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        selectedBrand === brand && styles.filterOptionTextActive,
+                      ]}
+                    >
+                      {brand}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Transmission */}
+              <Text style={styles.filterGroupTitle}>Transmission</Text>
+              <View style={styles.filterOptionsWrap}>
+                {(['All', 'Automatic', 'Manual'] as const).map((tr) => (
+                  <TouchableOpacity
+                    key={tr}
+                    style={[
+                      styles.filterOptionPill,
+                      selectedTransmission === tr && styles.filterOptionPillActive,
+                    ]}
+                    onPress={() => setSelectedTransmission(tr)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        selectedTransmission === tr && styles.filterOptionTextActive,
+                      ]}
+                    >
+                      {tr}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Fuel Type */}
+              <Text style={styles.filterGroupTitle}>Fuel Type</Text>
+              <View style={styles.filterOptionsWrap}>
+                {(['All', 'Petrol', 'Diesel'] as const).map((fl) => (
+                  <TouchableOpacity
+                    key={fl}
+                    style={[
+                      styles.filterOptionPill,
+                      selectedFuel === fl && styles.filterOptionPillActive,
+                    ]}
+                    onPress={() => setSelectedFuel(fl)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterOptionText,
+                        selectedFuel === fl && styles.filterOptionTextActive,
+                      ]}
+                    >
+                      {fl}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </ScrollView>
 
-            {/* List/Map View toggle */}
             <TouchableOpacity
-              style={[styles.viewToggle, { backgroundColor: colors.cardBg, borderColor: colors.border }]}
-              onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+              style={styles.applyFiltersBtn}
+              onPress={() => setFilterModalOpen(false)}
             >
-              {viewMode === 'list' ? (
-                <Map size={18} color={colors.primary} />
-              ) : (
-                <List size={18} color={colors.primary} />
-              )}
+              <Text style={styles.applyFiltersBtnText}>
+                Show {filteredVehicles.length} Verified Cars
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Dynamic Listings */}
-        {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        ) : viewMode === 'list' ? (
-          vehicles.length === 0 ? (
-            <View style={styles.centerContainer}>
-              <ThemedText style={{ color: colors.textSecondary }}>No vehicles found in {selectedCity}</ThemedText>
-            </View>
-          ) : (
-            <FlatList
-              data={vehicles}
-              renderItem={renderVehicleCard}
-              keyExtractor={item => item.id}
-              scrollEnabled={false}
-              contentContainerStyle={styles.listContainer}
-            />
-          )
-        ) : (
-          renderMapView()
-        )}
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -427,359 +666,564 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F6F7FB',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+  listContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 28,
   },
-  logoText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
+  listHeaderWrap: {
+    paddingTop: 12,
+    marginBottom: 8,
   },
-  loginBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
-    gap: Spacing.one,
-  },
-  loginBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  profileBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  searchBox: {
-    marginHorizontal: Spacing.three,
-    marginTop: Spacing.two,
-    borderRadius: 16,
+  promoBanner: {
+    backgroundColor: '#FFF7ED',
     borderWidth: 1,
-    padding: Spacing.three,
-    gap: Spacing.two,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    borderColor: '#FFEDD5',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  promoTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  promoEyebrow: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FF6000',
+    letterSpacing: 1.1,
+  },
+  verifiedFleetPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  verifiedFleetPillText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  promoHeadline: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#2D114D',
+    letterSpacing: -0.3,
+  },
+  scheduleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
+  scheduleHeaderRow: {
+    marginBottom: 10,
   },
-  citySelector: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: Spacing.one,
+  scheduleTitle: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#1E1B2E',
+  },
+  scheduleSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  cityTabsRow: {
+    gap: 8,
+    paddingBottom: 10,
   },
   cityTab: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   cityTabActive: {
-    // shadow applied in JS
+    backgroundColor: '#2D114D',
+    borderColor: '#2D114D',
   },
   cityTabText: {
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
   },
-  dateInputs: {
+  cityTabTextActive: {
+    color: '#FFFFFF',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  dateBox: {
     flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  dateBoxLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
+    marginBottom: 3,
+  },
+  dateInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateInputWrapper: {
-    flex: 1,
-  },
-  dateLabel: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    gap: 6,
   },
   dateInput: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E1B2E',
     padding: 0,
   },
-  verLine: {
-    width: 1,
-    height: 30,
-    marginHorizontal: Spacing.two,
+  searchFilterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
   },
-  divider: {
-    height: 1,
-    marginVertical: Spacing.two,
-  },
-  subDivider: {
-    height: 1,
-  },
-  stickyFilterBar: {
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.one,
-    zIndex: 10,
-  },
-  searchBarContainer: {
+  searchBox: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    marginBottom: Spacing.two,
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: Spacing.four + 4,
-    zIndex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    height: 42,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingLeft: Spacing.five + 12,
-    paddingRight: Spacing.three,
-    fontSize: 14,
+    fontSize: 13,
+    color: '#1E1B2E',
+    padding: 0,
   },
-  filterControlsRow: {
+  filterTriggerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    gap: Spacing.two,
-  },
-  categoryScroll: {
-    gap: Spacing.one,
-    paddingRight: Spacing.three,
-  },
-  categoryPill: {
-    paddingVertical: Spacing.one + 2,
-    paddingHorizontal: Spacing.three,
-    borderRadius: 20,
+    gap: 6,
+    backgroundColor: '#F3E8FF',
     borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 13,
+    height: 42,
+    borderRadius: 12,
   },
-  categoryPillActive: {
-    // applied dynamically
+  filterTriggerText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#2D114D',
   },
-  categoryText: {
+  kmToggleWrap: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 999,
+    padding: 3,
+  },
+  kmToggleBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: 999,
+  },
+  kmToggleBtnActive: {
+    backgroundColor: '#FF6000',
+  },
+  kmToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  kmToggleTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  chipsScroll: {
+    gap: 8,
+    paddingBottom: 12,
+  },
+  chipPill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  chipPillActive: {
+    backgroundColor: '#FF6000',
+    borderColor: '#FF6000',
+  },
+  chipText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  resultsCountBar: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  resultsCountTitle: {
     fontSize: 13,
+    fontWeight: '800',
+    color: '#1E1B2E',
   },
-  viewToggle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centerContainer: {
-    height: 250,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContainer: {
-    paddingHorizontal: Spacing.three,
-    gap: Spacing.three,
-    marginTop: Spacing.two,
+  resultsCountSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
   },
   card: {
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
     overflow: 'hidden',
-    marginBottom: Spacing.three,
-    shadowColor: '#000000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 3,
   },
-  cardImage: {
+  imageStage: {
     width: '100%',
-    height: 180,
-    resizeMode: 'cover',
+    height: 205,
+    backgroundColor: '#EFF2F6',
+    position: 'relative',
   },
-  cardContent: {
-    padding: Spacing.three,
+  carStudioImage: {
+    width: '100%',
+    height: '100%',
   },
-  cardHeader: {
+  verifiedBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  verifiedBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  cardBody: {
+    padding: 15,
+  },
+  titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 8,
   },
-  carName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  carTitle: {
+    fontSize: 17.5,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.half,
-    borderRadius: 6,
-    gap: Spacing.half,
+  carSubMeta: {
+    fontSize: 12.5,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '600',
   },
-  ratingText: {
+  newListingTag: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: '#475569',
   },
-  cardFooter: {
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  ratingPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  specRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 10,
+  },
+  specItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  specText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginBottom: 8,
+  },
+  locationText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 17,
+  },
+  distanceBold: {
+    fontWeight: '800',
+    color: '#1E1B2E',
+  },
+  availableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 10,
+  },
+  availableText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0D9488',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginBottom: 10,
+  },
+  priceFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.one,
+    marginBottom: 12,
   },
-  price: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  priceLine: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  detailsBtn: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two - 2,
-    borderRadius: 8,
+  priceAmount: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#0F172A',
   },
-  detailsBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+  pricePerDay: {
     fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
   },
-  mapContainer: {
-    height: 480,
-    marginTop: Spacing.two,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  mapGrid: {
-    flex: 1,
-    position: 'relative',
-  },
-  mapRoad: {
-    position: 'absolute',
-    opacity: 0.4,
-  },
-  roadH1: {
-    top: 180,
-    left: 0,
-    right: 0,
-    height: 24,
-  },
-  roadH2: {
-    top: 360,
-    left: 0,
-    right: 0,
-    height: 20,
-  },
-  roadV1: {
-    top: 0,
-    bottom: 0,
-    left: 120,
-    width: 24,
-  },
-  roadV2: {
-    top: 0,
-    bottom: 0,
-    left: 280,
-    width: 20,
-  },
-  mapPin: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  mapPinSelected: {
-    zIndex: 5,
-    transform: [{ scale: 1.1 }],
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  pinBubble: {
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.half,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  pinText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  pinTail: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightWidth: 6,
-    borderRightColor: 'transparent',
-    borderTopWidth: 6,
-    marginTop: -1,
-  },
-  mapFloatingCardContainer: {
-    position: 'absolute',
-    bottom: Spacing.three,
-    left: Spacing.three,
-    right: Spacing.three,
-    alignItems: 'center',
-  },
-  floatingCard: {
-    flexDirection: 'row',
-    width: '100%',
-    padding: Spacing.two,
-    borderRadius: 14,
-    borderWidth: 1,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  floatingCardImage: {
-    width: 80,
-    height: 60,
-    borderRadius: 8,
-    resizeMode: 'cover',
-  },
-  floatingCardContent: {
-    flex: 1,
-    marginLeft: Spacing.two,
-    justifyContent: 'center',
-  },
-  floatingCarName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  floatingCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  kmTermsText: {
+    fontSize: 11.5,
+    color: '#64748B',
     marginTop: 2,
   },
-  floatingPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  viewDetailsBtn: {
+    backgroundColor: '#FF6000',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF6000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  ratingRow: {
+  viewDetailsBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  loaderCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loaderText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  emptyBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E1B2E',
+  },
+  emptySub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  resetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 6,
+    backgroundColor: '#FF6000',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
-  floatingRatingText: {
-    fontSize: 11,
-    fontWeight: 'bold',
+  resetBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  cityModalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 20,
+    paddingBottom: 34,
+  },
+  filterSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1E1B2E',
+  },
+  resetLinkText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FF6000',
+  },
+  cityOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  cityOptionRowActive: {
+    backgroundColor: '#FFF7ED',
+  },
+  cityOptionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  cityOptionTextActive: {
+    color: '#FF6000',
+    fontWeight: '800',
+  },
+  filterGroupTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#1E1B2E',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  filterOptionsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 6,
+  },
+  filterOptionPill: {
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  filterOptionPillActive: {
+    backgroundColor: '#2D114D',
+    borderColor: '#2D114D',
+  },
+  filterOptionText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  filterOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  applyFiltersBtn: {
+    backgroundColor: '#FF6000',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  applyFiltersBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '800',
   },
 });

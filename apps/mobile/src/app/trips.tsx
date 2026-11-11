@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { apiRequest, parseImageList } from '@/services/api';
-import { Calendar, AlertCircle, LogIn, ChevronRight, CheckCircle2, XCircle } from 'lucide-react-native';
+import { SafarHeader } from '@/components/safar-header';
+import { apiRequest, getVehicleImageSource } from '@/services/api';
+import { Calendar, AlertCircle, LogIn } from 'lucide-react-native';
 
 const TRIP_STATUSES = ['Upcoming', 'Completed', 'Cancelled'];
 
@@ -119,13 +120,12 @@ export default function TripsScreen() {
   };
 
   const renderBookingCard = ({ item }: { item: any }) => {
-    const images = parseImageList(item.vehicle.images);
     const isUpcoming = activeTab === 'Upcoming';
     
     return (
       <View style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
         <View style={styles.cardMain}>
-          <Image source={{ uri: images[0] }} style={styles.carImage} />
+          <Image source={getVehicleImageSource(item.vehicle)} style={styles.carImage} />
           
           <View style={styles.cardContent}>
             <View style={styles.refRow}>
@@ -190,9 +190,7 @@ export default function TripsScreen() {
   if (!user) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <ThemedText type="title">My Trips</ThemedText>
-        </View>
+        <SafarHeader />
         <View style={styles.center}>
           <AlertCircle size={48} color={colors.textSecondary} style={{ marginBottom: Spacing.three }} />
           <ThemedText style={styles.promptTitle}>View Your Bookings</ThemedText>
@@ -200,7 +198,7 @@ export default function TripsScreen() {
             Please sign in to view your upcoming, completed, and cancelled trips.
           </ThemedText>
           <TouchableOpacity
-            style={[styles.loginBtn, { backgroundColor: colors.primary }]}
+            style={[styles.loginBtn, { backgroundColor: '#FF6000' }]}
             onPress={() => router.push('/auth/login')}
           >
             <LogIn size={18} color="#FFFFFF" />
@@ -213,9 +211,10 @@ export default function TripsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafarHeader />
       <View style={styles.header}>
         <ThemedText type="title">My Trips</ThemedText>
-        <ThemedText type="small" style={{ color: colors.textSecondary }}>Manage your rentals</ThemedText>
+        <ThemedText type="small" style={{ color: colors.textSecondary }}>Manage your self-drive bookings & digital lease agreements</ThemedText>
       </View>
 
       {/* Tabs */}

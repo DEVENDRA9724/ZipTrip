@@ -1,21 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Colors, Spacing } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
-import { apiRequest, parseImageList } from '@/services/api';
-import { ArrowLeft, Wallet, CheckCircle, Info, Calendar, Sparkles } from 'lucide-react-native';
+import { apiRequest, getVehicleImageSource, getVehicleTerms } from '@/services/api';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Calendar,
+  ShieldCheck,
+  CreditCard,
+  Smartphone,
+  Building2,
+  FileText,
+} from 'lucide-react-native';
 
 export default function BookingConfirmScreen() {
-  const colors = Colors.light;
-
-  const { vehicleId, startDate, endDate } = useLocalSearchParams<{ vehicleId: string; startDate: string; endDate: string }>();
+  const { vehicleId, startDate, endDate } = useLocalSearchParams<{
+    vehicleId: string;
+    startDate: string;
+    endDate: string;
+  }>();
 
   const [vehicle, setVehicle] = useState<any>(null);
-  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CARD' | 'NETBANKING'>('UPI');
+  const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [successBooking, setSuccessBooking] = useState<any>(null);
 
   useEffect(() => {
@@ -27,12 +46,9 @@ export default function BookingConfirmScreen() {
     try {
       const vData = await apiRequest(`/vehicles/${vehicleId}`);
       setVehicle(vData);
-
-      const wData = await apiRequest('/wallet');
-      setWalletBalance(Number(wData.balance));
     } catch (error) {
       console.error('Error fetching checkout data:', error);
-      Alert.alert('Error', 'Failed to retrieve vehicle or wallet status.');
+      Alert.alert('Error', 'Could not load vehicle checkout details.');
     } finally {
       setLoading(false);
     }
@@ -50,27 +66,61 @@ export default function BookingConfirmScreen() {
   };
 
   const handleConfirmBooking = async () => {
+    if (!acceptedTerms) {
+      Alert.alert('Lease Agreement Required', 'Please accept the Digital Car Sharing Lease Agreement before paying.');
+      return;
+    }
     setBookingLoading(true);
     try {
-      const res = await apiRequest('/bookings', {
+      const requestKey = 'mob-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+      const created = await apiRequest('/bookings', {
         method: 'POST',
         body: JSON.stringify({
           vehicleId,
+          requestKey,
           startDate,
           endDate,
         }),
       });
-      setSuccessBooking(res);
+
+      // Acknowledge Digital Lease Agreement & Confirm Payment
+      await apiRequest(`/bookings/${created.id}/agreement/acknowledge`, {
+        method: 'POST',
+      }).catch(() => {});
+
+      const paid = await apiRequest(`/bookings/${created.id}/pay`, {
+        method: 'POST',
+        body: JSON.stringify({
+          method: paymentMethod,
+          gatewayProvider: 'Razorpay',
+        }),
+      });
+
+      setSuccessBooking(paid || created);
     } catch (e: any) {
-      Alert.alert('Booking Failed', e.message || 'An error occurred during booking.');
+      const msg = e.message || 'An error occurred during booking.';
+      if (msg.toLowerCase().includes('verification') || msg.toLowerCase().includes('kyc')) {
+        Alert.alert(
+          'Driver e-KYC Required',
+          msg,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Complete e-KYC Now', onPress: () => router.push('/verification') },
+          ]
+        );
+      } else {
+        Alert.alert('Booking Notice', msg);
+      }
     } finally {
       setBookingLoading(false);
     }
   };
 
   const formatDateString = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: 'numeric',
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-IN', {
+      day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
@@ -78,182 +128,236 @@ export default function BookingConfirmScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#FF6000" />
       </View>
     );
   }
 
-  // Success State
+  if (!vehicle) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: '#64748B' }}>Vehicle not found</Text>
+      </View>
+    );
+  }
+
+  // Confirmed State
   if (successBooking) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.successContent}>
-          <CheckCircle size={64} color={colors.success} style={{ marginBottom: Spacing.four }} />
-          <ThemedText style={styles.successTitle}>Booking Confirmed!</ThemedText>
-          <ThemedText type="small" style={[styles.successSubtitle, { color: colors.textSecondary }]}>
-            Your ride has been successfully reserved. The reference number is{' '}
-            <ThemedText style={{ fontWeight: 'bold', color: colors.text }}>{successBooking.bookingRef}</ThemedText>.
-          </ThemedText>
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.successWrap}>
+          <View style={styles.successIconCircle}>
+            <CheckCircle2 size={54} color="#0D9488" />
+          </View>
+          <Text style={styles.successTitle}>Booking Confirmed!</Text>
+          <Text style={styles.successSub}>
+            Booking Reference: <Text style={styles.refBold}>{successBooking.bookingRef}</Text>
+          </Text>
 
-          <View style={[styles.detailsBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-            <Image source={{ uri: parseImageList(successBooking.vehicle.images)[0] }} style={styles.successCarImage} />
-            <ThemedText style={styles.successCarName}>
-              {successBooking.vehicle.make} {successBooking.vehicle.model}
-            </ThemedText>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>
-              Dates: {formatDateString(startDate)} - {formatDateString(endDate)}
-            </ThemedText>
-            <ThemedText style={[styles.successPrice, { color: colors.primary }]}>
-              Paid: ₹{Number(successBooking.totalAmount).toLocaleString('en-IN')}
-            </ThemedText>
+          <View style={styles.confirmedCard}>
+            <Image
+              source={getVehicleImageSource(vehicle)}
+              style={styles.confirmedImage}
+              resizeMode="cover"
+            />
+            <View style={{ padding: 14 }}>
+              <Text style={styles.confirmedCarTitle}>
+                {vehicle.make} {vehicle.model}
+              </Text>
+              <Text style={styles.confirmedMeta}>
+                {formatDateString(startDate)} → {formatDateString(endDate)}
+              </Text>
+              <Text style={styles.confirmedPaid}>
+                Total Paid: ₹{Number(successBooking.totalAmount).toLocaleString('en-IN')}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.btnColumn}>
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-              onPress={() => router.replace('/trips')}
-            >
-              <ThemedText style={styles.primaryBtnText}>View My Trips</ThemedText>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() =>
+              router.replace({
+                pathname: '/booking/agreement' as any,
+                params: { id: String(successBooking.id) },
+              })
+            }
+          >
+            <Text style={styles.primaryBtnText}>View Digital Lease Agreement</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { borderColor: colors.border }]}
-              onPress={() => router.replace('/')}
-            >
-              <ThemedText style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>Back to Search</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => router.replace('/trips')}
+          >
+            <Text style={styles.secondaryBtnText}>Go to My Trips</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
+  const terms = getVehicleTerms(vehicle);
   const totalDays = calculateDays();
-  const rentCost = Number(vehicle.pricePerDay) * totalDays;
-  const platformFee = 150;
-  const protectionFee = 250;
-  const totalAmount = rentCost + platformFee + protectionFee;
-  const hasFunds = walletBalance >= totalAmount;
+  const baseFare = Number(vehicle.pricePerDay || 2500) * totalDays;
+  const hostLeaseShare = Math.round(baseFare * 0.8);
+  const platformFeeShare = baseFare - hostLeaseShare;
+  const securityDeposit = terms.securityDeposit;
+  const totalAmount = baseFare + securityDeposit;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: colors.backgroundElement }]}>
-          <ArrowLeft size={18} color={colors.text} />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeft size={20} color="#1E1B2E" />
         </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>Trip Checkout</ThemedText>
-        <View style={{ width: 36 }} />
+        <Text style={styles.topBarTitle}>Review & Checkout</Text>
+        <View style={{ width: 38 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Vehicle Mini Summary */}
-        <View style={[styles.vehicleSummary, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-          <Image source={{ uri: parseImageList(vehicle.images)[0] }} style={styles.carThumb} />
+        {/* Vehicle Summary */}
+        <View style={styles.vehicleSummary}>
+          <Image
+            source={getVehicleImageSource(vehicle)}
+            style={styles.carThumb}
+            resizeMode="cover"
+          />
           <View style={styles.carText}>
-            <ThemedText style={styles.carTitle}>{vehicle.make} {vehicle.model}</ThemedText>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>
-              {vehicle.category} • {vehicle.transmission} • {vehicle.fuelType}
-            </ThemedText>
+            <Text style={styles.carTitle}>
+              {vehicle.make} {vehicle.model}
+            </Text>
+            <Text style={styles.carSub}>
+              {vehicle.year || 2024} • {vehicle.transmission} • {vehicle.fuelType}
+            </Text>
+            <Text style={styles.hubText}>{vehicle.locationCity || 'Ahmedabad'} Verified Hub</Text>
           </View>
         </View>
 
-        {/* Date Summary */}
-        <View style={[styles.rowSection, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-          <Calendar size={18} color={colors.primary} />
-          <View style={styles.rowContent}>
-            <ThemedText style={styles.rowLabel}>Trip Dates</ThemedText>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>
-              {formatDateString(startDate)} - {formatDateString(endDate)} ({totalDays} {totalDays === 1 ? 'day' : 'days'})
-            </ThemedText>
+        {/* Trip Schedule */}
+        <View style={styles.cardBox}>
+          <View style={styles.cardHeaderRow}>
+            <Calendar size={16} color="#FF6000" />
+            <Text style={styles.cardBoxTitle}>Trip Schedule ({totalDays} {totalDays === 1 ? 'Day' : 'Days'})</Text>
+          </View>
+          <Text style={styles.scheduleDates}>
+            {formatDateString(startDate)} (10:00 AM) → {formatDateString(endDate)} (10:00 AM)
+          </Text>
+          <Text style={styles.scheduleHint}>
+            Includes {terms.kmPerDay * totalDays} km total allowance • ₹{terms.excessKmRate}/km excess
+          </Text>
+        </View>
+
+        {/* Dual GST Tax Invoice Breakdown (80/20 Split) */}
+        <View style={styles.cardBox}>
+          <View style={styles.cardHeaderRow}>
+            <FileText size={16} color="#2D114D" />
+            <Text style={styles.cardBoxTitle}>Fare & Dual GST Invoice Breakdown</Text>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.priceKey}>
+              Base Trip Fare (₹{Number(vehicle.pricePerDay).toLocaleString('en-IN')} × {totalDays}d)
+            </Text>
+            <Text style={styles.priceVal}>₹{baseFare.toLocaleString('en-IN')}</Text>
+          </View>
+
+          <View style={styles.subSplitBox}>
+            <View style={styles.splitLine}>
+              <Text style={styles.splitText}>• Part A: Vehicle Lease Invoice (80%)</Text>
+              <Text style={styles.splitText}>₹{hostLeaseShare.toLocaleString('en-IN')}</Text>
+            </View>
+            <View style={styles.splitLine}>
+              <Text style={styles.splitText}>• Part B: Safar Platform Service Fee (20%)</Text>
+              <Text style={styles.splitText}>₹{platformFeeShare.toLocaleString('en-IN')}</Text>
+            </View>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.priceKey}>Refundable Security Deposit</Text>
+            <Text style={[styles.priceVal, { color: '#0D9488' }]}>
+              ₹{securityDeposit.toLocaleString('en-IN')}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.priceRow}>
+            <Text style={styles.totalKey}>Total Payable Now</Text>
+            <Text style={styles.totalVal}>₹{totalAmount.toLocaleString('en-IN')}</Text>
           </View>
         </View>
 
-        {/* Price Breakout */}
-        <View style={[styles.breakoutBox, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-          <ThemedText style={styles.breakoutTitle}>Price Summary</ThemedText>
+        {/* Payment Method Selection */}
+        <View style={styles.cardBox}>
+          <Text style={[styles.cardBoxTitle, { marginBottom: 10 }]}>Select Payment Method</Text>
 
-          <View style={styles.priceRow}>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>
-              Rental Charge (₹{Number(vehicle.pricePerDay).toLocaleString()}/day)
-            </ThemedText>
-            <ThemedText type="small" style={{ fontWeight: '600' }}>₹{rentCost.toLocaleString()}</ThemedText>
-          </View>
+          <TouchableOpacity
+            style={[styles.payOption, paymentMethod === 'UPI' && styles.payOptionActive]}
+            onPress={() => setPaymentMethod('UPI')}
+          >
+            <Smartphone size={18} color={paymentMethod === 'UPI' ? '#FF6000' : '#64748B'} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.payOptionTitle}>UPI Instant Pay</Text>
+              <Text style={styles.payOptionSub}>GPay, PhonePe, Paytm, BHIM UPI</Text>
+            </View>
+            <CheckCircle2 size={18} color={paymentMethod === 'UPI' ? '#FF6000' : '#CBD5E1'} />
+          </TouchableOpacity>
 
-          <View style={styles.priceRow}>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>Platform Handling Fee</ThemedText>
-            <ThemedText type="small" style={{ fontWeight: '600' }}>₹{platformFee}</ThemedText>
-          </View>
+          <TouchableOpacity
+            style={[styles.payOption, paymentMethod === 'CARD' && styles.payOptionActive]}
+            onPress={() => setPaymentMethod('CARD')}
+          >
+            <CreditCard size={18} color={paymentMethod === 'CARD' ? '#FF6000' : '#64748B'} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.payOptionTitle}>Credit / Debit Card</Text>
+              <Text style={styles.payOptionSub}>Visa, Mastercard, RuPay</Text>
+            </View>
+            <CheckCircle2 size={18} color={paymentMethod === 'CARD' ? '#FF6000' : '#CBD5E1'} />
+          </TouchableOpacity>
 
-          <View style={styles.priceRow}>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>Zero Damage Waiver Fee</ThemedText>
-            <ThemedText type="small" style={{ fontWeight: '600' }}>₹{protectionFee}</ThemedText>
-          </View>
-
-          <View style={[styles.priceDivider, { backgroundColor: colors.border }]} />
-
-          <View style={styles.priceRow}>
-            <ThemedText style={{ fontWeight: 'bold' }}>Total Cost</ThemedText>
-            <ThemedText style={{ fontWeight: 'bold', fontSize: 18, color: colors.primary }}>
-              ₹{totalAmount.toLocaleString('en-IN')}
-            </ThemedText>
-          </View>
+          <TouchableOpacity
+            style={[styles.payOption, paymentMethod === 'NETBANKING' && styles.payOptionActive]}
+            onPress={() => setPaymentMethod('NETBANKING')}
+          >
+            <Building2 size={18} color={paymentMethod === 'NETBANKING' ? '#FF6000' : '#64748B'} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.payOptionTitle}>NetBanking</Text>
+              <Text style={styles.payOptionSub}>All major Indian banks supported</Text>
+            </View>
+            <CheckCircle2 size={18} color={paymentMethod === 'NETBANKING' ? '#FF6000' : '#CBD5E1'} />
+          </TouchableOpacity>
         </View>
 
-        {/* Wallet Status */}
-        <View style={[
-          styles.walletBox,
-          { backgroundColor: colors.cardBg, borderColor: hasFunds ? colors.success : colors.error }
-        ]}>
-          <Wallet size={20} color={hasFunds ? colors.success : colors.error} />
-          <View style={styles.walletText}>
-            <ThemedText style={styles.walletTitle}>Safar Wallet Balance</ThemedText>
-            <ThemedText type="small" style={{ color: colors.textSecondary }}>
-              Available: ₹{walletBalance.toLocaleString('en-IN')}
-            </ThemedText>
-          </View>
-          {hasFunds ? (
-            <CheckCircle size={18} color={colors.success} />
-          ) : (
-            <TouchableOpacity 
-              style={[styles.topupBtn, { backgroundColor: colors.error }]}
-              onPress={() => router.replace('/wallet')}
-            >
-              <ThemedText style={styles.topupBtnText}>Top Up</ThemedText>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {!hasFunds && (
-          <View style={styles.insufficientWarning}>
-            <Info size={14} color={colors.error} />
-            <ThemedText type="small" style={{ color: colors.error, marginLeft: 4 }}>
-              Online payment is not enabled yet. Safar will enable booking confirmation after a verified payment method is connected.
-            </ThemedText>
-          </View>
-        )}
+        {/* Lease Agreement Consent */}
+        <TouchableOpacity
+          style={styles.consentRow}
+          activeOpacity={0.8}
+          onPress={() => setAcceptedTerms(!acceptedTerms)}
+        >
+          <ShieldCheck size={20} color={acceptedTerms ? '#0D9488' : '#94A3B8'} />
+          <Text style={styles.consentText}>
+            I agree to the Safar Self-Drive Digital Car Sharing Lease Agreement, 300 km/day limit, and 8-angle handover inspection rules.
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      {/* Booking confirmation action */}
-      <View style={[styles.checkoutFooter, { backgroundColor: colors.cardBg, borderTopColor: colors.border }]}>
+      {/* Checkout Footer */}
+      <View style={styles.footer}>
         <View>
-          <ThemedText type="small" style={{ color: colors.textSecondary }}>Net Payable</ThemedText>
-          <ThemedText style={{ fontSize: 20, fontWeight: 'bold' }}>₹{totalAmount.toLocaleString('en-IN')}</ThemedText>
+          <Text style={styles.footerLabel}>Total Payable</Text>
+          <Text style={styles.footerPrice}>₹{totalAmount.toLocaleString('en-IN')}</Text>
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.confirmBtn, 
-            { backgroundColor: hasFunds ? colors.primary : colors.backgroundSelected }
-          ]}
+          style={styles.confirmBtn}
           onPress={handleConfirmBooking}
-          disabled={!hasFunds || bookingLoading}
+          disabled={bookingLoading}
         >
           {bookingLoading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <ThemedText style={styles.confirmBtnText}>Confirm Rent</ThemedText>
+            <Text style={styles.confirmBtnText}>Pay & Confirm Booking</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -264,213 +368,313 @@ export default function BookingConfirmScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F6F7FB',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F6F7FB',
   },
-  header: {
+  topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  topBarTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E1B2E',
   },
   scrollContent: {
-    paddingHorizontal: Spacing.three,
-    paddingBottom: 100,
-    gap: Spacing.two,
+    padding: 14,
+    paddingBottom: 110,
+    gap: 12,
   },
   vehicleSummary: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.three,
-    marginTop: Spacing.one,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    padding: 12,
+    gap: 12,
   },
   carThumb: {
-    width: 80,
-    height: 60,
-    borderRadius: 8,
-    resizeMode: 'cover',
+    width: 105,
+    height: 74,
+    borderRadius: 12,
+    backgroundColor: '#EFF2F6',
   },
   carText: {
-    marginLeft: Spacing.three,
     flex: 1,
   },
   carTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  rowSection: {
+  carSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  hubText: {
+    fontSize: 11.5,
+    color: '#FF6000',
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  cardBox: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    padding: 14,
+  },
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.three,
+    gap: 7,
+    marginBottom: 8,
   },
-  rowContent: {
-    marginLeft: Spacing.three,
+  cardBoxTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#1E1B2E',
   },
-  rowLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  scheduleDates: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  breakoutBox: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
-  breakoutTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: Spacing.one,
+  scheduleHint: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 4,
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 5,
   },
-  priceDivider: {
+  priceKey: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  priceVal: {
+    fontSize: 13.5,
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  subSplitBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    marginVertical: 6,
+    gap: 4,
+  },
+  splitLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  splitText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  divider: {
     height: 1,
-    marginVertical: 4,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 8,
   },
-  walletBox: {
+  totalKey: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  totalVal: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#FF6000',
+  },
+  payOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
+    gap: 12,
+    padding: 12,
     borderRadius: 12,
-    padding: Spacing.three,
-    marginTop: Spacing.one,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 8,
+    backgroundColor: '#F8FAFC',
   },
-  walletText: {
-    flex: 1,
-    marginLeft: Spacing.three,
+  payOptionActive: {
+    borderColor: '#FF6000',
+    backgroundColor: '#FFF7ED',
   },
-  walletTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  payOptionTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  topupBtn: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-    borderRadius: 8,
+  payOptionSub: {
+    fontSize: 11.5,
+    color: '#64748B',
   },
-  topupBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  insufficientWarning: {
+  consentRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.one,
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 14,
+    padding: 12,
   },
-  checkoutFooter: {
+  consentText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#065F46',
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+  footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    borderTopWidth: 1,
-    zIndex: 10,
+  },
+  footerLabel: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  footerPrice: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   confirmBtn: {
+    backgroundColor: '#FF6000',
+    paddingHorizontal: 22,
     height: 48,
-    paddingHorizontal: Spacing.five,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   confirmBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 14.5,
+    fontWeight: '800',
   },
-  successContent: {
-    flex: 1,
+  successWrap: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  successIconCircle: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#ECFDF5',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.five,
+    marginBottom: 16,
+    marginTop: 20,
   },
   successTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: Spacing.one,
+    fontWeight: '900',
+    color: '#0F172A',
   },
-  successSubtitle: {
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: Spacing.four,
+  successSub: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 6,
+    marginBottom: 20,
   },
-  detailsBox: {
+  refBold: {
+    fontWeight: '900',
+    color: '#2D114D',
+  },
+  confirmedCard: {
     width: '100%',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
-    padding: Spacing.three,
-    alignItems: 'center',
-    marginBottom: Spacing.five,
-    gap: 4,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    marginBottom: 24,
   },
-  successCarImage: {
-    width: 120,
-    height: 90,
-    borderRadius: 10,
-    resizeMode: 'cover',
-    marginBottom: Spacing.two,
-  },
-  successCarName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  successPrice: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginTop: Spacing.one,
-  },
-  btnColumn: {
+  confirmedImage: {
     width: '100%',
-    gap: Spacing.two,
+    height: 185,
+    backgroundColor: '#EFF2F6',
+  },
+  confirmedCarTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  confirmedMeta: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  confirmedPaid: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0D9488',
+    marginTop: 8,
   },
   primaryBtn: {
-    height: 50,
+    width: '100%',
+    backgroundColor: '#FF6000',
+    paddingVertical: 15,
     borderRadius: 12,
-    justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
   },
   primaryBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
     fontSize: 15,
+    fontWeight: '800',
   },
   secondaryBtn: {
-    height: 50,
+    width: '100%',
+    backgroundColor: '#2D114D',
+    paddingVertical: 15,
     borderRadius: 12,
-    borderWidth: 1.5,
-    justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryBtnText: {
-    fontWeight: 'bold',
+    color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '800',
   },
 });

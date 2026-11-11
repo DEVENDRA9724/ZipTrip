@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { SafarHeader } from '@/components/safar-header';
 import { apiRequest } from '@/services/api';
 import { Wallet, LogIn, Plus, LogOut, ShieldCheck, CreditCard, ChevronRight } from 'lucide-react-native';
 
@@ -81,17 +82,15 @@ export default function WalletScreen() {
   if (!user) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <ThemedText type="title">Profile & Wallet</ThemedText>
-        </View>
+        <SafarHeader />
         <View style={styles.center}>
           <Wallet size={48} color={colors.textSecondary} style={{ marginBottom: Spacing.three }} />
-          <ThemedText style={styles.promptTitle}>Check Your Balance</ThemedText>
+          <ThemedText style={styles.promptTitle}>Account & Wallet</ThemedText>
           <ThemedText type="small" style={[styles.promptDesc, { color: colors.textSecondary }]}>
-            Sign in to access your digital wallet, top up funds, and check transaction details.
+            Sign in to access your Safar account, digital wallet, and booking invoices.
           </ThemedText>
           <TouchableOpacity
-            style={[styles.loginBtn, { backgroundColor: colors.primary }]}
+            style={[styles.loginBtn, { backgroundColor: '#FF6000' }]}
             onPress={() => router.push('/auth/login')}
           >
             <LogIn size={18} color="#FFFFFF" />
@@ -104,6 +103,7 @@ export default function WalletScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <SafarHeader />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>

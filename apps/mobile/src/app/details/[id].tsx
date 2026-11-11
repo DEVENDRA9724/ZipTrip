@@ -1,28 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Dimensions, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Colors, Spacing } from '@/constants/theme';
-import { ThemedText } from '@/components/themed-text';
-import { apiRequest, parseImageList } from '@/services/api';
-import { ArrowLeft, Star, Calendar, MapPin, Gauge, Shield, Users, Fuel } from 'lucide-react-native';
-
-const { width } = Dimensions.get('window');
+import {
+  apiRequest,
+  getVehicleImageSource,
+  getCarDistance,
+  getVehicleTerms,
+} from '@/services/api';
+import {
+  ArrowLeft,
+  Star,
+  Calendar,
+  MapPin,
+  Gauge,
+  ShieldCheck,
+  Users,
+  Fuel,
+  CheckCircle2,
+  FileText,
+} from 'lucide-react-native';
 
 export default function VehicleDetailsScreen() {
-  const colors = Colors.light;
-  
-  const { id, startDate: paramStart, endDate: paramEnd } = useLocalSearchParams<{ id: string; startDate: string; endDate: string }>();
+  const { id, startDate: paramStart, endDate: paramEnd } = useLocalSearchParams<{
+    id: string;
+    startDate: string;
+    endDate: string;
+  }>();
 
-  const authContext = require('@/context/AuthContext');
-  const { user } = authContext.useAuth();
+  const { user } = require('@/context/AuthContext').useAuth();
 
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Date selection states
-  const [startDate, setStartDate] = useState(paramStart || '2026-06-28');
-  const [endDate, setEndDate] = useState(paramEnd || '2026-06-29');
+  const [startDate, setStartDate] = useState(paramStart || '2026-11-12');
+  const [endDate, setEndDate] = useState(paramEnd || '2026-11-13');
 
   useEffect(() => {
     fetchVehicleDetails();
@@ -41,12 +62,6 @@ export default function VehicleDetailsScreen() {
     }
   };
 
-  const getAverageRating = (reviews: any[]) => {
-    if (!reviews || reviews.length === 0) return 'New';
-    const sum = reviews.reduce((acc, curr) => acc + curr.rating, 0);
-    return (sum / reviews.length).toFixed(1);
-  };
-
   const calculateDays = () => {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -60,114 +75,152 @@ export default function VehicleDetailsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#FF6000" />
       </View>
     );
   }
 
   if (!vehicle) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ThemedText style={{ color: colors.textSecondary }}>Vehicle not found</ThemedText>
+      <View style={styles.center}>
+        <Text style={{ color: '#64748B' }}>Vehicle not found</Text>
       </View>
     );
   }
 
-  const images = parseImageList(vehicle.images);
-  const rating = getAverageRating(vehicle.reviews);
+  const terms = getVehicleTerms(vehicle);
+  const distance = getCarDistance(vehicle);
   const totalDays = calculateDays();
-  const pricePerDay = Number(vehicle.pricePerDay);
-  const totalCost = pricePerDay * totalDays;
+  const pricePerDay = Number(vehicle.pricePerDay || 2500);
+  const baseRent = pricePerDay * totalDays;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
-      {/* Header Overlays */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.circleBtn, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <ArrowLeft size={20} color="#FFFFFF" />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Top Bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <ArrowLeft size={20} color="#1E1B2E" />
         </TouchableOpacity>
+        <Text style={styles.topBarTitle} numberOfLines={1}>
+          {vehicle.make} {vehicle.model}
+        </Text>
+        <View style={{ width: 38 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Car Image Carousel */}
-        <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={styles.carousel}>
-          {images.map((imgUrl: string, idx: number) => (
-            <Image key={idx} source={{ uri: imgUrl }} style={styles.carouselImage} />
-          ))}
-        </ScrollView>
+        {/* Studio Image Stage */}
+        <View style={styles.imageStage}>
+          <Image
+            source={getVehicleImageSource(vehicle)}
+            style={styles.studioImage}
+            resizeMode="cover"
+          />
+          <View style={styles.verifiedPill}>
+            <ShieldCheck size={14} color="#0D9488" strokeWidth={2.5} />
+            <Text style={styles.verifiedPillText}>Verified Fleet • Pre-Inspected</Text>
+          </View>
+        </View>
 
         <View style={styles.body}>
-          {/* Title & Brand */}
-          <View style={styles.mainDetails}>
+          {/* Title & Category */}
+          <View style={styles.titleRow}>
             <View style={{ flex: 1 }}>
-              <ThemedText style={styles.titleText}>{vehicle.make} {vehicle.model}</ThemedText>
-              <ThemedText type="small" style={{ color: colors.textSecondary, marginTop: 2 }}>
-                {vehicle.year} • {vehicle.category} • listed by {vehicle.host.firstName}
-              </ThemedText>
+              <Text style={styles.titleText}>
+                {vehicle.make} {vehicle.model}
+              </Text>
+              <Text style={styles.subText}>
+                {vehicle.year || 2024} • {vehicle.category || 'SUV'} • {vehicle.locationCity || 'Ahmedabad'} Hub
+              </Text>
             </View>
-
-            <View style={[styles.ratingBadge, { backgroundColor: colors.backgroundElement }]}>
-              <Star size={16} color="#FBBF24" fill="#FBBF24" />
-              <ThemedText style={styles.ratingText}>{rating}</ThemedText>
+            <View style={styles.rateBox}>
+              <Text style={styles.rateAmount}>₹{pricePerDay.toLocaleString('en-IN')}</Text>
+              <Text style={styles.rateUnit}>per day</Text>
             </View>
           </View>
 
-          {/* Quick Specifications list */}
+          {/* 4-Spec Grid */}
           <View style={styles.specsGrid}>
-            <View style={[styles.specItem, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-              <Gauge size={20} color={colors.primary} />
-              <ThemedText type="small" style={styles.specLabel}>Transmission</ThemedText>
-              <ThemedText style={styles.specValue}>{vehicle.transmission}</ThemedText>
+            <View style={styles.specCard}>
+              <Gauge size={18} color="#2D114D" />
+              <Text style={styles.specLabel}>Transmission</Text>
+              <Text style={styles.specValue}>{vehicle.transmission || 'Automatic'}</Text>
             </View>
-
-            <View style={[styles.specItem, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-              <Fuel size={20} color={colors.secondary} />
-              <ThemedText type="small" style={styles.specLabel}>Fuel Type</ThemedText>
-              <ThemedText style={styles.specValue}>{vehicle.fuelType}</ThemedText>
+            <View style={styles.specCard}>
+              <Fuel size={18} color="#FF6000" />
+              <Text style={styles.specLabel}>Fuel Type</Text>
+              <Text style={styles.specValue}>{vehicle.fuelType || 'Petrol'}</Text>
             </View>
-
-            <View style={[styles.specItem, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-              <Users size={20} color={colors.accent} />
-              <ThemedText type="small" style={styles.specLabel}>Seats</ThemedText>
-              <ThemedText style={styles.specValue}>{vehicle.seats} Seats</ThemedText>
+            <View style={styles.specCard}>
+              <Users size={18} color="#2D114D" />
+              <Text style={styles.specLabel}>Capacity</Text>
+              <Text style={styles.specValue}>{vehicle.seats || 5} Seats</Text>
             </View>
-
-            <View style={[styles.specItem, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-              <MapPin size={20} color={colors.primary} />
-              <ThemedText type="small" style={styles.specLabel}>City</ThemedText>
-              <ThemedText style={styles.specValue}>{vehicle.locationCity}</ThemedText>
+            <View style={styles.specCard}>
+              <MapPin size={18} color="#FF6000" />
+              <Text style={styles.specLabel}>Hub Distance</Text>
+              <Text style={styles.specValue}>{distance} km away</Text>
             </View>
           </View>
 
-          {/* Insurance Card */}
-          <View style={[styles.insuranceCard, { backgroundColor: colors.success + '15', borderColor: colors.success }]}>
-            <Shield size={20} color={colors.success} />
-            <View style={styles.insuranceText}>
-              <ThemedText style={[styles.insuranceTitle, { color: colors.success }]}>Comprehensive Insurance Included</ThemedText>
-              <ThemedText type="small" style={{ color: colors.textSecondary }}>Zero liability damage policy protects your trip.</ThemedText>
+          {/* Pickup Hub Location Box */}
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <MapPin size={16} color="#FF6000" />
+              <Text style={styles.infoCardTitle}>Pickup & Return Hub</Text>
+            </View>
+            <Text style={styles.infoCardBody}>
+              {vehicle.pickupAddress || `${vehicle.locationCity || 'Ahmedabad'} Verified Hub, Gujarat`}
+            </Text>
+            <View style={styles.greenRow}>
+              <CheckCircle2 size={14} color="#0D9488" />
+              <Text style={styles.greenText}>8-Angle Photo Inspection performed at handover</Text>
             </View>
           </View>
 
-          {/* Date Selector row */}
-          <ThemedText style={styles.sectionTitle}>Rental Duration</ThemedText>
-          <View style={[styles.dateSelector, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
-            <Calendar size={18} color={colors.primary} style={{ marginRight: Spacing.two }} />
+          {/* Transparent Rental Terms (Matches Website) */}
+          <View style={styles.infoCard}>
+            <View style={styles.infoCardHeader}>
+              <FileText size={16} color="#2D114D" />
+              <Text style={styles.infoCardTitle}>Rental Package & Policies</Text>
+            </View>
+            <View style={styles.termRow}>
+              <Text style={styles.termKey}>Included Kilometres</Text>
+              <Text style={styles.termVal}>{terms.kmPerDay} km / day</Text>
+            </View>
+            <View style={styles.termRow}>
+              <Text style={styles.termKey}>Extra Km Charge</Text>
+              <Text style={styles.termVal}>₹{terms.excessKmRate} / km</Text>
+            </View>
+            <View style={styles.termRow}>
+              <Text style={styles.termKey}>Refundable Security Deposit</Text>
+              <Text style={styles.termVal}>₹{terms.securityDeposit.toLocaleString('en-IN')}</Text>
+            </View>
+            <View style={styles.termRow}>
+              <Text style={styles.termKey}>Tax Invoicing</Text>
+              <Text style={styles.termVal}>Dual GST Invoice (80/20 Split)</Text>
+            </View>
+          </View>
+
+          {/* Trip Dates Selector */}
+          <Text style={styles.sectionHeading}>Trip Schedule</Text>
+          <View style={styles.dateSelector}>
+            <Calendar size={18} color="#FF6000" style={{ marginRight: 10 }} />
             <View style={styles.dateInputsRow}>
               <View style={styles.dateField}>
-                <ThemedText type="small" style={styles.dateLabel}>Start Date</ThemedText>
+                <Text style={styles.dateLabel}>PICK-UP DATE</Text>
                 <TextInput
-                  style={[styles.dateVal, { color: colors.text }]}
+                  style={styles.dateVal}
                   value={startDate}
                   onChangeText={setStartDate}
                   maxLength={10}
                 />
               </View>
-              <View style={[styles.verticalDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.verticalDivider} />
               <View style={styles.dateField}>
-                <ThemedText type="small" style={styles.dateLabel}>End Date</ThemedText>
+                <Text style={styles.dateLabel}>DROP-OFF DATE</Text>
                 <TextInput
-                  style={[styles.dateVal, { color: colors.text }]}
+                  style={styles.dateVal}
                   value={endDate}
                   onChangeText={setEndDate}
                   maxLength={10}
@@ -175,69 +228,35 @@ export default function VehicleDetailsScreen() {
               </View>
             </View>
           </View>
-
-          {/* Reviews List */}
-          <ThemedText style={styles.sectionTitle}>Reviews ({vehicle.reviews.length})</ThemedText>
-          {vehicle.reviews.length === 0 ? (
-            <ThemedText type="small" style={{ color: colors.textSecondary, fontStyle: 'italic', marginVertical: Spacing.one }}>
-              No reviews listed for this vehicle yet.
-            </ThemedText>
-          ) : (
-            <View style={styles.reviewsList}>
-              {vehicle.reviews.map((review: any) => (
-                <View key={review.id} style={[styles.reviewItem, { borderBottomColor: colors.border }]}>
-                  <View style={styles.reviewHeader}>
-                    <ThemedText style={styles.reviewAuthor}>
-                      {review.author.firstName} {review.author.lastName}
-                    </ThemedText>
-                    <View style={styles.starRow}>
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={10}
-                          color={i < review.rating ? '#FBBF24' : colors.backgroundElement}
-                          fill={i < review.rating ? '#FBBF24' : 'transparent'}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                  <ThemedText type="small" style={[styles.reviewComment, { color: colors.textSecondary }]}>
-                    {review.comment}
-                  </ThemedText>
-                </View>
-              ))}
-            </View>
-          )}
         </View>
       </ScrollView>
 
-      {/* Sticky Book Now Footer */}
-      <View style={[styles.footer, { backgroundColor: colors.cardBg, borderTopColor: colors.border }]}>
+      {/* Sticky Bottom Booking Bar */}
+      <View style={styles.footer}>
         <View>
-          <ThemedText type="small" style={{ color: colors.textSecondary }}>Total Rent ({totalDays} days)</ThemedText>
-          <ThemedText style={[styles.footerPrice, { color: colors.primary }]}>
-            ₹{totalCost.toLocaleString('en-IN')}
-          </ThemedText>
+          <Text style={styles.footerLabel}>
+            Base Fare ({totalDays} {totalDays === 1 ? 'Day' : 'Days'})
+          </Text>
+          <Text style={styles.footerPrice}>₹{baseRent.toLocaleString('en-IN')}</Text>
+          <Text style={styles.footerSub}>+ ₹{terms.securityDeposit.toLocaleString('en-IN')} refundable deposit</Text>
         </View>
 
-        {user ? (
-          <TouchableOpacity
-            style={[styles.bookBtn, { backgroundColor: colors.primary }]}
-            onPress={() => router.push({
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.bookBtn}
+          onPress={() => {
+            if (!user) {
+              router.push('/auth/login');
+              return;
+            }
+            router.push({
               pathname: '/booking/confirm',
-              params: { vehicleId: vehicle.id, startDate, endDate }
-            })}
-          >
-            <ThemedText style={styles.bookBtnText}>Book Now</ThemedText>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.bookBtn, { backgroundColor: colors.accent }]}
-            onPress={() => router.push('/auth/login')}
-          >
-            <ThemedText style={styles.bookBtnText}>Login to Book</ThemedText>
-          </TouchableOpacity>
-        )}
+              params: { vehicleId: String(vehicle.id), startDate, endDate },
+            });
+          }}
+        >
+          <Text style={styles.bookBtnText}>{user ? 'Proceed to Book' : 'Log In to Book'}</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -246,112 +265,206 @@ export default function VehicleDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F6F7FB',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F6F7FB',
   },
-  header: {
-    position: 'absolute',
-    top: Spacing.two,
-    left: Spacing.three,
-    zIndex: 10,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
-  circleBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  topBarTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E1B2E',
+    maxWidth: '72%',
+  },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
-  carousel: {
-    height: 250,
+  imageStage: {
+    width: '100%',
+    height: 245,
+    backgroundColor: '#EFF2F6',
+    position: 'relative',
   },
-  carouselImage: {
-    width: width,
-    height: 250,
-    resizeMode: 'cover',
+  studioImage: {
+    width: '100%',
+    height: '100%',
+  },
+  verifiedPill: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  verifiedPillText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#065F46',
   },
   body: {
-    padding: Spacing.three,
+    padding: 16,
   },
-  mainDetails: {
+  titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.three,
+    marginBottom: 16,
   },
   titleText: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    color: '#0F172A',
   },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.two,
-    paddingVertical: Spacing.half,
-    borderRadius: 8,
-    gap: Spacing.half,
-  },
-  ratingText: {
+  subText: {
     fontSize: 13,
-    fontWeight: 'bold',
+    color: '#64748B',
+    marginTop: 3,
+    fontWeight: '600',
+  },
+  rateBox: {
+    alignItems: 'flex-end',
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  rateAmount: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FF6000',
+  },
+  rateUnit: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#9A3412',
   },
   specsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.two,
-    marginBottom: Spacing.three,
+    gap: 10,
+    marginBottom: 16,
   },
-  specItem: {
+  specCard: {
     flex: 1,
-    minWidth: '45%',
+    minWidth: '46%',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.two + 2,
-    gap: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    padding: 12,
+    gap: 3,
   },
   specLabel: {
-    fontSize: 10,
-    opacity: 0.6,
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 2,
   },
   specValue: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    color: '#1E1B2E',
   },
-  insuranceCard: {
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+  },
+  infoCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
-    gap: Spacing.two,
+    gap: 7,
+    marginBottom: 8,
   },
-  insuranceText: {
-    flex: 1,
+  infoCardTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#1E1B2E',
   },
-  insuranceTitle: {
+  infoCardBody: {
     fontSize: 13,
-    fontWeight: 'bold',
+    color: '#475569',
+    lineHeight: 19,
+    marginBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: Spacing.two,
-    marginBottom: Spacing.one,
+  greenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  greenText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  termRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  termKey: {
+    fontSize: 12.5,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  termVal: {
+    fontSize: 12.5,
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  sectionHeading: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E1B2E',
+    marginBottom: 8,
   },
   dateSelector: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderRadius: 12,
-    padding: Spacing.three,
-    marginBottom: Spacing.three,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    padding: 14,
   },
   dateInputsRow: {
     flex: 1,
@@ -362,72 +475,68 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateLabel: {
-    fontSize: 9,
-    opacity: 0.6,
-    textTransform: 'uppercase',
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '800',
   },
   dateVal: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E1B2E',
     padding: 0,
-    marginTop: 2,
+    marginTop: 3,
   },
   verticalDivider: {
     width: 1,
-    height: 30,
-    marginHorizontal: Spacing.three,
-  },
-  reviewsList: {
-    gap: Spacing.two,
-  },
-  reviewItem: {
-    borderBottomWidth: 1,
-    paddingVertical: Spacing.two,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  reviewAuthor: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  starRow: {
-    flexDirection: 'row',
-    gap: 1,
-  },
-  reviewComment: {
-    lineHeight: 18,
+    height: 32,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 14,
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    borderTopWidth: 1,
-    zIndex: 10,
+  },
+  footerLabel: {
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '600',
   },
   footerPrice: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  footerSub: {
+    fontSize: 10.5,
+    color: '#0D9488',
+    fontWeight: '700',
   },
   bookBtn: {
+    backgroundColor: '#FF6000',
+    paddingHorizontal: 24,
     height: 48,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.five,
+    shadowColor: '#FF6000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    elevation: 4,
   },
   bookBtnText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
     fontSize: 15,
+    fontWeight: '800',
   },
 });
