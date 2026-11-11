@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView,
   Platform,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -22,6 +23,9 @@ import {
   Smartphone,
   Building2,
   FileText,
+  MessageCircle,
+  Phone,
+  Camera,
 } from 'lucide-react-native';
 
 export default function BookingConfirmScreen() {
@@ -148,15 +152,22 @@ export default function BookingConfirmScreen() {
 
   // Confirmed State
   if (successBooking) {
+    const handleShareWhatsApp = () => {
+      const text = `🚗 *SAFAR SELF DRIVE - BOOKING CONFIRMED*\n\n• *Booking Ref:* ${successBooking.bookingRef || '#SFR-' + successBooking.id}\n• *Vehicle:* ${vehicle.make} ${vehicle.model}\n• *Trip Dates:* ${formatDateString(startDate)} → ${formatDateString(endDate)}\n• *Pickup Location:* Swami Vivekanand Bridge, Ahmedabad\n• *Total Paid:* ₹${Number(successBooking.totalAmount).toLocaleString('en-IN')}\n• *24x7 Roadside Support:* +91 99000 00001\n\n*Verified by Govt. DigiLocker e-KYC. Present Driving Licence at Handover.*`;
+      Linking.openURL(`whatsapp://send?text=${encodeURIComponent(text)}`).catch(() => {
+        Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
+      });
+    };
+
     return (
       <View style={[styles.container, { paddingTop: topPadding }]}>
-        <ScrollView contentContainerStyle={styles.successWrap}>
+        <ScrollView contentContainerStyle={styles.successWrap} showsVerticalScrollIndicator={false}>
           <View style={styles.successIconCircle}>
-            <CheckCircle2 size={54} color="#0D9488" />
+            <CheckCircle2 size={54} color="#059669" />
           </View>
           <Text style={styles.successTitle}>Booking Confirmed!</Text>
           <Text style={styles.successSub}>
-            Booking Reference: <Text style={styles.refBold}>{successBooking.bookingRef}</Text>
+            Booking Reference: <Text style={styles.refBold}>{successBooking.bookingRef || '#SFR-' + successBooking.id}</Text>
           </Text>
 
           <View style={styles.confirmedCard}>
@@ -173,10 +184,30 @@ export default function BookingConfirmScreen() {
                 {formatDateString(startDate)} → {formatDateString(endDate)}
               </Text>
               <Text style={styles.confirmedPaid}>
-                Total Paid: ₹{Number(successBooking.totalAmount).toLocaleString('en-IN')}
+                Total Paid: ₹{Number(successBooking.totalAmount).toLocaleString('en-IN')} (GST incl.)
               </Text>
             </View>
           </View>
+
+          {/* WhatsApp Pass Button */}
+          <TouchableOpacity
+            style={styles.whatsAppPassBtn}
+            onPress={handleShareWhatsApp}
+            activeOpacity={0.88}
+          >
+            <MessageCircle size={18} color="#FFFFFF" />
+            <Text style={styles.whatsAppPassBtnText}>Send Booking Pass to WhatsApp</Text>
+          </TouchableOpacity>
+
+          {/* 24x7 Helpline Callout */}
+          <TouchableOpacity
+            style={styles.rsaHelplineCard}
+            onPress={() => Linking.openURL('tel:+919900000001')}
+            activeOpacity={0.8}
+          >
+            <Phone size={15} color="#2D114D" />
+            <Text style={styles.rsaHelplineText}>24x7 Gujarat Roadside Helpline: +91 99000 00001</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.primaryBtn}
@@ -194,7 +225,7 @@ export default function BookingConfirmScreen() {
             style={styles.secondaryBtn}
             onPress={() => router.replace('/trips')}
           >
-            <Text style={styles.secondaryBtnText}>Go to My Trips</Text>
+            <Text style={styles.secondaryBtnText}>Go to My Trips & Handover</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -653,8 +684,46 @@ const styles = StyleSheet.create({
   confirmedPaid: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#0D9488',
+    color: '#059669',
     marginTop: 8,
+  },
+  whatsAppPassBtn: {
+    width: '100%',
+    backgroundColor: '#25D366',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    shadowColor: '#25D366',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  whatsAppPassBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '800',
+  },
+  rsaHelplineCard: {
+    width: '100%',
+    backgroundColor: '#FAF5FF',
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  rsaHelplineText: {
+    color: '#2D114D',
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   primaryBtn: {
     width: '100%',
