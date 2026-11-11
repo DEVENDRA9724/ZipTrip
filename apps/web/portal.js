@@ -198,7 +198,7 @@ function carLink(id) {
   return 'cars.html?' + next.toString();
 }
 
-const CAR_IMG_VER = '20261111L';
+const CAR_IMG_VER = '20261111M';
 
 const CAR_IMAGE_MAP = {
   thar: 'cars/thar.jpg',
