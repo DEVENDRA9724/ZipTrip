@@ -155,7 +155,7 @@ export default function HomeScreen() {
   };
 
   // Safe top padding guaranteeing clearance above the iPhone notch / Dynamic Island
-  const topPadding = Math.max(insets.top, Platform.OS === 'ios' ? 44 : 20);
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
 
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>

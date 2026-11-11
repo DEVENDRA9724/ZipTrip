@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs, router, usePathname } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, CalendarDays, ShieldCheck, KeyRound, User, Sparkles } from 'lucide-react-native';
 
 const MAIN_TABS = [
@@ -11,15 +12,17 @@ const MAIN_TABS = [
 ];
 
 function SafarTabBar() {
+  const insets = useSafeAreaInsets();
   const pathname = usePathname();
   if (pathname.startsWith('/details') || pathname.startsWith('/booking') || pathname.startsWith('/auth')) {
     return null;
   }
 
   const isHostActive = pathname.startsWith('/host');
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 10);
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: bottomPadding }]}>
       {MAIN_TABS.map(({ label, href, match, Icon }) => {
         const active = match(pathname);
         return (
@@ -81,7 +84,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
     paddingTop: 6,
     paddingHorizontal: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 10,
   },
   item: {
     flex: 1,

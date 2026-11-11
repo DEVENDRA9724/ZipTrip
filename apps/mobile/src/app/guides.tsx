@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   Image,
   Linking,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafarHeader } from '@/components/safar-header';
 import { getVehicleImageSource } from '@/services/api';
@@ -126,6 +127,8 @@ const FAQS = [
 ];
 
 export default function GuidesAndSupportScreen() {
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
   const params = useLocalSearchParams<{ section?: string }>();
   const [section, setSection] = useState<'guides' | 'how' | 'support'>(
     params.section === 'how' || params.section === 'support' ? params.section : 'guides'
@@ -138,7 +141,7 @@ export default function GuidesAndSupportScreen() {
   }, [params.section]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={[styles.container, { paddingTop: topPadding }]}>
       <SafarHeader />
 
       {/* Top Section Switcher (Matches Website Top Menu Items) */}
@@ -336,7 +339,7 @@ export default function GuidesAndSupportScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

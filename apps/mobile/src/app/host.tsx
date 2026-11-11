@@ -14,7 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
@@ -55,6 +55,7 @@ const HOST_TABS = [
 ];
 
 export default function HostScreen() {
+  const insets = useSafeAreaInsets();
   const { user } = require('@/context/AuthContext').useAuth();
 
   const [activeHostTab, setActiveHostTab] = useState<'dashboard' | 'bookings' | 'cars' | 'inbox' | 'profile'>('dashboard');
@@ -222,8 +223,10 @@ export default function HostScreen() {
     return fromBookings > 0 ? fromBookings : 38400;
   }, [bookings]);
 
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
+
   return (
-    <SafeAreaView style={s.screen} edges={['top']}>
+    <View style={[s.screen, { paddingTop: topPadding }]}>
       {/* ────────── HOST HEADER WITH SWITCHER & EARNINGS ────────── */}
       <View style={s.hostHeader}>
         <View style={s.hostHeaderLeft}>
@@ -848,7 +851,7 @@ export default function HostScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -8,8 +8,9 @@ import {
   Image,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { apiRequest, getVehicleImageSource, getVehicleTerms } from '@/services/api';
 import {
@@ -24,6 +25,9 @@ import {
 } from 'lucide-react-native';
 
 export default function BookingConfirmScreen() {
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
+
   const { vehicleId, startDate, endDate } = useLocalSearchParams<{
     vehicleId: string;
     startDate: string;
@@ -145,7 +149,7 @@ export default function BookingConfirmScreen() {
   // Confirmed State
   if (successBooking) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: topPadding }]}>
         <ScrollView contentContainerStyle={styles.successWrap}>
           <View style={styles.successIconCircle}>
             <CheckCircle2 size={54} color="#0D9488" />
@@ -193,7 +197,7 @@ export default function BookingConfirmScreen() {
             <Text style={styles.secondaryBtnText}>Go to My Trips</Text>
           </TouchableOpacity>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -206,7 +210,7 @@ export default function BookingConfirmScreen() {
   const totalAmount = baseFare + securityDeposit;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={[styles.container, { paddingTop: topPadding }]}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={20} color="#1E1B2E" />
@@ -361,7 +365,7 @@ export default function BookingConfirmScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

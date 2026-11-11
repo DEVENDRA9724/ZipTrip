@@ -13,7 +13,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
@@ -42,6 +42,7 @@ const TABS = [
 ];
 
 export default function TripsScreen() {
+  const insets = useSafeAreaInsets();
   const { user } = require('@/context/AuthContext').useAuth();
 
   const [activeTab, setActiveTab] = useState('Upcoming');
@@ -154,8 +155,10 @@ export default function TripsScreen() {
     }
   };
 
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
+
   return (
-    <SafeAreaView style={s.screen} edges={['top']}>
+    <View style={[s.screen, { paddingTop: topPadding }]}>
       {/* ────────── HEADER ────────── */}
       <View style={s.header}>
         <View>
@@ -456,7 +459,7 @@ export default function TripsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -476,7 +479,7 @@ const s = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   headerSub: {
     fontSize: 11,
@@ -484,10 +487,14 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   newDriveBtn: {
-    backgroundColor: '#2D114D',
+    backgroundColor: '#FF6000',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    shadowColor: '#FF6000',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   newDriveBtnText: {
     color: '#FFFFFF',

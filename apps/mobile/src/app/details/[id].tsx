@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,13 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  TextInput,
   Modal,
   Dimensions,
   Share,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   apiRequest,
   getVehicleImageSource,
@@ -42,11 +40,8 @@ import {
   ChevronDown,
   Sparkles,
   Camera,
-  HelpCircle,
-  Phone,
-  Zap,
   ArrowRight,
-  Info,
+  Zap,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
@@ -61,6 +56,10 @@ const QUICK_QUESTIONS = [
 ];
 
 export default function VehicleDetailsScreen() {
+  const insets = useSafeAreaInsets();
+  const { user } = require('@/context/AuthContext').useAuth();
+  const scrollRef = useRef<ScrollView>(null);
+
   const { id, startDate: paramStart, endDate: paramEnd, hub: paramHub } = useLocalSearchParams<{
     id: string;
     startDate?: string;
@@ -68,17 +67,15 @@ export default function VehicleDetailsScreen() {
     hub?: string;
   }>();
 
-  const { user } = require('@/context/AuthContext').useAuth();
-
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Photos');
   const [isFavorite, setIsFavorite] = useState(false);
 
   // Dates
-  const [startDate, setStartDate] = useState(paramStart || '2026-11-12');
+  const [startDate, setStartDate] = useState(paramStart || '2026-11-13');
   const [startTime, setStartTime] = useState('10:00 AM');
-  const [endDate, setEndDate] = useState(paramEnd || '2026-11-13');
+  const [endDate, setEndDate] = useState(paramEnd || '2026-11-14');
   const [endTime, setEndTime] = useState('10:00 AM');
 
   // Modals
@@ -87,7 +84,7 @@ export default function VehicleDetailsScreen() {
   const [breakupOpen, setBreakupOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
 
-  // KM Package selection ('standard' | 'unlimited')
+  // KM Package selection
   const [kmPackage, setKmPackage] = useState<'standard' | 'unlimited'>('standard');
 
   useEffect(() => {
@@ -128,9 +125,11 @@ export default function VehicleDetailsScreen() {
     }
   };
 
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
+
   if (loading) {
     return (
-      <View style={s.center}>
+      <View style={[s.center, { paddingTop: topPadding }]}>
         <ActivityIndicator size="large" color="#2D114D" />
         <Text style={s.centerText}>Loading vehicle specifications…</Text>
       </View>
@@ -139,7 +138,7 @@ export default function VehicleDetailsScreen() {
 
   if (!vehicle) {
     return (
-      <View style={s.center}>
+      <View style={[s.center, { paddingTop: topPadding }]}>
         <Text style={{ color: '#64748B', fontSize: 16 }}>Vehicle details not found</Text>
         <TouchableOpacity style={s.backBtnSimple} onPress={() => router.back()}>
           <Text style={{ color: '#2D114D', fontWeight: '700' }}>Go Back</Text>
@@ -161,11 +160,11 @@ export default function VehicleDetailsScreen() {
   const mainImageSource = getVehicleImageSource(vehicle);
 
   return (
-    <SafeAreaView style={s.screen} edges={['top']}>
-      {/* ────────── TOP APP BAR ────────── */}
+    <View style={[s.screen, { paddingTop: topPadding }]}>
+      {/* ────────── TOP APP BAR (CLEAR OF NOTCH) ────────── */}
       <View style={s.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={s.navIconBtn} activeOpacity={0.7}>
-          <ArrowLeft size={20} color="#1F1235" />
+          <ArrowLeft size={20} color="#2D114D" />
         </TouchableOpacity>
 
         <View style={s.topBarTitleBox}>
@@ -187,7 +186,7 @@ export default function VehicleDetailsScreen() {
 
         <View style={s.topBarRightActions}>
           <TouchableOpacity onPress={handleShare} style={s.navIconBtn} activeOpacity={0.7}>
-            <Share2 size={18} color="#1F1235" />
+            <Share2 size={18} color="#2D114D" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setIsFavorite((v) => !v)}
@@ -196,14 +195,18 @@ export default function VehicleDetailsScreen() {
           >
             <Heart
               size={18}
-              color={isFavorite ? '#DC2626' : '#1F1235'}
-              fill={isFavorite ? '#DC2626' : 'transparent'}
+              color={isFavorite ? '#FF6000' : '#2D114D'}
+              fill={isFavorite ? '#FF6000' : 'transparent'}
             />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ paddingBottom: 110 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ────────── SUB NAVIGATION TABS ────────── */}
         <ScrollView
           horizontal
@@ -257,7 +260,7 @@ export default function VehicleDetailsScreen() {
         <View style={s.vehicleInfoCard}>
           <View style={s.vehicleTitleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={s.carMakeYear}>{vehicle.make} · {vehicle.year || '2025'}</Text>
+              <Text style={s.carMakeYear}>{vehicle.make} · {vehicle.year || '2024'}</Text>
               <Text style={s.carFullTitle}>{vehicle.model}</Text>
             </View>
             <View style={s.ratingBadge}>
@@ -271,37 +274,37 @@ export default function VehicleDetailsScreen() {
           <View style={s.hubRow}>
             <MapPin size={14} color="#FF6000" />
             <Text style={s.hubText}>
-              Available at {paramHub || `${vehicle.city || 'Ahmedabad'} Airport & SG Highway Hub`}
+              Available at {paramHub || `${vehicle.city || 'Ahmedabad'} Hub`}
             </Text>
             <Text style={s.distanceBadge}>{distance} km away</Text>
           </View>
 
-          {/* Specs Pills Grid */}
+          {/* Specs Pills Grid - Fixed No Text Break */}
           <View style={s.specsGrid}>
             <View style={s.specCard}>
               <Gauge size={16} color="#2D114D" />
-              <Text style={s.specVal}>{vehicle.transmission || 'Automatic'}</Text>
+              <Text style={s.specVal} numberOfLines={1}>{vehicle.transmission || 'Automatic'}</Text>
               <Text style={s.specLbl}>Gearbox</Text>
             </View>
             <View style={s.specCard}>
               <Fuel size={16} color="#2D114D" />
-              <Text style={s.specVal}>{vehicle.fuelType || 'Diesel'}</Text>
+              <Text style={s.specVal} numberOfLines={1}>{vehicle.fuelType || 'Diesel'}</Text>
               <Text style={s.specLbl}>Fuel Type</Text>
             </View>
             <View style={s.specCard}>
               <Users size={16} color="#2D114D" />
-              <Text style={s.specVal}>{vehicle.seats || 5} Seats</Text>
+              <Text style={s.specVal} numberOfLines={1}>{vehicle.seats || 5} Seats</Text>
               <Text style={s.specLbl}>Capacity</Text>
             </View>
             <View style={s.specCard}>
               <ShieldCheck size={16} color="#059669" />
-              <Text style={[s.specVal, { color: '#059669' }]}>Zero Dep</Text>
+              <Text style={[s.specVal, { color: '#059669' }]} numberOfLines={1}>Zero Dep</Text>
               <Text style={s.specLbl}>KYC Passed</Text>
             </View>
           </View>
         </View>
 
-        {/* ────────── CHOOSE KM PACKAGE (FROM SNIPPET) ────────── */}
+        {/* ────────── CHOOSE KM PACKAGE ────────── */}
         <View style={s.sectionBox}>
           <Text style={s.sectionHeaderTitle}>Choose Your Km Package</Text>
           <Text style={s.sectionHeaderSub}>Select the travel allowance that fits your itinerary</Text>
@@ -354,7 +357,7 @@ export default function VehicleDetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ────────── ASK ANYTHING ABOUT THIS CAR (FROM SNIPPET) ────────── */}
+        {/* ────────── ASK ANYTHING ABOUT THIS CAR ────────── */}
         <View style={s.sectionBox}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <Sparkles size={16} color="#FF6000" />
@@ -409,7 +412,7 @@ export default function VehicleDetailsScreen() {
             </View>
           </View>
           <View style={s.hostOfferStrip}>
-            <Zap size={13} color="#FFD600" />
+            <Zap size={13} color="#FFB800" />
             <Text style={s.hostOfferText}>
               DigiLocker KYC Active: ₹0 Security Deposit applied automatically
             </Text>
@@ -440,7 +443,7 @@ export default function VehicleDetailsScreen() {
         </View>
       </ScrollView>
 
-      {/* ────────── STICKY BOTTOM BAR (MATCHING SNIPPET) ────────── */}
+      {/* ────────── STICKY BOTTOM BAR ────────── */}
       <View style={s.stickyFooter}>
         <TouchableOpacity
           style={s.fareBreakupToggle}
@@ -481,17 +484,10 @@ export default function VehicleDetailsScreen() {
                 },
               });
             }}
-            activeOpacity={0.9}
+            activeOpacity={0.88}
           >
-            <LinearGradient
-              colors={['#FF7A00', '#FF4E00']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={s.proceedGradient}
-            >
-              <Text style={s.proceedBtnText}>{user ? 'Proceed to Book' : 'Log In to Book'}</Text>
-              <ArrowRight size={16} color="#FFF" />
-            </LinearGradient>
+            <Text style={s.proceedBtnText}>{user ? 'Proceed to Book' : 'Log In to Book'}</Text>
+            <ArrowRight size={16} color="#FFF" />
           </TouchableOpacity>
         </View>
 
@@ -574,7 +570,7 @@ export default function VehicleDetailsScreen() {
           setEndPickerOpen(false);
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -608,17 +604,17 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#EFEBF5',
     gap: 10,
   },
   navIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F3EEFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -628,7 +624,7 @@ const s = StyleSheet.create({
   topBarTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   datesEditPill: {
     flexDirection: 'row',
@@ -658,7 +654,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F3EEFA',
   },
   tabPillActive: {
     backgroundColor: '#2D114D',
@@ -699,7 +695,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: 'rgba(31, 18, 53, 0.75)',
+    backgroundColor: 'rgba(45, 17, 77, 0.75)',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -765,7 +761,7 @@ const s = StyleSheet.create({
   carFullTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#1F1235',
+    color: '#2D114D',
     marginTop: 1,
   },
   ratingBadge: {
@@ -806,28 +802,34 @@ const s = StyleSheet.create({
     fontWeight: '700',
     color: '#FF6000',
   },
+
+  /* Responsive Specs Grid - No word break */
   specsGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     marginTop: 14,
   },
   specCard: {
     flex: 1,
     backgroundColor: '#F9FAFB',
     borderRadius: 12,
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
     alignItems: 'center',
+    minWidth: 64,
   },
   specVal: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
     marginTop: 4,
+    textAlign: 'center',
   },
   specLbl: {
     fontSize: 9,
     color: '#6B7280',
-    marginTop: 1,
+    marginTop: 2,
+    textAlign: 'center',
   },
 
   /* Sections */
@@ -838,7 +840,7 @@ const s = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   sectionHeaderSub: {
     fontSize: 11,
@@ -886,7 +888,7 @@ const s = StyleSheet.create({
     color: '#374151',
   },
   packageTitleActive: {
-    color: '#1F1235',
+    color: '#2D114D',
     fontWeight: '800',
   },
   packageSub: {
@@ -895,7 +897,7 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   recommendedBadge: {
-    backgroundColor: '#FF7A00',
+    backgroundColor: '#FF6000',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
@@ -908,7 +910,7 @@ const s = StyleSheet.create({
   packagePrice: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#1F1235',
+    color: '#2D114D',
   },
 
   /* Ask Anything Chips */
@@ -976,7 +978,7 @@ const s = StyleSheet.create({
   hostReliabilityTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   hostReliabilitySub: {
     fontSize: 11,
@@ -987,7 +989,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#1C0830',
+    backgroundColor: '#2D114D',
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
@@ -1010,7 +1012,7 @@ const s = StyleSheet.create({
   promiseTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
     marginBottom: 10,
   },
   promiseList: {
@@ -1070,7 +1072,7 @@ const s = StyleSheet.create({
   footerPriceTotal: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   footerGstInclusive: {
     fontSize: 11,
@@ -1078,15 +1080,17 @@ const s = StyleSheet.create({
     color: '#6B7280',
   },
   proceedBtn: {
+    backgroundColor: '#FF6000',
     borderRadius: 14,
-    overflow: 'hidden',
-  },
-  proceedGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 20,
     paddingVertical: 12,
+    shadowColor: '#FF6000',
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
   },
   proceedBtnText: {
     color: '#FFFFFF',
@@ -1125,7 +1129,7 @@ const s = StyleSheet.create({
   breakupTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
     marginBottom: 14,
   },
   breakupRow: {
@@ -1155,7 +1159,7 @@ const s = StyleSheet.create({
   breakupTotalKey: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   breakupTotalVal: {
     fontSize: 18,

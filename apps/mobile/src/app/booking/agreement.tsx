@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, CheckCircle2, FileText } from 'lucide-react-native';
 
@@ -13,6 +13,8 @@ const formatDate = (value: string) => new Date(value).toLocaleString('en-IN', { 
 const money = (value: unknown) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
 export default function BookingAgreementScreen() {
+  const insets = useSafeAreaInsets();
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
   const colors = Colors.light;
   const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -41,7 +43,7 @@ export default function BookingAgreementScreen() {
   };
 
   if (!user) return null;
-  if (loading) return <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} style={styles.loader} /></SafeAreaView>;
+  if (loading) return <View style={[styles.container, { backgroundColor: colors.background, paddingTop: topPadding }]}><ActivityIndicator color={colors.primary} style={styles.loader} /></View>;
   if (!agreement) return null;
 
   const B = agreement.booking;
@@ -51,7 +53,7 @@ export default function BookingAgreementScreen() {
   const F = agreement.scheduleIII || {};
   const cancellation = agreement.scheduleIV || {};
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: topPadding }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.cardBg, borderColor: colors.border }]}><ArrowLeft size={19} color={colors.text} /></TouchableOpacity>
@@ -67,7 +69,7 @@ export default function BookingAgreementScreen() {
         <Section title="Agreement terms"><View style={styles.terms}>{(agreement.terms || []).map((term: string, index: number) => <View key={`${index}-${term}`} style={styles.termRow}><ThemedText style={[styles.termNumber, { color: colors.primary }]}>{index + 1}</ThemedText><ThemedText style={styles.termText}>{term}</ThemedText></View>)}</View></Section>
         <TouchableOpacity style={[styles.ackButton, { backgroundColor: agreement.acknowledgement ? colors.success : colors.primary }]} onPress={acknowledge} disabled={!!agreement.acknowledgement || acknowledging}>{acknowledging ? <ActivityIndicator color="#fff" /> : <CheckCircle2 size={18} color="#fff" />}<ThemedText style={styles.ackText}>{agreement.acknowledgement ? 'Agreement acknowledged' : 'Acknowledge agreement'}</ThemedText></TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

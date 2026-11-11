@@ -13,7 +13,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { apiRequest } from '@/services/api';
 import {
@@ -42,6 +42,7 @@ import {
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 export default function ProfileWalletScreen() {
+  const insets = useSafeAreaInsets();
   const { user, logout, refreshProfile } = require('@/context/AuthContext').useAuth();
 
   const [balance, setBalance] = useState(0);
@@ -115,9 +116,11 @@ export default function ProfileWalletScreen() {
     ? `${user.firstName} ${user.lastName || ''}`.trim()
     : user?.name || 'Safar Guest';
 
+  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
+
   return (
-    <SafeAreaView style={s.screen} edges={['top']}>
-      {/* ────────── HEADER ────────── */}
+    <View style={[s.screen, { paddingTop: topPadding }]}>
+      {/* ────────── HEADER (CLEAR OF NOTCH) ────────── */}
       <View style={s.header}>
         <Text style={s.headerTitle}>Profile & Account</Text>
       </View>
@@ -433,7 +436,7 @@ export default function ProfileWalletScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -444,13 +447,16 @@ const s = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 12,
     paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFEBF5',
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   content: {
     padding: 16,
@@ -578,7 +584,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FF7A00',
+    backgroundColor: '#FF6000',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
@@ -614,7 +620,7 @@ const s = StyleSheet.create({
   walletTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#2D114D',
   },
   walletSub: {
     fontSize: 10,
@@ -624,7 +630,7 @@ const s = StyleSheet.create({
   walletBalance: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#059669',
+    color: '#2D114D',
   },
   quickAmountsRow: {
     flexDirection: 'row',
