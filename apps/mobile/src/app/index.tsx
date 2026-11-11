@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  Platform,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -23,63 +23,90 @@ import {
   ChevronDown,
   Search,
   X,
-  Filter,
   Star,
-  Shield,
+  ShieldCheck,
   ArrowRight,
   Car,
   Compass,
   Check,
+  Heart,
+  Navigation,
+  Sparkles,
+  Zap,
+  Tag,
+  Gift,
   Building2,
   Plane,
 } from 'lucide-react-native';
 
+const { width: W } = Dimensions.get('window');
+const CARD_WIDTH = (W - 42) / 2;
+
 const CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Gandhinagar', 'Rajkot'];
 
-const CATEGORIES = [
-  { key: 'All', label: 'All' },
-  { key: 'SUV', label: 'SUVs & 4x4' },
-  { key: 'Sedan', label: 'Sedans' },
-  { key: 'Hatchback', label: 'Hatchbacks' },
-  { key: '7Seater', label: '7-Seater' },
+const BOOKING_TILES = [
+  {
+    id: 'daily',
+    title: 'Daily Drive',
+    sub: '4+ Hours',
+    badge: 'Flexible KMs',
+    image: require('../../assets/cars/swift.jpg'),
+  },
+  {
+    id: 'subscription',
+    title: 'SUBSCRIPTION',
+    sub: '7+ days',
+    badge: 'Save 25%',
+    image: require('../../assets/cars/creta.jpg'),
+  },
+  {
+    id: 'pass',
+    title: 'Weekday Pass',
+    sub: 'Mon to Fri',
+    badge: 'Limited Kms',
+    image: require('../../assets/cars/dzire.jpg'),
+  },
+];
+
+const OUR_BENEFITS = [
+  { icon: ShieldCheck, title: '100% Secured Trip', sub: 'Hassle Free' },
+  { icon: MapPin, title: 'Doorstep Delivery', sub: 'Airport & Citywide' },
+  { icon: Star, title: '25k+ Top Rated', sub: 'Cars Across Gujarat' },
+  { icon: Tag, title: 'Zero Security Deposit', sub: 'On DigiLocker KYC' },
 ];
 
 const ymd = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const shortDate = (s: string) => {
+const formatShortDate = (s: string) => {
   const d = new Date(s);
-  return isNaN(d.getTime()) ? s : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-};
-
-const weekday = (s: string) => {
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { weekday: 'short' });
+  return isNaN(d.getTime()) ? s : d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
 };
 
 export default function HomeScreen() {
   const { user } = require('@/context/AuthContext').useAuth();
 
-  const [bookingType, setBookingType] = useState<'self' | 'taxi'>('self');
-  const [selectedCity, setSelectedCity] = useState('Ahmedabad');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [deliveryOption, setDeliveryOption] = useState<'hub' | 'doorstep'>('hub');
+  const [bookingMode, setBookingMode] = useState<'self' | 'taxi'>('self');
+  const [city, setCity] = useState('Ahmedabad');
+  const [hubAddress, setHubAddress] = useState('Swami Vivekanand Bridge, Ahmedabad');
+  const [deliveryAnywhere, setDeliveryAnywhere] = useState(true);
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
-  // Vehicles
-  const [vehicles, setVehicles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Modals
-  const [cityModalVisible, setCityModalVisible] = useState(false);
-  const [startPickerVisible, setStartPickerVisible] = useState(false);
-  const [endPickerVisible, setEndPickerVisible] = useState(false);
-
-  // Dates: Tomorrow 10 AM to Day after tomorrow 10 AM
+  // Dates
   const [startDate, setStartDate] = useState(() => ymd(new Date(Date.now() + 864e5)));
   const [startTime, setStartTime] = useState('10:00 AM');
   const [endDate, setEndDate] = useState(() => ymd(new Date(Date.now() + 2 * 864e5)));
   const [endTime, setEndTime] = useState('10:00 AM');
+
+  // Modals
+  const [cityModalOpen, setCityModalOpen] = useState(false);
+  const [startPickerOpen, setStartPickerOpen] = useState(false);
+  const [endPickerOpen, setEndPickerOpen] = useState(false);
+
+  // Vehicles
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterQuery, setFilterQuery] = useState('');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -87,13 +114,13 @@ export default function HomeScreen() {
       (async () => {
         setLoading(true);
         try {
-          const endpoint = selectedCity === 'All' ? '/vehicles' : `/vehicles?city=${encodeURIComponent(selectedCity)}`;
+          const endpoint = city === 'All' ? '/vehicles' : `/vehicles?city=${encodeURIComponent(city)}`;
           const data = await apiRequest(endpoint);
           if (alive) {
             setVehicles(Array.isArray(data) ? data : []);
           }
         } catch (e) {
-          console.error('Error fetching vehicles:', e);
+          console.error(e);
         } finally {
           if (alive) setLoading(false);
         }
@@ -101,403 +128,400 @@ export default function HomeScreen() {
       return () => {
         alive = false;
       };
-    }, [selectedCity])
+    }, [city])
   );
 
-  const totalDays = useMemo(() => {
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const days = useMemo(() => {
     const a = new Date(startDate).getTime();
     const b = new Date(endDate).getTime();
     if (isNaN(a) || isNaN(b) || b <= a) return 1;
-    return Math.max(1, Math.ceil((b - a) / (1000 * 60 * 60 * 24)));
+    return Math.max(1, Math.ceil((b - a) / 864e5));
   }, [startDate, endDate]);
 
-  // Filtered fleet
-  const filteredFleet = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+  const fleet = useMemo(() => {
     return vehicles.filter((v) => {
-      const isTaxi = String(v.model || '').toLowerCase().includes('taxi') || String(v.category || '').toLowerCase().includes('taxi');
-      if (bookingType === 'self' && isTaxi) return false;
-      if (bookingType === 'taxi' && !isTaxi) return false;
+      const isTaxi = String(v.model || '').toLowerCase().includes('taxi');
+      if (bookingMode === 'self' && isTaxi) return false;
+      if (bookingMode === 'taxi' && !isTaxi) return false;
 
-      const cat = String(v.category || '').toLowerCase();
-      const model = String(v.model || '').toLowerCase();
-      const make = String(v.make || '').toLowerCase();
-      const seats = Number(v.seats || 5);
-
-      if (selectedCategory === 'SUV') {
-        const isSuv = cat.includes('suv') || cat.includes('muv') || model.includes('thar') || model.includes('scorpio') || model.includes('creta');
-        if (!isSuv) return false;
-      } else if (selectedCategory === 'Sedan') {
-        if (!cat.includes('sedan') && !model.includes('city') && !model.includes('dzire') && !model.includes('verna')) return false;
-      } else if (selectedCategory === 'Hatchback') {
-        if (!cat.includes('hatch') && !model.includes('swift') && !model.includes('i20') && !model.includes('baleno')) return false;
-      } else if (selectedCategory === '7Seater') {
-        if (seats < 7 && !cat.includes('7') && !model.includes('innova') && !model.includes('carens') && !model.includes('ertiga')) return false;
+      if (filterQuery.trim()) {
+        const q = filterQuery.toLowerCase();
+        const text = `${v.make} ${v.model} ${v.category} ${v.fuelType} ${v.transmission}`.toLowerCase();
+        if (!text.includes(q)) return false;
       }
-
-      if (q && !`${make} ${model} ${cat} ${v.fuelType} ${v.transmission}`.toLowerCase().includes(q)) {
-        return false;
-      }
-
       return true;
     });
-  }, [vehicles, bookingType, selectedCategory, searchQuery]);
+  }, [vehicles, bookingMode, filterQuery]);
 
-  const openCarDetails = (id: string) => {
+  const openCar = (id: string) => {
     router.push({
       pathname: '/details/[id]',
-      params: { id, startDate, endDate, startTime, endTime, city: selectedCity },
+      params: { id, startDate, endDate, startTime, endTime, hub: hubAddress, city },
     });
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      {/* ────────── 1. TOP HEADER (CLEAN & PROFESSIONAL) ────────── */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+    <SafeAreaView style={s.screen} edges={['top']}>
+      {/* ────────── TOP APP BAR ────────── */}
+      <View style={s.topBar}>
+        <View style={s.brandGroup}>
           <Image
             source={require('../../assets/safar-logo.png')}
-            style={styles.logoImg}
+            style={s.brandLogo}
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.brandTitle}>Safar Self Drive</Text>
+            <Text style={s.brandName}>Safar Self Drive</Text>
             <TouchableOpacity
-              style={styles.cityPickerBtn}
-              onPress={() => setCityModalVisible(true)}
+              style={s.citySelector}
+              onPress={() => setCityModalOpen(true)}
               activeOpacity={0.7}
             >
-              <MapPin size={12} color="#FF6000" />
-              <Text style={styles.cityName}>{selectedCity}</Text>
-              <ChevronDown size={12} color="#6B7280" />
+              <MapPin size={11} color="#FF6000" />
+              <Text style={s.cityName}>{city}</Text>
+              <ChevronDown size={11} color="#6B7280" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.headerRight}>
+        <View style={s.topBarRight}>
           {user ? (
             <TouchableOpacity
-              style={styles.avatarBtn}
+              style={s.userAvatar}
               onPress={() => router.push('/wallet')}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={styles.avatarLetter}>
+              <Text style={s.userInitial}>
                 {(user.firstName || user.name || 'U').charAt(0).toUpperCase()}
               </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={styles.loginBtn}
+              style={s.loginPill}
               onPress={() => router.push('/auth/login')}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Text style={styles.loginBtnText}>Log In</Text>
+              <Text style={s.loginPillText}>Log In</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ────────── 2. RENTAL MODE TABS (SELF DRIVE VS CHAUFFEUR) ────────── */}
-        <View style={styles.modeTabs}>
-          <TouchableOpacity
-            style={[styles.modeTab, bookingType === 'self' && styles.modeTabActive]}
-            onPress={() => setBookingType('self')}
-            activeOpacity={0.8}
-          >
-            <Car size={15} color={bookingType === 'self' ? '#2D114D' : '#6B7280'} />
-            <Text style={[styles.modeTabText, bookingType === 'self' && styles.modeTabTextActive]}>
-              Self Drive Cars
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.modeTab, bookingType === 'taxi' && styles.modeTabActive]}
-            onPress={() => setBookingType('taxi')}
-            activeOpacity={0.8}
-          >
-            <Compass size={15} color={bookingType === 'taxi' ? '#2D114D' : '#6B7280'} />
-            <Text style={[styles.modeTabText, bookingType === 'taxi' && styles.modeTabTextActive]}>
-              Taxi with Driver
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ────────── 3. TRIP DATES & LOCATION SEARCH CARD ────────── */}
-        <View style={styles.searchCard}>
-          {/* Pickup City & Hub */}
-          <TouchableOpacity
-            style={styles.locationRow}
-            onPress={() => setCityModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <MapPin size={18} color="#2D114D" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>Pick-up Location</Text>
-              <Text style={styles.fieldValueMain}>{selectedCity} (Airport & City Hubs)</Text>
-            </View>
-            <Text style={styles.changeActionText}>Change</Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          {/* Dates Row */}
-          <View style={styles.datesRow}>
-            {/* Start Date */}
-            <TouchableOpacity
-              style={styles.dateBlock}
-              onPress={() => setStartPickerVisible(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.fieldLabel}>TRIP START</Text>
-              <Text style={styles.dateValue}>{shortDate(startDate)}</Text>
-              <Text style={styles.timeValue}>{weekday(startDate)}, {startTime}</Text>
-            </TouchableOpacity>
-
-            {/* Days Duration Indicator */}
-            <View style={styles.durationPill}>
-              <Text style={styles.durationText}>{totalDays} {totalDays === 1 ? 'Day' : 'Days'}</Text>
-              <Text style={styles.durationKm}>{totalDays * 300} km</Text>
-            </View>
-
-            {/* End Date */}
-            <TouchableOpacity
-              style={[styles.dateBlock, { alignItems: 'flex-end' }]}
-              onPress={() => setEndPickerVisible(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.fieldLabel}>TRIP END</Text>
-              <Text style={styles.dateValue}>{shortDate(endDate)}</Text>
-              <Text style={styles.timeValue}>{weekday(endDate)}, {endTime}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Delivery Option Selection */}
-          <View style={styles.deliveryRow}>
-            <TouchableOpacity
-              style={[styles.deliveryBtn, deliveryOption === 'hub' && styles.deliveryBtnActive]}
-              onPress={() => setDeliveryOption('hub')}
-              activeOpacity={0.8}
-            >
-              <Building2 size={13} color={deliveryOption === 'hub' ? '#2D114D' : '#6B7280'} />
-              <Text style={[styles.deliveryBtnText, deliveryOption === 'hub' && styles.deliveryBtnTextActive]}>
-                Pick up at Hub (Free)
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.deliveryBtn, deliveryOption === 'doorstep' && styles.deliveryBtnActive]}
-              onPress={() => setDeliveryOption('doorstep')}
-              activeOpacity={0.8}
-            >
-              <Plane size={13} color={deliveryOption === 'doorstep' ? '#2D114D' : '#6B7280'} />
-              <Text style={[styles.deliveryBtnText, deliveryOption === 'doorstep' && styles.deliveryBtnTextActive]}>
-                Airport / Doorstep Delivery
-              </Text>
-            </TouchableOpacity>
+      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* ────────── TOP MINT HERO BANNER (FROM SCREENSHOT) ────────── */}
+        <View style={s.heroBanner}>
+          <Text style={s.heroSub}>Book Self-drive Cars Now</Text>
+          <View style={s.titleDecorationRow}>
+            <View style={s.titleLine} />
+            <Text style={s.heroMainTitle}>Drive Daily{'\n'}Anywhere - Anytime</Text>
+            <View style={s.titleLine} />
           </View>
         </View>
 
-        {/* ────────── 4. SEARCH & CATEGORY FILTER ROW ────────── */}
-        <View style={styles.filterSection}>
-          {/* Quick Search Field */}
-          <View style={styles.searchBar}>
-            <Search size={16} color="#9CA3AF" />
-            <TextInput
-              placeholder="Search by model (Thar, Swift, Creta...)"
-              placeholderTextColor="#9CA3AF"
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+        {/* ────────── MAIN SEARCH & CALENDAR CARD (FROM SCREENSHOT) ────────── */}
+        <View style={s.searchCard}>
+          {/* Location Search Bar with GPS Icon */}
+          <TouchableOpacity
+            style={s.locationInputBox}
+            onPress={() => setCityModalOpen(true)}
+            activeOpacity={0.85}
+          >
+            <Search size={16} color="#4B5563" />
+            <Text style={s.locationInputText} numberOfLines={1}>
+              {hubAddress}
+            </Text>
+            <TouchableOpacity onPress={() => setCityModalOpen(true)}>
+              <Navigation size={16} color="#2D114D" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* Two Side-By-Side Calendar Date/Time Blocks */}
+          <View style={s.datesRow}>
+            {/* Trip Start */}
+            <TouchableOpacity
+              style={s.dateBox}
+              onPress={() => setStartPickerOpen(true)}
+              activeOpacity={0.75}
+            >
+              <Text style={s.dateBoxLabel}>Trip Start</Text>
+              <Text style={s.dateBoxValue}>
+                {formatShortDate(startDate)}, {startTime}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Trip End */}
+            <TouchableOpacity
+              style={s.dateBox}
+              onPress={() => setEndPickerOpen(true)}
+              activeOpacity={0.75}
+            >
+              <Text style={s.dateBoxLabel}>Trip End</Text>
+              <Text style={s.dateBoxValue}>
+                {formatShortDate(endDate)}, {endTime}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Delivery & Pick-up from Anywhere Checkbox */}
+          <TouchableOpacity
+            style={s.checkboxRow}
+            onPress={() => setDeliveryAnywhere((v) => !v)}
+            activeOpacity={0.8}
+          >
+            <View style={[s.checkbox, deliveryAnywhere && s.checkboxActive]}>
+              {deliveryAnywhere && <Check size={12} color="#FFF" strokeWidth={3} />}
+            </View>
+            <Text style={s.checkboxLabel}>Delivery & Pick-up, from anywhere</Text>
+          </TouchableOpacity>
+
+          {/* Big Green Search Car CTA Button */}
+          <TouchableOpacity
+            style={s.searchCarBtn}
+            onPress={() => {
+              // Filters or jumps to car feed
+            }}
+            activeOpacity={0.88}
+          >
+            <Text style={s.searchCarBtnText}>Search Car</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ────────── FLEXI PICKUP & DROP NOTICE CARD (FROM SCREENSHOT) ────────── */}
+        <View style={s.flexiCard}>
+          <View style={s.flexiBadge}>
+            <Text style={s.flexiBadgeText}>⇄ Flexi Pickup & Drop</Text>
+          </View>
+          <Text style={s.flexiText}>
+            Hosts can now deliver and collect the car from your chosen pickup and drop locations.
+          </Text>
+        </View>
+
+        {/* ────────── 1. BOOKING TYPE TILES (DAILY DRIVE / SUBSCRIPTION / PASS) ────────── */}
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionMainTitle}>Self Drive Options</Text>
+        </View>
+
+        <View style={s.bentoGrid}>
+          {/* Daily Drive Big Card (Left) */}
+          <TouchableOpacity
+            style={s.bentoBigCard}
+            onPress={() => setBookingMode('self')}
+            activeOpacity={0.85}
+          >
+            <View style={s.bentoTag}>
+              <Text style={s.bentoTagText}>DAILY DRIVE</Text>
+            </View>
+            <Text style={s.bentoBigTitle}>Daily Drive</Text>
+            <Text style={s.bentoBigSub}>4+ Hours • Flexible KMs</Text>
+            <Image
+              source={BOOKING_TILES[0].image}
+              style={s.bentoBigImg}
+              resizeMode="contain"
             />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <X size={16} color="#9CA3AF" />
-              </TouchableOpacity>
-            )}
-          </View>
+          </TouchableOpacity>
 
-          {/* Category Chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryScroll}
-          >
-            {CATEGORIES.map((cat) => {
-              const active = cat.key === selectedCategory;
+          {/* Right Stack: Subscription & Weekday Pass */}
+          <View style={s.bentoRightCol}>
+            <TouchableOpacity
+              style={s.bentoSmallCard}
+              onPress={() => setBookingMode('self')}
+              activeOpacity={0.85}
+            >
+              <View>
+                <Text style={s.bentoSmallTitle}>SUBSCRIPTION</Text>
+                <Text style={s.bentoSmallSub}>7+ days • Save 25%</Text>
+              </View>
+              <Image
+                source={BOOKING_TILES[1].image}
+                style={s.bentoSmallImg}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.bentoSmallCard}
+              onPress={() => setBookingMode('self')}
+              activeOpacity={0.85}
+            >
+              <View>
+                <Text style={s.bentoSmallTitle}>Weekday Pass</Text>
+                <Text style={s.bentoSmallSub}>Mon to Fri • City Pass</Text>
+              </View>
+              <Image
+                source={BOOKING_TILES[2].image}
+                style={s.bentoSmallImg}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ────────── OUR BENEFITS SECTION ────────── */}
+        <View style={s.benefitsRow}>
+          {OUR_BENEFITS.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <View key={idx} style={s.benefitCard}>
+                <Icon size={16} color="#15803D" />
+                <Text style={s.benefitTitle}>{item.title}</Text>
+                <Text style={s.benefitSub}>{item.sub}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* ────────── "UNMATCHED SELECTION" HEADER (EXACT FROM SCREENSHOT) ────────── */}
+        <View style={s.selectionHeaderCard}>
+          <Text style={s.selectionTitle}>Unmatched Selection</Text>
+          <Text style={s.selectionSub}>Our Finest Cars for Your Next Adventure</Text>
+          <Text style={s.selectionDates}>
+            For your trip on {formatShortDate(startDate)} - {formatShortDate(endDate)} ({days} {days === 1 ? 'day' : 'days'})
+          </Text>
+        </View>
+
+        {/* ────────── 2-COLUMN CAR BOX GRID (EXACT FROM SCREENSHOT) ────────── */}
+        {loading ? (
+          <View style={s.loadingBox}>
+            <ActivityIndicator size="large" color="#15803D" />
+            <Text style={s.loadingText}>Loading available cars…</Text>
+          </View>
+        ) : fleet.length === 0 ? (
+          <View style={s.emptyBox}>
+            <Car size={36} color="#9CA3AF" />
+            <Text style={s.emptyTitle}>No cars available for selected dates</Text>
+            <Text style={s.emptySub}>Try adjusting dates or city location.</Text>
+          </View>
+        ) : (
+          <View style={s.carGrid}>
+            {fleet.map((car) => {
+              const terms = getVehicleTerms(car);
+              const price = Number(car.pricePerDay || 2500);
+              const isFav = !!favorites[car.id];
+              const dist = getCarDistance(car);
+
               return (
                 <TouchableOpacity
-                  key={cat.key}
-                  style={[styles.categoryChip, active && styles.categoryChipActive]}
-                  onPress={() => setSelectedCategory(cat.key)}
-                  activeOpacity={0.75}
+                  key={car.id}
+                  style={s.carBoxCard}
+                  onPress={() => openCar(String(car.id))}
+                  activeOpacity={0.88}
                 >
-                  <Text style={[styles.categoryChipText, active && styles.categoryChipTextActive]}>
-                    {cat.label}
-                  </Text>
+                  {/* Photo Stage */}
+                  <View style={s.carBoxImageWrap}>
+                    <Image
+                      source={getVehicleImageSource(car)}
+                      style={s.carBoxImage}
+                      resizeMode="cover"
+                    />
+
+                    {/* Rating Badge on Top-Left */}
+                    <View style={s.carBoxRating}>
+                      <Star size={10} color="#FFB800" fill="#FFB800" />
+                      <Text style={s.carBoxRatingText}>4.5★</Text>
+                    </View>
+
+                    {/* Wishlist Heart on Top-Right */}
+                    <TouchableOpacity
+                      style={s.carBoxHeart}
+                      onPress={() => toggleFavorite(String(car.id))}
+                      activeOpacity={0.8}
+                    >
+                      <Heart
+                        size={14}
+                        color={isFav ? '#DC2626' : '#FFFFFF'}
+                        fill={isFav ? '#DC2626' : 'transparent'}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Body Content */}
+                  <View style={s.carBoxBody}>
+                    <Text style={s.carBoxTitle} numberOfLines={1}>
+                      {car.make} {car.model}
+                    </Text>
+
+                    <Text style={s.carBoxSpecs} numberOfLines={1}>
+                      {car.fuelType || 'Petrol'} • {car.transmission || 'Manual'}
+                    </Text>
+
+                    <Text style={s.carBoxDistance}>
+                      📍 {dist} km away
+                    </Text>
+
+                    <View style={s.carBoxPriceRow}>
+                      <View>
+                        <Text style={s.carBoxPrice}>
+                          ₹{price.toLocaleString('en-IN')}
+                          <Text style={s.carBoxUnit}>/day</Text>
+                        </Text>
+                        <Text style={s.carBoxTripTotal}>
+                          ₹{(price * days).toLocaleString('en-IN')} total
+                        </Text>
+                      </View>
+
+                      <View style={s.carBoxBookBtn}>
+                        <Text style={s.carBoxBookText}>Book</Text>
+                      </View>
+                    </View>
+                  </View>
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
-        </View>
-
-        {/* ────────── 5. VEHICLE LISTINGS FEED ────────── */}
-        <View style={styles.fleetHeader}>
-          <Text style={styles.fleetTitle}>
-            {loading ? 'Checking availability...' : `${filteredFleet.length} Cars Available in ${selectedCity}`}
-          </Text>
-          <Text style={styles.fleetSub}>
-            Private number plates • 300 km/day included
-          </Text>
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2D114D" />
-            <Text style={styles.loadingText}>Fetching available vehicles...</Text>
           </View>
-        ) : filteredFleet.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Car size={40} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No cars found</Text>
-            <Text style={styles.emptySub}>
-              Try clearing filters or selecting another city.
-            </Text>
-            <TouchableOpacity
-              style={styles.resetBtn}
-              onPress={() => {
-                setSelectedCategory('All');
-                setSearchQuery('');
-              }}
-            >
-              <Text style={styles.resetBtnText}>Reset Filters</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          filteredFleet.map((car) => {
-            const terms = getVehicleTerms(car);
-            const price = Number(car.pricePerDay || 2500);
-            const distance = getCarDistance(car);
-            const tripTotal = price * totalDays;
-
-            return (
-              <TouchableOpacity
-                key={car.id}
-                style={styles.carCard}
-                onPress={() => openCarDetails(String(car.id))}
-                activeOpacity={0.88}
-              >
-                {/* Image Stage */}
-                <View style={styles.cardImageStage}>
-                  <Image
-                    source={getVehicleImageSource(car)}
-                    style={styles.carImg}
-                    resizeMode="contain"
-                  />
-                  <View style={styles.ratingBadge}>
-                    <Star size={11} color="#FFB800" fill="#FFB800" />
-                    <Text style={styles.ratingText}>4.9</Text>
-                  </View>
-                  <View style={styles.plateTag}>
-                    <Text style={styles.plateTagText}>White Plate (Self Drive)</Text>
-                  </View>
-                </View>
-
-                {/* Car Details */}
-                <View style={styles.cardBody}>
-                  <View style={styles.titleRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.carMake}>{car.make} · {car.year || '2024'}</Text>
-                      <Text style={styles.carModel} numberOfLines={1}>{car.model}</Text>
-                    </View>
-                    <View style={styles.distanceBox}>
-                      <MapPin size={11} color="#6B7280" />
-                      <Text style={styles.distanceText}>{distance} km away</Text>
-                    </View>
-                  </View>
-
-                  {/* Specs */}
-                  <View style={styles.specsRow}>
-                    <Text style={styles.specItem}>{car.transmission || 'Automatic'}</Text>
-                    <Text style={styles.specDot}>•</Text>
-                    <Text style={styles.specItem}>{car.fuelType || 'Diesel'}</Text>
-                    <Text style={styles.specDot}>•</Text>
-                    <Text style={styles.specItem}>{car.seats || 5} Seats</Text>
-                    <Text style={styles.specDot}>•</Text>
-                    <Text style={[styles.specItem, { color: '#059669', fontWeight: '700' }]}>Zero Dep</Text>
-                  </View>
-
-                  <View style={styles.cardDivider} />
-
-                  {/* Pricing and Book Button */}
-                  <View style={styles.pricingRow}>
-                    <View>
-                      <Text style={styles.dailyPrice}>
-                        ₹{price.toLocaleString('en-IN')}
-                        <Text style={styles.dailyPriceUnit}> /day</Text>
-                      </Text>
-                      <Text style={styles.totalPrice}>
-                        ₹{tripTotal.toLocaleString('en-IN')} for {totalDays} {totalDays === 1 ? 'day' : 'days'}
-                      </Text>
-                    </View>
-
-                    <View style={styles.bookBtn}>
-                      <Text style={styles.bookBtnText}>Book Now</Text>
-                      <ArrowRight size={14} color="#FFF" />
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })
         )}
 
-        {/* ────────── 6. HOST CALLOUT CARD ────────── */}
+        {/* ────────── HOST BOTTOM BANNER ────────── */}
         <TouchableOpacity
-          style={styles.hostCard}
+          style={s.hostBanner}
           onPress={() => router.push('/host')}
           activeOpacity={0.85}
         >
           <View style={{ flex: 1 }}>
-            <Text style={styles.hostCardTitle}>Have a car in Gujarat?</Text>
-            <Text style={styles.hostCardSub}>
-              Earn up to ₹45,000/month by listing your car on Safar with full insurance coverage.
+            <Text style={s.hostBannerTitle}>Have an idle car in Gujarat?</Text>
+            <Text style={s.hostBannerSub}>
+              Earn ₹45,000+ monthly by hosting on Safar with zero liability.
             </Text>
           </View>
-          <View style={styles.hostCardBtn}>
-            <Text style={styles.hostCardBtnText}>Host & Earn</Text>
+          <View style={s.hostBannerAction}>
+            <Text style={s.hostBannerActionText}>Host & Earn</Text>
+            <ArrowRight size={14} color="#15803D" />
           </View>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* ────────── CITY SELECTOR MODAL ────────── */}
+      {/* ────────── CITY MODAL ────────── */}
       <Modal
-        visible={cityModalVisible}
+        visible={cityModalOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setCityModalVisible(false)}
+        onRequestClose={() => setCityModalOpen(false)}
       >
         <TouchableOpacity
-          style={styles.modalBackdrop}
+          style={s.modalBackdrop}
           activeOpacity={1}
-          onPress={() => setCityModalVisible(false)}
+          onPress={() => setCityModalOpen(false)}
         >
-          <View style={styles.citySheet}>
-            <Text style={styles.citySheetTitle}>Select City in Gujarat</Text>
+          <View style={s.citySheet}>
+            <Text style={s.citySheetTitle}>Select Location in Gujarat</Text>
             {CITIES.map((c) => {
-              const active = c === selectedCity;
+              const active = c === city;
               return (
                 <TouchableOpacity
                   key={c}
-                  style={[styles.cityItem, active && styles.cityItemActive]}
+                  style={[s.cityRow, active && s.cityRowActive]}
                   onPress={() => {
-                    setSelectedCity(c);
-                    setCityModalVisible(false);
+                    setCity(c);
+                    setHubAddress(`${c}, Gujarat (Airport & City Hubs)`);
+                    setCityModalOpen(false);
                   }}
                 >
-                  <MapPin size={16} color={active ? '#FF6000' : '#6B7280'} />
-                  <Text style={[styles.cityItemText, active && styles.cityItemTextActive]}>{c}</Text>
-                  {active && <Check size={16} color="#FF6000" />}
+                  <MapPin size={16} color={active ? '#15803D' : '#6B7280'} />
+                  <Text style={[s.cityRowText, active && s.cityRowTextActive]}>{c}</Text>
+                  {active && <Check size={16} color="#15803D" />}
                 </TouchableOpacity>
               );
             })}
@@ -507,43 +531,43 @@ export default function HomeScreen() {
 
       {/* Date & Time Picker Modals */}
       <DateTimePickerModal
-        visible={startPickerVisible}
-        title="Select Pick-up Date & Time"
+        visible={startPickerOpen}
+        title="Select Trip Start Date & Time"
         selectedDate={startDate}
         selectedTime={startTime}
-        onClose={() => setStartPickerVisible(false)}
+        onClose={() => setStartPickerOpen(false)}
         onSelect={(d, t) => {
           setStartDate(d);
           setStartTime(t);
-          setStartPickerVisible(false);
+          setStartPickerOpen(false);
         }}
       />
 
       <DateTimePickerModal
-        visible={endPickerVisible}
-        title="Select Return Date & Time"
+        visible={endPickerOpen}
+        title="Select Trip End Date & Time"
         selectedDate={endDate}
         selectedTime={endTime}
         minDate={startDate}
-        onClose={() => setEndPickerVisible(false)}
+        onClose={() => setEndPickerOpen(false)}
         onSelect={(d, t) => {
           setEndDate(d);
           setEndTime(t);
-          setEndPickerVisible(false);
+          setEndPickerOpen(false);
         }}
       />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F4F5F7',
+    backgroundColor: '#F8FAF9',
   },
 
-  /* Header */
-  header: {
+  /* Top Bar */
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -553,450 +577,508 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  headerLeft: {
+  brandGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  logoImg: {
+  brandLogo: {
     width: 36,
     height: 36,
   },
-  brandTitle: {
+  brandName: {
     fontSize: 16,
     fontWeight: '800',
     color: '#1F1235',
   },
-  cityPickerBtn: {
+  citySelector: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     marginTop: 1,
   },
   cityName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4B5563',
   },
-  headerRight: {},
-  loginBtn: {
-    backgroundColor: '#2D114D',
+  topBarRight: {},
+  loginPill: {
+    backgroundColor: '#15803D',
     borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  loginBtnText: {
+  loginPillText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
   },
-  avatarBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#2D114D',
+  userAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#15803D',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarLetter: {
+  userInitial: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 13,
   },
 
   scrollContent: {
-    paddingBottom: 36,
+    paddingBottom: 40,
   },
 
-  /* Mode Tabs */
-  modeTabs: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 10,
-    padding: 3,
+  /* Hero Mint Banner (Matching Screenshot) */
+  heroBanner: {
+    backgroundColor: '#EDFAF1',
+    paddingTop: 18,
+    paddingBottom: 22,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#D1FAE5',
   },
-  modeTab: {
-    flex: 1,
+  heroSub: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#166534',
+    marginBottom: 4,
+  },
+  titleDecorationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    borderRadius: 8,
+    gap: 10,
   },
-  modeTabActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
+  titleLine: {
+    width: 36,
+    height: 3,
+    backgroundColor: '#22C55E',
+    borderRadius: 2,
   },
-  modeTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  modeTabTextActive: {
-    color: '#2D114D',
-    fontWeight: '800',
+  heroMainTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#14532D',
+    textAlign: 'center',
+    lineHeight: 24,
   },
 
-  /* Search Card */
+  /* Search Card (Exact from Screenshot) */
   searchCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 16,
-    padding: 14,
+    marginTop: -12,
+    borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  locationRow: {
+  locationInputBox: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     gap: 10,
-    paddingVertical: 4,
   },
-  fieldLabel: {
-    fontSize: 10,
-    color: '#6B7280',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  fieldValueMain: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F1235',
-    marginTop: 1,
-  },
-  changeActionText: {
-    fontSize: 12,
-    color: '#FF6000',
-    fontWeight: '700',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 10,
+  locationInputText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1F2937',
   },
   datesRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 2,
-  },
-  dateBlock: {
-    flex: 1,
-  },
-  dateValue: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#1F1235',
-    marginTop: 2,
-  },
-  timeValue: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 1,
-  },
-  durationPill: {
-    backgroundColor: '#F3EEFA',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  durationText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#2D114D',
-  },
-  durationKm: {
-    fontSize: 9,
-    color: '#6B7280',
-  },
-  deliveryRow: {
-    flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
-  deliveryBtn: {
+  dateBox: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#D1D5DB',
+    padding: 10,
   },
-  deliveryBtnActive: {
-    backgroundColor: '#F3EEFA',
-    borderColor: '#2D114D',
-  },
-  deliveryBtnText: {
-    fontSize: 11,
+  dateBoxLabel: {
+    fontSize: 10,
     color: '#6B7280',
     fontWeight: '600',
   },
-  deliveryBtnTextActive: {
-    color: '#2D114D',
-    fontWeight: '700',
+  dateBoxValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+    marginTop: 3,
   },
-
-  /* Filter Section */
-  filterSection: {
-    marginTop: 14,
-    paddingHorizontal: 16,
-  },
-  searchBar: {
+  checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    gap: 8,
+    gap: 10,
+    marginTop: 14,
+    paddingHorizontal: 2,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1F1235',
-    padding: 0,
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#9CA3AF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  categoryScroll: {
-    gap: 8,
-    marginTop: 10,
-    paddingBottom: 2,
+  checkboxActive: {
+    backgroundColor: '#15803D',
+    borderColor: '#15803D',
   },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  categoryChipActive: {
-    backgroundColor: '#2D114D',
-    borderColor: '#2D114D',
-  },
-  categoryChipText: {
+  checkboxLabel: {
     fontSize: 12,
-    color: '#4B5563',
-    fontWeight: '600',
+    color: '#374151',
+    fontWeight: '500',
   },
-  categoryChipTextActive: {
+  searchCarBtn: {
+    backgroundColor: '#15803D',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  searchCarBtnText: {
     color: '#FFFFFF',
-    fontWeight: '700',
-  },
-
-  /* Fleet Feed */
-  fleetHeader: {
-    marginTop: 18,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-  },
-  fleetTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1F1235',
   },
-  fleetSub: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 1,
-  },
-  carCard: {
-    backgroundColor: '#FFFFFF',
+
+  /* Flexi Notice Card */
+  flexiCard: {
     marginHorizontal: 16,
-    marginBottom: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    overflow: 'hidden',
-  },
-  cardImageStage: {
-    height: 160,
-    backgroundColor: '#F9FAFB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  carImg: {
-    width: '85%',
-    height: '85%',
-  },
-  ratingBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
+    marginTop: 14,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#7C3AED',
+    padding: 12,
+  },
+  flexiBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#6D28D9',
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginBottom: 6,
   },
-  ratingText: {
-    fontSize: 11,
+  flexiBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
     fontWeight: '800',
-    color: '#1F1235',
   },
-  plateTag: {
-    position: 'absolute',
-    bottom: 8,
-    left: 10,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  plateTagText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#374151',
-  },
-  cardBody: {
-    padding: 14,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  carMake: {
+  flexiText: {
     fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    color: '#374151',
+    lineHeight: 16,
+    fontWeight: '500',
   },
-  carModel: {
+
+  /* Booking Bento Tiles */
+  sectionHeader: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  sectionMainTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: '#1F1235',
-    marginTop: 1,
   },
-  distanceBox: {
+  bentoGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
+    marginHorizontal: 16,
+    gap: 10,
   },
-  distanceText: {
-    fontSize: 11,
-    color: '#6B7280',
-  },
-  specsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-  },
-  specItem: {
-    fontSize: 11,
-    color: '#4B5563',
-    fontWeight: '500',
-  },
-  specDot: {
-    fontSize: 11,
-    color: '#9CA3AF',
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 10,
-  },
-  pricingRow: {
-    flexDirection: 'row',
+  bentoBigCard: {
+    flex: 1.1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    minHeight: 180,
   },
-  dailyPrice: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#1F1235',
+  bentoTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#DCFCE7',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
   },
-  dailyPriceUnit: {
-    fontSize: 12,
+  bentoTagText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  bentoBigTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#111827',
+    marginTop: 4,
+  },
+  bentoBigSub: {
+    fontSize: 10,
     color: '#6B7280',
-    fontWeight: '500',
   },
-  totalPrice: {
-    fontSize: 11,
+  bentoBigImg: {
+    width: '100%',
+    height: 90,
+  },
+  bentoRightCol: {
+    flex: 1,
+    gap: 10,
+  },
+  bentoSmallCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bentoSmallTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  bentoSmallSub: {
+    fontSize: 9,
     color: '#6B7280',
     marginTop: 1,
   },
-  bookBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#2D114D',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  bookBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+  bentoSmallImg: {
+    width: 60,
+    height: 40,
   },
 
-  /* Host Callout Card */
-  hostCard: {
+  /* Benefits Row */
+  benefitsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: 16,
+    gap: 8,
+    marginTop: 16,
+  },
+  benefitCard: {
+    width: (W - 40) / 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 3,
+  },
+  benefitTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 2,
+  },
+  benefitSub: {
+    fontSize: 9,
+    color: '#6B7280',
+  },
+
+  /* Unmatched Selection Header */
+  selectionHeaderCard: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    backgroundColor: '#E8F0F8',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+  },
+  selectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  selectionSub: {
+    fontSize: 11,
+    color: '#475569',
+    marginTop: 2,
+  },
+  selectionDates: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 4,
+  },
+
+  /* 2-Column Car Box Grid (Exact from Screenshot) */
+  carGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    gap: 10,
+    marginTop: 14,
+  },
+  carBoxCard: {
+    width: CARD_WIDTH,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  carBoxImageWrap: {
+    height: 115,
+    backgroundColor: '#F3F4F6',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  carBoxImage: {
+    width: '100%',
+    height: '100%',
+  },
+  carBoxRating: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  carBoxRatingText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  carBoxHeart: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  carBoxBody: {
+    padding: 10,
+  },
+  carBoxTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  carBoxSpecs: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  carBoxDistance: {
+    fontSize: 10,
+    color: '#4B5563',
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  carBoxPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  carBoxPrice: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#111827',
+  },
+  carBoxUnit: {
+    fontSize: 9,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  carBoxTripTotal: {
+    fontSize: 9,
+    color: '#059669',
+    fontWeight: '600',
+  },
+  carBoxBookBtn: {
+    backgroundColor: '#15803D',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  carBoxBookText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  /* Host Banner */
+  hostBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 10,
+    marginTop: 18,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     gap: 12,
   },
-  hostCardTitle: {
+  hostBannerTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#111827',
   },
-  hostCardSub: {
-    fontSize: 11,
+  hostBannerSub: {
+    fontSize: 10,
     color: '#6B7280',
     marginTop: 2,
-    lineHeight: 15,
   },
-  hostCardBtn: {
-    backgroundColor: '#F3EEFA',
+  hostBannerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 6,
   },
-  hostCardBtnText: {
-    color: '#2D114D',
+  hostBannerActionText: {
     fontSize: 11,
     fontWeight: '800',
+    color: '#15803D',
   },
 
   /* Empty & Loading */
-  loadingContainer: {
+  loadingBox: {
     paddingVertical: 40,
     alignItems: 'center',
   },
@@ -1005,7 +1087,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 8,
   },
-  emptyContainer: {
+  emptyBox: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     borderRadius: 14,
@@ -1013,51 +1095,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    marginTop: 10,
   },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#1F1235',
+    color: '#111827',
     marginTop: 8,
   },
   emptySub: {
     fontSize: 11,
     color: '#6B7280',
     marginTop: 2,
-    marginBottom: 12,
-  },
-  resetBtn: {
-    backgroundColor: '#2D114D',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  resetBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
   },
 
-  /* City Sheet Modal */
+  /* City Modal */
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   citySheet: {
-    width: '80%',
+    width: '82%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 16,
+    padding: 18,
   },
   citySheetTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1F1235',
+    color: '#111827',
     marginBottom: 12,
   },
-  cityItem: {
+  cityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -1065,19 +1136,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  cityItemActive: {
-    backgroundColor: '#FFF7ED',
+  cityRowActive: {
+    backgroundColor: '#F0FDF4',
     borderRadius: 8,
     paddingHorizontal: 8,
   },
-  cityItemText: {
+  cityRowText: {
     flex: 1,
     fontSize: 13,
     color: '#374151',
     fontWeight: '600',
   },
-  cityItemTextActive: {
-    color: '#FF6000',
+  cityRowTextActive: {
+    color: '#15803D',
     fontWeight: '800',
   },
 });
