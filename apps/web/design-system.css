@@ -470,8 +470,9 @@ footer.footer { padding-inline: max(16px, calc((100vw - 1360px) / 2)); }
 .booking-panel-sticky input, .booking-panel-sticky select,
 .booking-panel-sticky textarea { width: 100%; }
 .details-back-bar, .details-layout { width: 100%; }
-.gallery-thumb-row { max-width: 100%; }
-.gallery-thumb-row, .horizon-jump-nav { scrollbar-width: thin; }
+.gallery-thumb-row { max-width: 100%; scrollbar-width: none !important; -ms-overflow-style: none !important; }
+.gallery-thumb-row::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+.horizon-jump-nav { scrollbar-width: thin; }
 .cars-layout, .admin-workspace, .two, .agreement-grid, .kyc-action-grid { min-width: 0; }
 .cars-layout > *, .admin-workspace > *, .two > *, .agreement-grid > *, .kyc-action-grid > * { min-width: 0; }
 @media (max-width: 900px) {
@@ -1069,7 +1070,121 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
   .vcard-title .sub { font-size: 12px !important; }
   .vcard-rating { flex-shrink: 0 !important; font-size: 12px !important; }
   .details-main-img-box { aspect-ratio: 4 / 3; height: auto; }
-  .details-specs-grid, .details-features-grid, .kyc-action-grid { grid-template-columns: 1fr; }
+  .details-features-grid, .kyc-action-grid { grid-template-columns: 1fr; }
+  .details-specs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 12px 0 !important;
+  }
+  .spec-box {
+    padding: 10px 12px !important;
+    min-width: 0 !important;
+  }
+  .spec-box-lbl { font-size: 10px !important; }
+  .spec-box-val { font-size: 13px !important; }
+
+  /* Host Car Showroom Banner Mobile View */
+  .lp-host {
+    grid-template-columns: 1fr !important;
+  }
+  .lp-host img {
+    width: 100% !important;
+    height: 230px !important;
+    min-height: unset !important;
+    max-height: 250px !important;
+    object-fit: contain !important;
+    background: radial-gradient(circle, #FFFFFF 0%, #F1F5F9 100%) !important;
+    padding: 8px !important;
+  }
+
+  /* Corporate Clean White Footer - Mobile Centered Formatting */
+  footer.footer, .site-footer {
+    padding: 36px 16px calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+    margin-top: 48px !important;
+    margin-bottom: 0 !important;
+    text-align: center !important;
+  }
+  .ds-foot-grid {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+    text-align: center !important;
+    justify-items: center !important;
+  }
+  .ds-foot-brand {
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-inline: auto !important;
+  }
+  .ds-foot-brand .ds-brand {
+    justify-content: center !important;
+    margin-inline: auto !important;
+  }
+  .ds-foot-brand p {
+    margin: 12px auto 0 !important;
+    text-align: center !important;
+    max-width: 320px !important;
+  }
+  .foot-col {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+  .foot-col h4 {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    margin: 0 auto 12px !important;
+    width: auto !important;
+  }
+  .foot-col a {
+    text-align: center !important;
+    padding: 6px 0 !important;
+    justify-content: center !important;
+  }
+  .foot-col.foot-contact-col > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+  .foot-contact-col div > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+  .ds-foot-bottom {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 16px !important;
+    margin-top: 28px !important;
+    padding-top: 20px !important;
+  }
+  .ds-foot-bottom > div {
+    text-align: center !important;
+  }
+  .foot-developer-credit {
+    text-align: center !important;
+  }
+  .foot-policy-links {
+    text-align: center !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+  .foot-back-top-btn {
+    margin: 8px auto 0 !important;
+  }
   .pro-kpi-ribbon { grid-template-columns: 1fr !important; }
   .pro-nav-btn { flex: 1 1 140px; }
   .handover-grid-9 { grid-template-columns: 1fr 1fr; gap: 8px; }
