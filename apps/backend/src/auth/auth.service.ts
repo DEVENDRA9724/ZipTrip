@@ -264,6 +264,110 @@ export class AuthService {
     };
   }
 
+  async loginWithFirebase(idTokenInput: string) {
+    const idToken = text(idTokenInput, 'Firebase Token', 4096);
+    const apiKey = process.env.FIREBASE_API_KEY || 'AIzaSyCVm-wSTgmbgUe37jyvFhH_jtuAPdwD1yw';
+
+    // Validate the token directly via Google Identity Toolkit
+    const resp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const data: any = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.users || !data.users.length) {
+      throw new UnauthorizedException(data.error?.message || 'Invalid Firebase authorization token.');
+    }
+
+    const firebaseUser = data.users[0];
+    const rawPhone = firebaseUser.phoneNumber;
+    const rawEmail = (firebaseUser.email || '').trim().toLowerCase();
+    const displayName = (firebaseUser.displayName || '').trim();
+    const photoUrl = firebaseUser.photoUrl;
+
+    const phone = rawPhone ? this.msg91.normalizePhone(rawPhone) : null;
+    const email = rawEmail;
+
+    if (!phone && !email) {
+      throw new BadRequestException('Firebase account does not have a verified phone number or email.');
+    }
+
+    // Try finding existing user by phone or email
+    let user: any = null;
+    if (phone) {
+      user = await this.findByPhone(phone);
+    }
+    if (!user && email) {
+      user = await this.prisma.user.findFirst({
+        where: { email },
+        include: { wallet: true, profile: true },
+      });
+    }
+
+    if (user && user.isBlocked) {
+      throw new UnauthorizedException('This account is blocked. Contact Safar support.');
+    }
+
+    const names = displayName ? displayName.split(' ') : [];
+    const firstName = names[0] || (user ? user.firstName : 'Customer');
+    const lastName = names.slice(1).join(' ') || (user ? user.lastName : 'User');
+
+    if (!user) {
+      // Auto-register new customer account seamlessly
+      const fallbackEmail = email || `cust_${(phone || '').replace(/\D/g, '')}@safarselfdrive.com`;
+      const randomPassword = randomBytes(16).toString('hex');
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+      user = await this.prisma.user.create({
+        data: {
+          phone,
+          email: fallbackEmail,
+          firstName,
+          lastName,
+          role: 'CUSTOMER',
+          passwordHash,
+          phoneVerifiedAt: phone ? new Date() : null,
+          profileImage: photoUrl || null,
+          wallet: { create: { balance: 0.0 } },
+          profile: {
+            create: {
+              firstName,
+              lastName,
+              city: 'Ahmedabad',
+              state: 'Gujarat',
+              profileImageUrl: photoUrl || null,
+            },
+          },
+        },
+        include: { wallet: true, profile: true },
+      });
+    } else {
+      // Existing user: update phone if missing and mark phone verified
+      const updateData: any = {};
+      if (phone && !user.phone) updateData.phone = phone;
+      if (phone && !user.phoneVerifiedAt) updateData.phoneVerifiedAt = new Date();
+      if (photoUrl && !user.profileImage) updateData.profileImage = photoUrl;
+
+      if (Object.keys(updateData).length) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+          include: { wallet: true, profile: true },
+        });
+      }
+    }
+
+    const token = this.jwtService.sign({ id: user.id, email: user.email, role: user.role });
+    const isKycVerified = Boolean(user.isVerified || user.profile?.isKycVerified);
+    return {
+      user: this.sanitizeUser(user),
+      token,
+      isKycVerified,
+      nextStep: isKycVerified ? 'READY_TO_BOOK' : 'EKYC_REQUIRED',
+    };
+  }
+
   private maskPhone(phone: string) {
     return phone.length > 4 ? `${phone.slice(0, 3)}•••••${phone.slice(-4)}` : phone;
   }

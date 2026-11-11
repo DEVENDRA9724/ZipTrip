@@ -57,6 +57,11 @@ export class AuthController {
     return this.session(req, res, await this.auth.loginWithOtp(body?.phone, body?.otp));
   }
 
+  @Post('firebase/session')
+  async loginWithFirebase(@Request() req: any, @Body() body: any, @Res({ passthrough: true }) res: Response) {
+    return this.session(req, res, await this.auth.loginWithFirebase(body?.idToken));
+  }
+
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('safar_session', { path: '/' });

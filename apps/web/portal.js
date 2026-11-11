@@ -1050,17 +1050,52 @@ function initCountUp() {
   io.observe(band);
 }
 
+/* ─── FIREBASE CONFIGURATION & INITIALIZATION ──────────────────────────── */
+const SAFAR_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCVm-wSTgmbgUe37jyvFhH_jtuAPdwD1yw",
+  authDomain: "safar-3e5c6.firebaseapp.com",
+  projectId: "safar-3e5c6",
+  storageBucket: "safar-3e5c6.firebasestorage.app",
+  messagingSenderId: "568855248914",
+  appId: "1:568855248914:web:1eb70e453b96dafa1bd8cb",
+  measurementId: "G-WGER5PSET3"
+};
+
+function initFirebase() {
+  if (typeof window !== 'undefined' && window.firebase && !firebase.apps?.length) {
+    try {
+      firebase.initializeApp(SAFAR_FIREBASE_CONFIG);
+    } catch (e) {
+      console.warn('[Firebase Init Warning]', e);
+    }
+  }
+}
+
 /* ─── FAST OTP AUTH & DIGILOCKER ONBOARDING MODALS ─────────────────────── */
 function showOtpLoginModal({ title, subtitle, onSuccess }) {
+  initFirebase();
   showDialog(`
     <div style="padding:10px 4px">
       <div style="text-align:center;margin-bottom:16px">
         <div style="width:56px;height:56px;border-radius:16px;background:rgba(255,96,0,0.1);color:var(--orange);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
           <span class="ico">${icon('phone')}</span>
         </div>
-        <h3 style="margin:0 0 6px">${esc(title || 'Instant Mobile OTP Login')}</h3>
-        <p class="text-muted" style="margin:0;font-size:13.5px">${esc(subtitle || 'Enter your 10-digit mobile number to verify and continue.')}</p>
+        <h3 style="margin:0 0 6px">${esc(title || 'Instant Sign In')}</h3>
+        <p class="text-muted" style="margin:0;font-size:13.5px">${esc(subtitle || 'Sign in in 1-click with Google or via Mobile OTP.')}</p>
       </div>
+
+      <!-- 1-Click Google Sign In -->
+      <button type="button" id="dialog-btn-google" class="button btn-outline" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;font-weight:700;background:#fff;border:1.5px solid #CBD5E1;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:16px">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+        <span style="color:#0F172A">Continue with Google</span>
+      </button>
+
+      <div style="display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--text-muted);font-size:11.5px;font-weight:700">
+        <span style="flex:1;height:1px;background:var(--border-main)"></span>
+        <span>OR VIA MOBILE OTP</span>
+        <span style="flex:1;height:1px;background:var(--border-main)"></span>
+      </div>
+
       <form id="dialog-otp-request-form" class="form-stack">
         <label>Mobile Number
           <div style="display:flex;align-items:center;gap:8px">
@@ -1068,17 +1103,58 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
             <input name="phone" type="tel" inputmode="tel" pattern="[0-9]{10}" maxlength="10" required placeholder="9876543210" style="flex:1;font-size:16px;letter-spacing:0.05em">
           </div>
         </label>
+        <div id="dialog-recaptcha-box"></div>
         <p class="text-muted" style="font-size:12px;margin:2px 0 0">No password needed. New customer accounts are registered automatically.</p>
         <button type="submit" class="button btn-orange" style="width:100%;padding:12px;margin-top:6px">Send 6-Digit OTP →</button>
       </form>
     </div>
   `);
 
+  $('#dialog-btn-google')?.addEventListener('click', async () => {
+    try {
+      initFirebase();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await firebase.auth().signInWithPopup(provider);
+      const idToken = await result.user.getIdToken();
+      const login = await post('/auth/firebase/session', { idToken });
+      if (login?.token) localStorage.setItem('safar_token', login.token);
+      $('dialog').close();
+      if (typeof onSuccess === 'function') {
+        await onSuccess(login.user);
+      }
+    } catch (e) {
+      toast(e.message || 'Google sign-in was cancelled or failed.', true);
+    }
+  });
+
   bindForm('#dialog-otp-request-form', async formData => {
     const rawPhone = (formData.phone || '').trim().replace(/\D/g, '');
     const phone = rawPhone.length === 10 ? '+91' + rawPhone : (formData.phone || '').trim();
-    const res = await post('/auth/login/otp/request', { phone });
-    const devOtpCode = res.devOtp;
+
+    initFirebase();
+    let useFirebasePhone = false;
+    let confirmationResult = null;
+    if (window.firebase && firebase.auth) {
+      try {
+        if (!window.safarDialogRecaptcha) {
+          window.safarDialogRecaptcha = new firebase.auth.RecaptchaVerifier('dialog-recaptcha-box', {
+            size: 'invisible'
+          });
+        }
+        confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarDialogRecaptcha);
+        window.safarPhoneConfirmation = confirmationResult;
+        useFirebasePhone = true;
+      } catch (err) {
+        console.warn('[Firebase Dialog Recaptcha Fallback]', err);
+      }
+    }
+
+    let devOtpCode = null;
+    if (!useFirebasePhone) {
+      const res = await post('/auth/login/otp/request', { phone });
+      devOtpCode = res.devOtp;
+    }
 
     showDialog(`
       <div style="text-align:center;padding:10px 4px">
@@ -1086,7 +1162,7 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
           <span class="ico">${icon('phone')}</span>
         </div>
         <h3 style="margin:0 0 6px">Enter 6-Digit OTP</h3>
-        <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a one-time password to <strong>${esc(res.maskedPhone || phone)}</strong>.</p>
+        <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a one-time password to <strong>${esc(phone)}</strong>.</p>
         ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left">
           <span><strong>Dev OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
           <button type="button" id="dialog-autofill-otp-btn" class="btn-outline btn-sm">Auto-Fill</button>
@@ -1105,7 +1181,14 @@ function showOtpLoginModal({ title, subtitle, onSuccess }) {
     });
 
     bindForm('#dialog-otp-verify-form', async otpData => {
-      const login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
+      let login;
+      if (useFirebasePhone && window.safarPhoneConfirmation) {
+        const credential = await window.safarPhoneConfirmation.confirm(otpData.otp);
+        const idToken = await credential.user.getIdToken();
+        login = await post('/auth/firebase/session', { idToken });
+      } else {
+        login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
+      }
       if (login?.token) localStorage.setItem('safar_token', login.token);
       $('dialog').close();
       if (typeof onSuccess === 'function') {
@@ -1128,7 +1211,7 @@ function showDigilockerRequiredModal(vehicleId) {
 
       <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px;margin-bottom:18px;text-align:left;font-size:13px;display:grid;gap:8px">
         <div style="display:flex;align-items:center;gap:10px;color:#16A34A;font-weight:600">
-          <span>✓</span> Step 1: Mobile Number Verified
+          <span>✓</span> Step 1: Mobile / Google Account Verified
         </div>
         <div style="display:flex;align-items:center;gap:10px;color:var(--orange);font-weight:700">
           <span style="width:18px;height:18px;border-radius:50%;background:var(--orange);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px">2</span> Step 2: DigiLocker Aadhaar &amp; Driving Licence (Required)
@@ -1154,18 +1237,19 @@ function showDigilockerRequiredModal(vehicleId) {
 function auth(forceRegister, loginMode = 'otp') {
   const isReg = forceRegister ?? (new URLSearchParams(location.search).get('tab') === 'register');
   const isOtpLogin = !isReg && loginMode === 'otp';
+  initFirebase();
 
   $('#app').innerHTML = `
     <div class="auth-box">
       <aside class="auth-banner">
         <div>
-          <img src="safar-logo.png?v=20261111b" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
+          <img src="safar-logo.png?v=20261111c" alt="Safar" class="auth-banner-logo" onerror="this.style.display='none'">
           <h1>Your Journey.<br>Your Rules.</h1>
-          <p>Sign in with your mobile OTP to manage trips, verify with DigiLocker, and explore self-drive rentals across Gujarat &amp; Rajasthan.</p>
+          <p>Sign in with Google or mobile OTP to manage trips, verify with DigiLocker, and explore self-drive rentals across Gujarat &amp; Rajasthan.</p>
         </div>
         <img class="auth-journey-art" src="journey.svg" alt="An orange car on a winding road through a sunlit landscape">
         <div class="auth-steps-list">
-          <div class="auth-step-item"><span class="auth-step-num">1</span> Fast Mobile OTP Sign In</div>
+          <div class="auth-step-item"><span class="auth-step-num">1</span> 1-Click Google or Mobile OTP</div>
           <div class="auth-step-item"><span class="auth-step-num">2</span> 60-Second DigiLocker e-KYC</div>
           <div class="auth-step-item"><span class="auth-step-num">3</span> Reserve Car &amp; Hit the Road</div>
         </div>
@@ -1177,8 +1261,22 @@ function auth(forceRegister, loginMode = 'otp') {
           <button id="tab-reg" class="${isReg ? 'active' : ''}">Create Account</button>
         </div>
 
-        <h2>${isReg ? 'Create your account' : (isOtpLogin ? 'Instant Mobile OTP Login' : 'Welcome back')}</h2>
-        <p class="text-muted">${isReg ? 'Register as a customer, host, or dealer.' : (isOtpLogin ? 'Enter your 10-digit mobile number. We will send a 6-digit one-time password.' : 'Enter your email and password to continue.')}</p>
+        <h2>${isReg ? 'Create your account' : (isOtpLogin ? 'Instant Sign In' : 'Welcome back')}</h2>
+        <p class="text-muted">${isReg ? 'Register as a customer, host, or dealer.' : (isOtpLogin ? 'Sign in with Google in 1 click or enter your mobile number for OTP.' : 'Enter your email and password to continue.')}</p>
+
+        ${isOtpLogin ? `
+          <!-- 1-Click Google Sign In -->
+          <button type="button" id="btn-google-signin" class="button btn-outline" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;font-weight:700;background:#fff;border:1.5px solid #CBD5E1;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:16px">
+            <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
+            <span style="color:#0F172A">Continue with Google</span>
+          </button>
+
+          <div style="display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text-muted);font-size:11.5px;font-weight:700">
+            <span style="flex:1;height:1px;background:var(--border-main)"></span>
+            <span>OR VIA MOBILE OTP</span>
+            <span style="flex:1;height:1px;background:var(--border-main)"></span>
+          </div>
+        ` : ''}
 
         <form id="auth-form" class="form-stack">
           ${isReg ? `
@@ -1195,6 +1293,7 @@ function auth(forceRegister, loginMode = 'otp') {
                   <input name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="15" required placeholder="9876543210" style="flex:1;font-size:16px;letter-spacing:0.04em">
                 </div>
               </label>
+              <div id="auth-recaptcha-inline"></div>
               <p class="text-muted" style="font-size:12px;margin:2px 0 0">No password required. New customers are registered automatically.</p>
             `
             : `${inp('email', 'Email address', 'email', 'autocomplete="email" maxlength="254" placeholder="you@example.com"')}
@@ -1227,17 +1326,58 @@ function auth(forceRegister, loginMode = 'otp') {
   $('#link-reg')?.addEventListener('click', e => { e.preventDefault(); auth(true); });
   $('#toggle-login-mode')?.addEventListener('click', e => { e.preventDefault(); auth(false, isOtpLogin ? 'password' : 'otp'); });
 
+  $('#btn-google-signin')?.addEventListener('click', async () => {
+    try {
+      initFirebase();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await firebase.auth().signInWithPopup(provider);
+      const idToken = await result.user.getIdToken();
+      const login = await post('/auth/firebase/session', { idToken });
+      if (login?.token) localStorage.setItem('safar_token', login.token);
+      user = login.user;
+      shell();
+      toast('Signed in with Google!');
+      finishLogin(login);
+    } catch (e) {
+      toast(e.message || 'Google sign-in was cancelled or failed.', true);
+    }
+  });
+
   bindForm('#auth-form', async data => {
     if (isOtpLogin) {
       const rawPhone = (data.phone || '').trim().replace(/\D/g, '');
       const phone = rawPhone.length === 10 ? '+91' + rawPhone : (data.phone || '').trim();
-      const res = await post('/auth/login/otp/request', { phone });
-      const devOtpCode = res.devOtp;
+
+      initFirebase();
+      let useFirebasePhone = false;
+      let confirmationResult = null;
+      if (window.firebase && firebase.auth) {
+        try {
+          if (!window.safarAuthRecaptcha) {
+            window.safarAuthRecaptcha = new firebase.auth.RecaptchaVerifier('auth-recaptcha-inline', {
+              size: 'invisible'
+            });
+          }
+          confirmationResult = await firebase.auth().signInWithPhoneNumber(phone, window.safarAuthRecaptcha);
+          window.safarPhoneConfirmation = confirmationResult;
+          useFirebasePhone = true;
+        } catch (err) {
+          console.warn('[Firebase Auth Recaptcha Fallback]', err);
+        }
+      }
+
+      let devOtpCode = null;
+      if (!useFirebasePhone) {
+        const res = await post('/auth/login/otp/request', { phone });
+        devOtpCode = res.devOtp;
+      }
+
       showDialog(`
         <div style="text-align:center;padding:8px 4px">
           <div style="width:56px;height:56px;border-radius:16px;background:rgba(59,18,63,0.08);color:var(--brand);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px"><span class="ico">${icon('phone')}</span></div>
           <h3 style="margin:0 0 6px">Enter your login OTP</h3>
-          <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit OTP to <strong>${esc(res.maskedPhone || phone)}</strong>.</p>
+          <p class="text-muted" style="margin:0 0 16px;font-size:13.5px">We sent a 6-digit OTP to <strong>${esc(phone)}</strong>.</p>
           ${devOtpCode ? `<div class="notice info" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-align:left">
             <span><strong>Development OTP:</strong> <code style="font-size:16px;font-weight:800;color:var(--brand)">${esc(devOtpCode)}</code></span>
             <button type="button" id="autofill-login-otp-btn" class="btn-outline btn-sm">Auto-Fill OTP</button>
@@ -1253,13 +1393,20 @@ function auth(forceRegister, loginMode = 'otp') {
         $('#login-otp-modal-input').value = devOtpCode;
       });
       bindForm('#login-otp-modal-form', async otpData => {
-        const login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
+        let login;
+        if (useFirebasePhone && window.safarPhoneConfirmation) {
+          const credential = await window.safarPhoneConfirmation.confirm(otpData.otp);
+          const idToken = await credential.user.getIdToken();
+          login = await post('/auth/firebase/session', { idToken });
+        } else {
+          login = await post('/auth/login/otp/verify', { phone, otp: otpData.otp });
+        }
         if (login?.token) localStorage.setItem('safar_token', login.token);
         $('dialog').close();
         user = login.user;
         shell();
         if (!login.isKycVerified && !login.user?.isVerified) {
-          toast('📱 Mobile verified! Taking you to DigiLocker e-KYC…');
+          toast('📱 Phone verified! Taking you to DigiLocker e-KYC…');
         } else {
           toast('Signed in successfully!');
         }
