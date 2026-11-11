@@ -706,20 +706,23 @@ button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 }
 
 /* Cars layout */
-.cars-layout { display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; }
+.cars-layout { display: grid; grid-template-columns: 290px 1fr; gap: 0; align-items: start; margin-top: 0; }
 
 /* ─── SIDEBAR FILTERS (ZOOMCAR / SAFAR REFERENCE DESIGN) ─── */
 .sidebar-filters {
-  background: #FFFFFF !important;
-  border: 1px solid #E2E4E8 !important;
-  border-radius: 16px !important;
-  padding: 20px 18px !important;
-  position: sticky !important;
-  top: 85px !important;
-  max-height: calc(100vh - 100px) !important;
-  overflow-y: auto !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
-  box-sizing: border-box !important;
+  background: #FFFFFF;
+  border-right: 1px solid #E2E8F0;
+  padding: 20px 18px;
+  position: fixed;
+  top: 72px;
+  left: 0;
+  bottom: 0;
+  width: 290px;
+  height: calc(100vh - 72px);
+  max-height: calc(100vh - 72px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  z-index: 500;
 }
 
 .sidebar-filters .filter-header-top {
@@ -2388,8 +2391,8 @@ td .actions .button {
 
 /* 10. Car Cards & Listing Layout Padding */
 .cars-layout {
-  gap: 28px;
-  margin-top: 20px;
+  gap: 0;
+  margin-top: 0;
 }
 
 .car-grid {
@@ -2438,15 +2441,14 @@ html {
 @keyframes viewFadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
-#app > *,
+#app > *:not(.cars-layout),
 .view-fade-in,
 #admin-panel-content > *,
 #car-folder-tab-body > * {

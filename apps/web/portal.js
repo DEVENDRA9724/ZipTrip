@@ -198,7 +198,7 @@ function carLink(id) {
   return 'cars.html?' + next.toString();
 }
 
-const CAR_IMG_VER = '20261111M';
+const CAR_IMG_VER = '20261111N';
 
 const CAR_IMAGE_MAP = {
   thar: 'cars/thar.jpg',
@@ -388,7 +388,7 @@ async function uploadFile(file, kind) {
 }
 function photoUrl(car) {
   const stock = getCarStockPhoto(car);
-  if (stock) return stock + '?v=20261111h';
+  if (stock) return stock + '?v=' + CAR_IMG_VER;
   if (car.images) {
     try {
       const p = JSON.parse(car.images);
@@ -400,7 +400,7 @@ function photoUrl(car) {
   }
   const m = car.media?.find(x => x.kind === 'FRONT') || car.media?.[0];
   if (m?.id) return '/api/media/' + encodeURIComponent(m.id);
-  return 'cars/thar.jpg?v=20261111h';
+  return 'cars/thar.jpg?v=' + CAR_IMG_VER;
 }
 function requireUser(roles) {
   if (!user) { location.replace('auth.html?redirect=' + encodeURIComponent(page + location.search)); return false; }
@@ -1500,7 +1500,11 @@ let allCars = [];
 
 async function cars() {
   const id = new URLSearchParams(location.search).get('id');
-  if (id) return carDetails(id);
+  if (id) {
+    document.body.classList.remove('cars-page');
+    return carDetails(id);
+  }
+  document.body.classList.add('cars-page');
 
   $('#app').innerHTML = `
     <div class="cars-layout">

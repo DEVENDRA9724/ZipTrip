@@ -1545,18 +1545,26 @@ dialog { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflo
    ═══════════════════════════════════════════════════════════════════════════ */
 .cars-page-wrap { width: 100%; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ZOOMCAR-STYLE CAR DISCOVERY APP SHELL
-   - Fixed Top Header (position: fixed; never scrolls)
-   - Fixed Left Filter Studio (position: fixed; locked to left viewport)
-   - Scrollable Right Car Fleet Discovery (Only this area moves)
-   ═══════════════════════════════════════════════════════════════════════════ */
-.cars-page-wrap { width: 100%; }
-
 body.cars-page {
   background: #F8FAFC !important;
   margin: 0 !important;
   padding: 0 !important;
+}
+
+/* Ensure NO ancestor creates a transform containing block that would break position: fixed */
+body.cars-page,
+body.cars-page main.container,
+body.cars-page #app,
+body.cars-page .cars-page-container,
+body.cars-page .cars-layout,
+#app > .cars-layout {
+  transform: none !important;
+  animation: none !important;
+  filter: none !important;
+  perspective: none !important;
+  backdrop-filter: none !important;
+  contain: none !important;
+  will-change: auto !important;
 }
 
 /* 1. Header: RIGIDLY FIXED to top of viewport */
@@ -1614,9 +1622,10 @@ body:has(.cars-page-container) footer.footer {
     min-height: calc(100vh - 72px) !important;
   }
 
-  /* Fixed Left Filter Studio: Pinned to viewport, never scrolls with page */
+  /* Fixed Left Filter Studio: Pinned to viewport (0, 72px), never scrolls with page */
   body.cars-page .sidebar-filters,
-  body:has(.cars-layout) .sidebar-filters {
+  body:has(.cars-layout) .sidebar-filters,
+  #vehicle-search-filters.sidebar-filters {
     position: fixed !important;
     top: 72px !important;
     left: 0 !important;
@@ -1641,6 +1650,7 @@ body:has(.cars-page-container) footer.footer {
     flex-direction: column !important;
     gap: 18px !important;
     z-index: 500 !important;
+    margin: 0 !important;
   }
 
   body.cars-page .sidebar-filters::-webkit-scrollbar,
@@ -1685,41 +1695,6 @@ body:has(.cars-page-container) footer.footer {
   }
 }
 
-/* Mobile & Tablet (< 960px): Stacked layout with top header */
-@media (max-width: 960px) {
-  body.cars-page main.container,
-  body.cars-page .cars-page-container {
-    padding: 84px 14px 80px !important;
-  }
-
-  body.cars-page .cars-layout {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    gap: 16px !important;
-  }
-
-  body.cars-page .sidebar-filters {
-    position: static !important;
-    height: auto !important;
-    max-height: none !important;
-    width: 100% !important;
-    border-radius: 16px !important;
-    border: 1px solid #E2E8F0 !important;
-  }
-
-  body.cars-page .cars-results-wrap {
-    margin-left: 0 !important;
-    width: 100% !important;
-    padding: 0 !important;
-  }
-
-  body.cars-page footer.footer {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-}
-
 /* Zoomcar-Inspired Top Promo Headline */
 .cars-top-promo-banner {
   background: linear-gradient(135deg, rgba(45, 17, 77, 0.03) 0%, rgba(255, 96, 0, 0.05) 100%) !important;
@@ -1748,14 +1723,15 @@ body:has(.cars-page-container) footer.footer {
   line-height: 1.2 !important;
 }
 
-  .mobile-filter-toggle {
-    display: none !important;
-  }
-}
-
 /* Mobile & Tablet (< 960px): Clean Single-Column Stack, No Horizontal Spills */
 @media (max-width: 960px) {
-  .cars-layout {
+  body.cars-page main.container,
+  body.cars-page .cars-page-container {
+    padding: 84px 14px 80px !important;
+  }
+
+  .cars-layout,
+  body.cars-page .cars-layout {
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
@@ -1787,8 +1763,11 @@ body:has(.cars-page-container) footer.footer {
     background: #F1F5F9 !important;
   }
 
-  .sidebar-filters {
+  .sidebar-filters,
+  body.cars-page .sidebar-filters,
+  #vehicle-search-filters.sidebar-filters {
     position: static !important;
+    height: auto !important;
     max-height: none !important;
     overflow: visible !important;
     width: 100% !important;
@@ -1811,11 +1790,19 @@ body:has(.cars-page-container) footer.footer {
     gap: 16px !important;
   }
 
-  .cars-results-wrap {
+  .cars-results-wrap,
+  body.cars-page .cars-results-wrap {
+    margin-left: 0 !important;
+    padding: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
+  }
+
+  body.cars-page footer.footer {
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 
   .car-grid {
