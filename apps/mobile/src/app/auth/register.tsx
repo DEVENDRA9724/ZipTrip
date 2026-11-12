@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { ArrowLeft, Mail, Lock, User, Phone } from 'lucide-react-native';
+import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -20,7 +21,7 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { register } = require('@/context/AuthContext').useAuth();
+  const { register } = useAuth();
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password || !phone) {

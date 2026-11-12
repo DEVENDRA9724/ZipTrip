@@ -15,31 +15,36 @@ import {
   Car,
   User,
 } from 'lucide-react-native';
+import { useAuth } from '@/context/AuthContext';
 
-const TABS = [
+const ALL_TABS = [
   {
     name: 'Home',
     route: '/',
     match: (p: string) => p === '/' || p === '/index',
     Icon: Home,
+    hostOnly: false,
   },
   {
     name: 'Explore',
     route: '/cars',
     match: (p: string) => p.startsWith('/cars'),
     Icon: Search,
+    hostOnly: false,
   },
   {
     name: 'Trips',
     route: '/trips',
     match: (p: string) => p.startsWith('/trips'),
     Icon: Calendar,
+    hostOnly: false,
   },
   {
     name: 'Host',
     route: '/host',
     match: (p: string) => p.startsWith('/host'),
     Icon: Car,
+    hostOnly: true,
   },
   {
     name: 'Account',
@@ -47,12 +52,14 @@ const TABS = [
     match: (p: string) =>
       p.startsWith('/wallet') || p.startsWith('/verification') || p.startsWith('/guides'),
     Icon: User,
+    hostOnly: false,
   },
 ];
 
 function SafarTabBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { isVerifiedHost, appMode } = useAuth();
 
   if (
     pathname.startsWith('/details') ||
@@ -61,6 +68,10 @@ function SafarTabBar() {
   ) {
     return null;
   }
+
+  // Show Host tab only for Verified Hosts / Admins or when in Host Mode
+  const showHostTab = isVerifiedHost || appMode === 'host' || pathname.startsWith('/host');
+  const visibleTabs = ALL_TABS.filter((t) => !t.hostOnly || showHostTab);
 
   return (
     <View
@@ -72,7 +83,7 @@ function SafarTabBar() {
       ]}
     >
       <View style={styles.barInner}>
-        {TABS.map(({ name, route, match, Icon }) => {
+        {visibleTabs.map(({ name, route, match, Icon }) => {
           const active = match(pathname);
           return (
             <TouchableOpacity

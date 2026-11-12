@@ -54,13 +54,20 @@ export const CAR_IMAGE_SLOTS = [
 
 export default function HostDashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, userRole, isVerifiedHost, isAdmin, activateHostPartner, switchAppMode } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'FLEET' | 'MANAGE' | 'EARNINGS'>('FLEET');
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Host Partner Onboarding Form (for signed-in Customers applying for Host access)
+  const [hostBusinessName, setHostBusinessName] = useState(
+    user?.firstName ? `${user.firstName}'s Fleet` : 'Safar Verified Partner'
+  );
+  const [hostOperatingCity, setHostOperatingCity] = useState('Ahmedabad');
+  const [hostFleetCount, setHostFleetCount] = useState('1–2 Cars');
 
   // Selected car for the "Manage Car" tab
   const [managedCarId, setManagedCarId] = useState<string | null>(null);
@@ -238,22 +245,217 @@ export default function HostDashboardScreen() {
     return { fleetCount: vehicles.length || 4, net80 };
   }, [vehicles, bookings]);
 
+  // ────────── ROLE GATE 1: NOT SIGNED IN ──────────
+  if (!user) {
+    return (
+      <View style={[s.screen, { paddingTop: topPadding }]}>
+        <View style={s.header}>
+          <View>
+            <Text style={s.headerTitle}>Host Partner Portal</Text>
+            <Text style={s.headerSub}>Verified vehicle owners & fleet operators only</Text>
+          </View>
+          <TouchableOpacity
+            style={s.modeSwitchBtn}
+            onPress={async () => {
+              await switchAppMode('customer');
+              router.replace('/');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={s.modeSwitchBtnText}>Customer Mode</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={s.roleGateCard}>
+            <View style={s.roleGateIconCircle}>
+              <ShieldCheck size={28} color="#FF6000" />
+            </View>
+            <Text style={s.roleGateTitle}>Sign in as a Verified Host</Text>
+            <Text style={s.roleGateSub}>
+              Only registered Safar Host Partners and Admins can list vehicles, manage car pricing, and upload official Car Images.
+            </Text>
+
+            <View style={s.roleBenefitList}>
+              <View style={s.roleBenefitItem}>
+                <View style={s.roleBenefitDot} />
+                <Text style={s.roleBenefitText}>Earn 80% net payout on every verified trip</Text>
+              </View>
+              <View style={s.roleBenefitItem}>
+                <View style={s.roleBenefitDot} />
+                <Text style={s.roleBenefitText}>100% DigiLocker e-KYC verified drivers only</Text>
+              </View>
+              <View style={s.roleBenefitItem}>
+                <View style={s.roleBenefitDot} />
+                <Text style={s.roleBenefitText}>Manage daily rates, pickup hubs & Car Images</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={s.submitBtn}
+              onPress={() => router.push('/auth/login')}
+              activeOpacity={0.85}
+            >
+              <Text style={s.submitBtnText}>Sign In to Host Account</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[s.modeSwitchBtn, { width: '100%', alignItems: 'center', paddingVertical: 12, marginTop: 4 }]}
+              onPress={() => router.push('/auth/register')}
+              activeOpacity={0.8}
+            >
+              <Text style={s.modeSwitchBtnText}>Register New Host Partner Account</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // ────────── ROLE GATE 2: SIGNED IN AS CUSTOMER (NOT YET VERIFIED HOST / ADMIN) ──────────
+  if (!isVerifiedHost) {
+    return (
+      <View style={[s.screen, { paddingTop: topPadding }]}>
+        <View style={s.header}>
+          <View>
+            <Text style={s.headerTitle}>Become a Verified Host</Text>
+            <Text style={s.headerSub}>Current Role: Customer Account</Text>
+          </View>
+          <TouchableOpacity
+            style={s.modeSwitchBtn}
+            onPress={async () => {
+              await switchAppMode('customer');
+              router.replace('/');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={s.modeSwitchBtnText}>Customer Mode</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={s.roleGateCard}>
+            <View style={s.roleGateIconCircle}>
+              <Car size={26} color="#FF6000" />
+            </View>
+            <Text style={s.roleGateTitle}>Activate Host Partner Access</Text>
+            <Text style={s.roleGateSub}>
+              Complete your Host profile below to unlock the Host Dashboard, list your vehicles, and manage Car Images.
+            </Text>
+
+            <View style={{ width: '100%', gap: 12, marginTop: 8 }}>
+              <View>
+                <Text style={s.inputLabel}>Host / Fleet Name</Text>
+                <TextInput
+                  style={s.input}
+                  value={hostBusinessName}
+                  onChangeText={setHostBusinessName}
+                  placeholder="e.g. Patel Motors / Personal Fleet"
+                />
+              </View>
+
+              <View>
+                <Text style={s.inputLabel}>Primary Operating City</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'].map((c) => {
+                    const active = hostOperatingCity === c;
+                    return (
+                      <TouchableOpacity
+                        key={c}
+                        style={[
+                          s.roleCityChip,
+                          active && s.roleCityChipActive,
+                        ]}
+                        onPress={() => setHostOperatingCity(c)}
+                      >
+                        <Text style={[s.roleCityChipText, active && s.roleCityChipTextActive]}>{c}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text style={s.inputLabel}>Number of Cars to List</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {['1–2 Cars', '3–5 Cars', '6+ Fleet'].map((cnt) => {
+                    const active = hostFleetCount === cnt;
+                    return (
+                      <TouchableOpacity
+                        key={cnt}
+                        style={[
+                          s.roleCityChip,
+                          { flex: 1, alignItems: 'center' },
+                          active && s.roleCityChipActive,
+                        ]}
+                        onPress={() => setHostFleetCount(cnt)}
+                      >
+                        <Text style={[s.roleCityChipText, active && s.roleCityChipTextActive]}>{cnt}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={s.submitBtn}
+                onPress={async () => {
+                  await activateHostPartner({
+                    businessName: hostBusinessName,
+                    city: hostOperatingCity,
+                    fleetCount: hostFleetCount,
+                  });
+                  Alert.alert(
+                    'Verified Host Activated',
+                    'Your account now has Verified Host Partner access. You can list cars and manage your fleet.'
+                  );
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={s.submitBtnText}>Activate Verified Host Account</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>
       {/* ────────── HEADER ────────── */}
       <View style={s.header}>
-        <View>
-          <Text style={s.headerTitle}>Host Dashboard</Text>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={s.headerTitle}>Host Dashboard</Text>
+            <View style={[s.roleBadgePill, isAdmin && { backgroundColor: '#0F172A' }]}>
+              <Text style={s.roleBadgePillText}>
+                {isAdmin ? 'ADMIN' : userRole === 'HOST' ? 'VERIFIED HOST' : 'PARTNER'}
+              </Text>
+            </View>
+          </View>
           <Text style={s.headerSub}>Manage your listed cars, pricing & car images</Text>
         </View>
-        <TouchableOpacity
-          style={s.addCarBtn}
-          onPress={() => setAddCarModalOpen(true)}
-          activeOpacity={0.85}
-        >
-          <Plus size={14} color="#FFFFFF" />
-          <Text style={s.addCarBtnText}>Add New Car</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={s.modeSwitchBtn}
+            onPress={async () => {
+              await switchAppMode('customer');
+              router.replace('/');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={s.modeSwitchBtnText}>Customer View</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.addCarBtn}
+            onPress={() => setAddCarModalOpen(true)}
+            activeOpacity={0.85}
+          >
+            <Plus size={14} color="#FFFFFF" />
+            <Text style={s.addCarBtnText}>Add Car</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -1195,12 +1397,120 @@ const s = StyleSheet.create({
     backgroundColor: '#FF6000',
     borderRadius: 12,
     paddingVertical: 14,
+    paddingHorizontal: 18,
     alignItems: 'center',
     marginTop: 6,
+    width: '100%',
   },
   submitBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '700',
+  },
+  roleBadgePill: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 999,
+  },
+  roleBadgePillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.5,
+  },
+  modeSwitchBtn: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+  },
+  modeSwitchBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  roleGateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  roleGateIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFF7ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  roleGateTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  roleGateSub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 6,
+    marginBottom: 14,
+  },
+  roleBenefitList: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    gap: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  roleBenefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  roleBenefitDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#FF6000',
+  },
+  roleBenefitText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  roleCityChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  roleCityChipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  roleCityChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  roleCityChipTextActive: {
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });

@@ -49,7 +49,7 @@ const KYC_DOC_SLOTS = [
 
 export default function AccountAndWalletScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
+  const { user, logout, userRole, isVerifiedHost, isAdmin, appMode, switchAppMode, setUserRole } = useAuth();
 
   // Wallet balance & promo
   const [balance, setBalance] = useState(user ? 1250 : 0);
@@ -223,13 +223,119 @@ export default function AccountAndWalletScreen() {
             <Text style={s.profileSubText}>
               {user ? user.email || profilePhone : 'Sign in to sync bookings & KYC'}
             </Text>
-            <View style={s.verifiedBadge}>
-              <CheckCircle2 size={12} color="#059669" />
-              <Text style={s.verifiedBadgeText}>
-                {kycVerified ? 'DigiLocker Verified • ₹0 Deposit' : 'Verification Pending'}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <View style={s.verifiedBadge}>
+                <CheckCircle2 size={12} color="#059669" />
+                <Text style={s.verifiedBadgeText}>
+                  {kycVerified ? 'DigiLocker Verified • ₹0 Deposit' : 'Verification Pending'}
+                </Text>
+              </View>
+              {user && (
+                <View style={[s.roleTagBadge, isVerifiedHost && s.roleTagBadgeHost]}>
+                  <Text style={[s.roleTagBadgeText, isVerifiedHost && s.roleTagBadgeTextHost]}>
+                    {isAdmin ? 'ADMIN' : userRole === 'HOST' ? 'VERIFIED HOST' : 'CUSTOMER'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* ────────── 1B. ROLE-BASED ACCESS & HOST MODE SWITCHER ────────── */}
+        <View style={s.card}>
+          <View style={s.cardHeaderRow}>
+            <View style={[s.cardIconCircle, { backgroundColor: '#FFF7ED' }]}>
+              <Car size={18} color="#FF6000" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardTitle}>Account Role & Host Access</Text>
+              <Text style={s.cardSub}>
+                {!user
+                  ? 'Sign in to switch between Customer and Verified Host access'
+                  : isAdmin
+                  ? 'Safar Admin — Full Fleet & Host Control'
+                  : isVerifiedHost
+                  ? 'Verified Host Partner — Manage Listed Cars & Car Images'
+                  : 'Customer Account — Book & Drive Verified Cars'}
               </Text>
             </View>
           </View>
+
+          {user ? (
+            <View style={{ gap: 10 }}>
+              <View style={s.rolePillsRow}>
+                {(
+                  [
+                    { key: 'CUSTOMER', label: 'Customer' },
+                    { key: 'HOST', label: 'Verified Host' },
+                    { key: 'ADMIN', label: 'Admin' },
+                  ] as const
+                ).map((r) => {
+                  const active = userRole === r.key;
+                  return (
+                    <TouchableOpacity
+                      key={r.key}
+                      style={[s.roleSwitchPill, active && s.roleSwitchPillActive]}
+                      onPress={async () => {
+                        await setUserRole(r.key);
+                        if (r.key === 'HOST' || r.key === 'ADMIN') {
+                          await switchAppMode('host');
+                        }
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[s.roleSwitchPillText, active && s.roleSwitchPillTextActive]}>
+                        {r.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {isVerifiedHost ? (
+                <View style={s.kycButtonsRow}>
+                  <TouchableOpacity
+                    style={s.kycSecondaryBtn}
+                    onPress={async () => {
+                      await switchAppMode('customer');
+                      router.push('/');
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={s.kycSecondaryBtnText}>Customer Mode</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={s.kycPrimaryBtn}
+                    onPress={async () => {
+                      await switchAppMode('host');
+                      router.push('/host');
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Car size={15} color="#FFFFFF" />
+                    <Text style={s.kycPrimaryBtnText}>Open Host Dashboard</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={s.kycSecondaryBtn}
+                  onPress={() => router.push('/host')}
+                  activeOpacity={0.8}
+                >
+                  <Car size={15} color="#0F172A" />
+                  <Text style={s.kycSecondaryBtnText}>Become a Verified Host Partner</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={s.kycSecondaryBtn}
+              onPress={() => router.push('/auth/login')}
+              activeOpacity={0.8}
+            >
+              <Text style={s.kycSecondaryBtnText}>Sign In to Access Host or Customer Role</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ────────── 2. IDENTITY & DRIVING LICENCE KYC (MOVED FROM FOOTER) ────────── */}
@@ -1058,5 +1164,51 @@ const s = StyleSheet.create({
   },
   amountChipTextActive: {
     color: '#FFFFFF',
+  },
+  roleTagBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 6,
+  },
+  roleTagBadgeHost: {
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  roleTagBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 0.4,
+  },
+  roleTagBadgeTextHost: {
+    color: '#C2410C',
+  },
+  rolePillsRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+  },
+  roleSwitchPill: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  roleSwitchPillActive: {
+    backgroundColor: '#0F172A',
+  },
+  roleSwitchPillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  roleSwitchPillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ArrowLeft, Mail, Lock, Phone } from 'lucide-react-native';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -27,7 +28,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login, requestLoginOtp, loginWithOtp } = require('@/context/AuthContext').useAuth();
+  const { login, requestLoginOtp, loginWithOtp, loginAsRole } = useAuth();
 
   const handleLogin = async () => {
     if (mode === 'otp') {
@@ -217,6 +218,47 @@ export default function LoginScreen() {
               </Text>
             )}
           </TouchableOpacity>
+
+          {/* Role-Based Quick Access */}
+          <View style={{ marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#E2E8F0', gap: 8 }}>
+            <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#64748B', textAlign: 'center', marginBottom: 4 }}>
+              INSTANT ROLE SIGN IN
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#F8FAFC',
+                  borderWidth: 1,
+                  borderColor: '#CBD5E1',
+                  borderRadius: 12,
+                  paddingVertical: 11,
+                  alignItems: 'center',
+                }}
+                onPress={async () => {
+                  await loginAsRole('CUSTOMER');
+                  router.replace('/');
+                }}
+              >
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#0F172A' }}>Customer Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: '#0F172A',
+                  borderRadius: 12,
+                  paddingVertical: 11,
+                  alignItems: 'center',
+                }}
+                onPress={async () => {
+                  await loginAsRole('HOST');
+                  router.replace('/host');
+                }}
+              >
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: '#FFFFFF' }}>Verified Host Login</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         <View style={styles.footer}>
