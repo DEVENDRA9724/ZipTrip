@@ -16,7 +16,6 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
 import {
   Car,

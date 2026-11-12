@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { apiRequest, getVehicleImageSource, getCarDistance } from '@/services/api';
 import { DateTimePickerModal } from '@/components/datetime-picker-modal';
 import {
@@ -381,12 +380,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ────────── CLEAN EDITORIAL LUXURY HERO ────────── */}
-        <LinearGradient
-          colors={['#FFFFFF', '#F8FAFC']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={s.heroContainer}
-        >
+        <View style={[s.heroContainer, { backgroundColor: '#FFFFFF' }]}>
           <View style={s.heroTopRow}>
             <View style={s.heroPill}>
               <View style={s.heroLiveDot} />
@@ -558,21 +552,16 @@ export default function HomeScreen() {
               onPress={handleSearchCars}
               activeOpacity={0.9}
             >
-              <LinearGradient
-                colors={['#FF6000', '#FF7A1A']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={s.searchBtnGradient}
-              >
+              <View style={[s.searchBtnGradient, { backgroundColor: '#FF6000' }]}>
                 <Search size={17} color="#FFFFFF" strokeWidth={2.5} />
                 <Text style={s.searchBtnText}>
                   Explore Available Cars ({vehicles.length || 12})
                 </Text>
                 <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.5} />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* ────────── HORIZONTAL INSTITUTIONAL TRUST RIBBON ────────── */}
         <View style={s.trustRibbon}>
