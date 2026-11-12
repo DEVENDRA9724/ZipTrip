@@ -10,11 +10,12 @@ import {
   Modal,
   Dimensions,
   Platform,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { apiRequest, getVehicleImageSource, getCarDistance, getVehicleTerms } from '@/services/api';
+import { apiRequest, getVehicleImageSource, getCarDistance } from '@/services/api';
 import { DateTimePickerModal } from '@/components/datetime-picker-modal';
 import {
   MapPin,
@@ -22,7 +23,6 @@ import {
   Clock,
   ChevronDown,
   Search,
-  X,
   Star,
   ShieldCheck,
   ArrowRight,
@@ -31,12 +31,14 @@ import {
   Heart,
   Navigation,
   Sparkles,
-  Plane,
-  Compass,
   KeyRound,
-  FileCheck2,
+  PhoneCall,
+  Compass,
+  Users,
+  Fuel,
+  Gauge,
   CheckCircle2,
-  Repeat,
+  Award,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
@@ -44,52 +46,105 @@ const CARD_WIDTH = (W - 42) / 2;
 
 const CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Gandhinagar', 'Rajkot'];
 
-// Premium Luxury Rental Categories (Institutional & Clean)
-const RENTAL_TIERS = [
+const POPULAR_HUBS: Record<string, string[]> = {
+  Ahmedabad: [
+    'Swami Vivekanand Bridge, Ashram Road',
+    'SVP International Airport (T1/T2)',
+    'SG Highway — Iscon Cross Road',
+    'Sabarmati High-Speed Rail Hub',
+  ],
+  Surat: [
+    'Surat Airport (STV) Terminal',
+    'Vesu VIP Road Hub',
+    'Adajan Riverfront Hub',
+  ],
+  Vadodara: [
+    'Vadodara Airport (BDQ) Hub',
+    'Alkapuri Railway Station Hub',
+    'Sayajigunj Central Hub',
+  ],
+  Gandhinagar: [
+    'GIFT City Tower 1 Hub',
+    'Mahatma Mandir Sector 13',
+    'Infocity Circle Hub',
+  ],
+  Rajkot: [
+    'Kalawad Road Crystal Hub',
+    'Hirasar International Airport',
+    'Race Course Ring Road',
+  ],
+};
+
+// The 2 Flagship Luxury Rental Formats (Removed Outstation & Airport; Upgraded Long Lease -> Safar Reserve)
+const RENTAL_PROGRAMS = [
   {
     id: 'daily',
-    title: 'Daily Rental',
-    badge: 'Popular',
-    headline: 'City & Weekend Drive',
-    sub: 'From 4 hrs to 3 days • 300 km/day included',
-    perk: 'Zero Security Deposit on KYC',
-    Icon: Clock,
-  },
-  {
-    id: 'outstation',
-    title: 'Outstation Roadtrip',
-    badge: 'Unlimited KMs',
-    headline: 'Gujarat & Interstate',
-    sub: 'Somnath, Dwarka, Statue of Unity, Gir',
-    perk: 'All-Gujarat FASTag Enabled',
-    Icon: Compass,
+    eyebrow: 'CHAUFFEUR-FREE DAILY',
+    title: 'Daily & Weekend Drive',
+    badge: 'MOST POPULAR',
+    headline: '4 Hours to 6 Days • City & Highway',
+    sub: 'Flexible hourly & daily rentals with 300 km/day or Unlimited KMs.',
+    perks: ['Zero Security Deposit on KYC', '100% Private White Plates'],
+    sampleCar: { make: 'Hyundai', model: 'Creta SX(O)', category: 'SUV' },
+    priceFrom: '₹1,499/day',
+    accentColor: '#FF6000',
+    badgeBg: '#FFF7ED',
+    badgeBorder: '#FED7AA',
   },
   {
     id: 'subscription',
-    title: 'Long-Stay Lease',
-    badge: 'Save 35%',
-    headline: '7 to 90 Days Extended',
-    sub: 'Doorstep vehicle swaps & zero maintenance',
-    perk: 'VIP Dedicated Concierge',
-    Icon: KeyRound,
-  },
-  {
-    id: 'airport',
-    title: 'Airport Handover',
-    badge: '24x7 Express',
-    headline: 'Terminal Pickup & Drop',
-    sub: 'Ahmedabad (AMD) & Surat (STV) airports',
-    perk: 'Live Flight Delay Tracking',
-    Icon: Plane,
+    eyebrow: 'EXTENDED PRIVATE LEASE',
+    title: 'Safar Reserve™',
+    badge: 'SAVE UP TO 35%',
+    headline: '7 to 90 Days • All-Inclusive Subscription',
+    sub: 'Bespoke multi-week & monthly car subscription with zero maintenance.',
+    perks: ['Free Insurance & Servicing', 'Complimentary Car Swap'],
+    sampleCar: { make: 'Mahindra', model: 'Thar 4x4', category: 'SUV' },
+    priceFrom: '₹32,900/mo',
+    accentColor: '#0F172A',
+    badgeBg: '#F1F5F9',
+    badgeBorder: '#CBD5E1',
   },
 ];
 
-// Institutional Trust Pillars
+const BODY_STYLE_FILTERS = [
+  { key: 'ALL', label: 'All Fleet' },
+  { key: 'SUV', label: 'SUVs & 4x4' },
+  { key: 'AUTOMATIC', label: 'Automatic' },
+  { key: 'SEDAN', label: 'Executive Sedans' },
+  { key: 'BUDGET', label: 'Under ₹2,500' },
+];
+
+const ROADTRIP_SPOTLIGHTS = [
+  {
+    id: 'sou',
+    title: 'Statue of Unity Expressway',
+    route: 'Ahmedabad → Kevadia (198 km)',
+    tag: 'Weekend Favourite',
+    car: 'Hyundai Creta / Thar 4x4',
+  },
+  {
+    id: 'gir',
+    title: 'Sasan Gir & Somnath Trail',
+    route: 'Rajkot / Ahmedabad → Gir (365 km)',
+    tag: 'SUV Wildlife Drive',
+    car: 'Mahindra Scorpio-N / Thar',
+  },
+  {
+    id: 'kutch',
+    title: 'White Rann — Road to Heaven',
+    route: 'Ahmedabad → Dholavira (400 km)',
+    tag: 'Signature Expedition',
+    car: 'Toyota Fortuner / Innova',
+  },
+];
+
 const TRUST_PILLARS = [
   { text: 'Govt. DigiLocker KYC' },
-  { text: 'Zero Security Deposit' },
+  { text: '₹0 Security Deposit' },
   { text: 'Private White Plates' },
-  { text: '24x7 Roadside Assist' },
+  { text: '8-Angle Inspection' },
+  { text: '24×7 Gujarat SOS' },
 ];
 
 const ymd = (d: Date) =>
@@ -97,7 +152,9 @@ const ymd = (d: Date) =>
 
 const formatShortDate = (s: string) => {
   const d = new Date(s);
-  return isNaN(d.getTime()) ? s : d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+  return isNaN(d.getTime())
+    ? s
+    : d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
 export default function HomeScreen() {
@@ -106,11 +163,11 @@ export default function HomeScreen() {
   const scrollRef = useRef<ScrollView>(null);
 
   const [city, setCity] = useState('Ahmedabad');
-  const [hubAddress, setHubAddress] = useState('Swami Vivekanand Bridge, Ahmedabad');
+  const [hubAddress, setHubAddress] = useState('Swami Vivekanand Bridge, Ashram Road');
   const [deliveryAnywhere, setDeliveryAnywhere] = useState(true);
   const [kmPackage, setKmPackage] = useState<'standard' | 'unlimited'>('standard');
   const [selectedTier, setSelectedTier] = useState<string>('daily');
-  const [isSearching, setIsSearching] = useState(false);
+  const [activeBodyFilter, setActiveBodyFilter] = useState<string>('ALL');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   // Dates: Tomorrow to Day after tomorrow
@@ -134,7 +191,8 @@ export default function HomeScreen() {
       (async () => {
         setLoading(true);
         try {
-          const endpoint = city === 'All' ? '/vehicles' : `/vehicles?city=${encodeURIComponent(city)}`;
+          const endpoint =
+            city === 'All' ? '/vehicles' : `/vehicles?city=${encodeURIComponent(city)}`;
           const data = await apiRequest(endpoint);
           if (alive) {
             setVehicles(Array.isArray(data) ? data : []);
@@ -162,21 +220,35 @@ export default function HomeScreen() {
     return Math.max(1, Math.ceil((b - a) / 864e5));
   }, [startDate, endDate]);
 
-  // Filter fleet based on selected tier
+  // Filter fleet based on body style filter
   const fleet = useMemo(() => {
     return vehicles.filter((v) => {
-      if (selectedTier === 'outstation') {
-        // High-ground-clearance tourers and SUVs for road trips
-        const cat = String(v.category || '').toUpperCase();
-        return cat.includes('SUV') || cat.includes('MUV') || String(v.model || '').toLowerCase().includes('thar');
+      const isTaxi = String(v.model || '').toLowerCase().includes('taxi');
+      if (isTaxi) return false;
+
+      const cat = String(v.category || '').toUpperCase();
+      const trans = String(v.transmission || '').toLowerCase();
+      const price = Number(v.pricePerDay || 2500);
+
+      if (activeBodyFilter === 'SUV') {
+        return (
+          cat.includes('SUV') ||
+          cat.includes('MUV') ||
+          String(v.model || '').toLowerCase().includes('thar')
+        );
       }
-      if (selectedTier === 'airport') {
-        // Executive Sedans & Automatics
-        return String(v.transmission || '').toLowerCase().includes('auto') || String(v.category || '').toUpperCase().includes('SEDAN');
+      if (activeBodyFilter === 'AUTOMATIC') {
+        return trans.includes('auto');
+      }
+      if (activeBodyFilter === 'SEDAN') {
+        return cat.includes('SEDAN');
+      }
+      if (activeBodyFilter === 'BUDGET') {
+        return price <= 2500;
       }
       return true;
     });
-  }, [vehicles, selectedTier]);
+  }, [vehicles, activeBodyFilter]);
 
   const openCar = (id: string) => {
     router.push({
@@ -185,10 +257,9 @@ export default function HomeScreen() {
     });
   };
 
-  // Safe top padding guaranteeing clearance above the iPhone notch / Dynamic Island
-  const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
+  const topPadding =
+    Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
 
-  // Search Car Action -> Navigates to dedicated Car Listing Page
   const handleSearchCars = () => {
     router.push({
       pathname: '/cars',
@@ -206,18 +277,16 @@ export default function HomeScreen() {
     });
   };
 
-  // Select Tier Action -> Navigates to dedicated Car Listing Page with selected tier filter
-  const handleSelectTier = (tierId: string) => {
-    setSelectedTier(tierId);
+  const handleSelectProgram = (programId: string) => {
+    setSelectedTier(programId);
     let targetEnd = endDate;
     let targetKm = kmPackage;
 
-    if (tierId === 'outstation') {
-      targetKm = 'unlimited';
-    } else if (tierId === 'subscription') {
+    if (programId === 'subscription') {
       const startD = new Date(startDate);
       const newEnd = new Date(startD.getTime() + 7 * 864e5);
       targetEnd = ymd(newEnd);
+      targetKm = 'unlimited';
     }
 
     router.push({
@@ -230,46 +299,69 @@ export default function HomeScreen() {
         startTime,
         endTime,
         kmPackage: targetKm,
-        tier: tierId,
+        tier: programId,
         deliveryAnywhere: String(deliveryAnywhere),
       },
     });
   };
 
+  const cityHubs = POPULAR_HUBS[city] || POPULAR_HUBS.Ahmedabad;
+
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>
-      {/* ────────── TOP APP BAR ────────── */}
+      {/* ────────── EXECUTIVE LUXURY TOP NAVBAR ────────── */}
       <View style={s.topBar}>
-        <View style={s.brandGroup}>
-          <Image
-            source={require('../../assets/safar-logo.png')}
-            style={s.brandLogo}
-            resizeMode="contain"
-          />
-          <View>
-            <Text style={s.brandName}>Safar Self Drive</Text>
-            <TouchableOpacity
-              style={s.citySelector}
-              onPress={() => setCityModalOpen(true)}
-              activeOpacity={0.7}
-            >
-              <MapPin size={11} color="#FF6000" />
-              <Text style={s.cityName}>{city}</Text>
-              <ChevronDown size={11} color="#6B7280" />
-            </TouchableOpacity>
+        <TouchableOpacity
+          style={s.brandGroup}
+          activeOpacity={0.85}
+          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+        >
+          <View style={s.logoFrame}>
+            <Image
+              source={require('../../assets/safar-logo.png')}
+              style={s.brandLogo}
+              resizeMode="contain"
+            />
           </View>
-        </View>
+          <View>
+            <View style={s.brandTitleRow}>
+              <Text style={s.brandName}>SAFAR</Text>
+              <View style={s.liveDot} />
+            </View>
+            <Text style={s.brandTagline}>SELF DRIVE • GUJARAT</Text>
+          </View>
+        </TouchableOpacity>
 
+        {/* Center/Right Interactive Location Pill + Account */}
         <View style={s.topBarRight}>
+          <TouchableOpacity
+            style={s.citySelectorPill}
+            onPress={() => setCityModalOpen(true)}
+            activeOpacity={0.8}
+          >
+            <MapPin size={12} color="#FF6000" strokeWidth={2.5} />
+            <Text style={s.cityNameText}>{city}</Text>
+            <ChevronDown size={12} color="#64748B" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.helplineIconBtn}
+            onPress={() => Linking.openURL('tel:+919909031177')}
+            activeOpacity={0.8}
+          >
+            <PhoneCall size={14} color="#059669" />
+          </TouchableOpacity>
+
           {user ? (
             <TouchableOpacity
               style={s.userAvatar}
               onPress={() => router.push('/wallet')}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               <Text style={s.userInitial}>
                 {(user.firstName || user.name || 'U').charAt(0).toUpperCase()}
               </Text>
+              <View style={s.verifiedDot} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -288,125 +380,199 @@ export default function HomeScreen() {
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ────────── EDITORIAL LUXURY HERO ────────── */}
-        <View style={s.heroContainer}>
-          <View style={s.heroPill}>
-            <Text style={s.heroPillText}>GUJARAT LUXURY MOBILITY</Text>
+        {/* ────────── CLEAN EDITORIAL LUXURY HERO ────────── */}
+        <LinearGradient
+          colors={['#FFFFFF', '#F8FAFC']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={s.heroContainer}
+        >
+          <View style={s.heroTopRow}>
+            <View style={s.heroPill}>
+              <View style={s.heroLiveDot} />
+              <Text style={s.heroPillText}>
+                {vehicles.length || 12} VERIFIED PRIVATE CARS IN {city.toUpperCase()}
+              </Text>
+            </View>
+            <View style={s.ratingHeroBadge}>
+              <Star size={11} color="#F59E0B" fill="#F59E0B" />
+              <Text style={s.ratingHeroText}>4.9★ Rated</Text>
+            </View>
           </View>
-          <Text style={s.heroTitle}>Your Journey. Your Rules.</Text>
+
+          <Text style={s.heroTitle}>Drive Luxury on Your Terms.</Text>
           <Text style={s.heroSub}>
-            Private number plate self-drive cars • Handover via Govt. DigiLocker
+            100% private white-plate cars • Instant DigiLocker e-KYC • Zero security deposit
           </Text>
-        </View>
 
-        {/* ────────── CONCIERGE SEARCH CARD ────────── */}
-        <View style={s.searchCard}>
-          {/* Location Selector */}
-          <TouchableOpacity
-            style={s.locationRow}
-            onPress={() => setCityModalOpen(true)}
-            activeOpacity={0.8}
-          >
-            <View style={s.locationIconBox}>
-              <MapPin size={16} color="#2D114D" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.inputLabel}>Pickup & Return Hub</Text>
-              <Text style={s.inputValue} numberOfLines={1}>
-                {hubAddress}
-              </Text>
-            </View>
-            <Navigation size={15} color="#FF6000" />
-          </TouchableOpacity>
-
-          <View style={s.divider} />
-
-          {/* Date & Time Selector */}
-          <View style={s.datesContainer}>
+          {/* ────────── CONCIERGE BOOKING WIDGET ────────── */}
+          <View style={s.searchCard}>
+            {/* Location Selector */}
             <TouchableOpacity
-              style={s.dateCol}
-              onPress={() => setStartPickerOpen(true)}
-              activeOpacity={0.75}
-            >
-              <Text style={s.inputLabel}>Trip Starts</Text>
-              <Text style={s.dateValueText}>{formatShortDate(startDate)}</Text>
-              <Text style={s.timeValueText}>{startTime}</Text>
-            </TouchableOpacity>
-
-            <View style={s.verticalDivider} />
-
-            <TouchableOpacity
-              style={s.dateCol}
-              onPress={() => setEndPickerOpen(true)}
-              activeOpacity={0.75}
-            >
-              <Text style={s.inputLabel}>Trip Ends</Text>
-              <Text style={s.dateValueText}>{formatShortDate(endDate)}</Text>
-              <Text style={s.timeValueText}>{endTime}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* KM Allowance Selector */}
-          <View style={s.kmPackageRow}>
-            <TouchableOpacity
-              style={[s.kmSegment, kmPackage === 'standard' && s.kmSegmentActive]}
-              onPress={() => setKmPackage('standard')}
+              style={s.locationRow}
+              onPress={() => setCityModalOpen(true)}
               activeOpacity={0.8}
             >
-              <Text style={[s.kmSegmentText, kmPackage === 'standard' && s.kmSegmentTextActive]}>
-                300 Kms / day
-              </Text>
+              <View style={s.locationIconBox}>
+                <MapPin size={17} color="#FF6000" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.inputLabel}>PICKUP & RETURN HUB ({city.toUpperCase()})</Text>
+                <Text style={s.inputValue} numberOfLines={1}>
+                  {hubAddress}
+                </Text>
+              </View>
+              <View style={s.changeCityChip}>
+                <Text style={s.changeCityChipText}>Change</Text>
+              </View>
             </TouchableOpacity>
 
+            {/* Quick Hub Selector Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.hubsChipRow}
+            >
+              {cityHubs.map((hub) => {
+                const active = hubAddress === hub;
+                return (
+                  <TouchableOpacity
+                    key={hub}
+                    style={[s.hubChip, active && s.hubChipActive]}
+                    onPress={() => setHubAddress(hub)}
+                    activeOpacity={0.75}
+                  >
+                    <Navigation
+                      size={10}
+                      color={active ? '#FF6000' : '#64748B'}
+                    />
+                    <Text
+                      style={[s.hubChipText, active && s.hubChipTextActive]}
+                      numberOfLines={1}
+                    >
+                      {hub.split(',')[0]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View style={s.divider} />
+
+            {/* Date & Time Selector with Duration Pill */}
+            <View style={s.datesContainer}>
+              <TouchableOpacity
+                style={s.dateCol}
+                onPress={() => setStartPickerOpen(true)}
+                activeOpacity={0.75}
+              >
+                <View style={s.dateLabelRow}>
+                  <Calendar size={11} color="#64748B" />
+                  <Text style={s.inputLabel}>TRIP STARTS</Text>
+                </View>
+                <Text style={s.dateValueText}>{formatShortDate(startDate)}</Text>
+                <Text style={s.timeValueText}>{startTime}</Text>
+              </TouchableOpacity>
+
+              <View style={s.durationCenterWrap}>
+                <View style={s.durationLine} />
+                <View style={s.durationPill}>
+                  <Text style={s.durationPillText}>
+                    {days} {days === 1 ? 'Day' : 'Days'}
+                  </Text>
+                </View>
+                <View style={s.durationLine} />
+              </View>
+
+              <TouchableOpacity
+                style={[s.dateCol, { alignItems: 'flex-end' }]}
+                onPress={() => setEndPickerOpen(true)}
+                activeOpacity={0.75}
+              >
+                <View style={s.dateLabelRow}>
+                  <Clock size={11} color="#64748B" />
+                  <Text style={s.inputLabel}>TRIP ENDS</Text>
+                </View>
+                <Text style={s.dateValueText}>{formatShortDate(endDate)}</Text>
+                <Text style={s.timeValueText}>{endTime}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* KM Allowance & Doorstep Row */}
+            <View style={s.kmPackageRow}>
+              <TouchableOpacity
+                style={[s.kmSegment, kmPackage === 'standard' && s.kmSegmentActive]}
+                onPress={() => setKmPackage('standard')}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    s.kmSegmentText,
+                    kmPackage === 'standard' && s.kmSegmentTextActive,
+                  ]}
+                >
+                  300 km/day Included
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[s.kmSegment, kmPackage === 'unlimited' && s.kmSegmentActive]}
+                onPress={() => setKmPackage('unlimited')}
+                activeOpacity={0.8}
+              >
+                <Sparkles
+                  size={12}
+                  color={kmPackage === 'unlimited' ? '#FF6000' : '#64748B'}
+                />
+                <Text
+                  style={[
+                    s.kmSegmentText,
+                    kmPackage === 'unlimited' && s.kmSegmentTextActive,
+                  ]}
+                >
+                  Unlimited KMs Pass
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Doorstep Delivery Toggle */}
             <TouchableOpacity
-              style={[s.kmSegment, kmPackage === 'unlimited' && s.kmSegmentActive]}
-              onPress={() => setKmPackage('unlimited')}
+              style={s.deliveryToggleRow}
+              onPress={() => setDeliveryAnywhere((v) => !v)}
               activeOpacity={0.8}
             >
-              <Text style={[s.kmSegmentText, kmPackage === 'unlimited' && s.kmSegmentTextActive]}>
-                Unlimited Kms
+              <View style={[s.checkboxBox, deliveryAnywhere && s.checkboxBoxActive]}>
+                {deliveryAnywhere && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
+              </View>
+              <Text style={s.deliveryToggleLabel}>
+                Doorstep delivery & collection across {city}
               </Text>
+              <View style={s.expressBadge}>
+                <Text style={s.expressBadgeText}>EXPRESS</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Primary Search CTA */}
+            <TouchableOpacity
+              style={s.searchBtn}
+              onPress={handleSearchCars}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#FF6000', '#FF7A1A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={s.searchBtnGradient}
+              >
+                <Search size={17} color="#FFFFFF" strokeWidth={2.5} />
+                <Text style={s.searchBtnText}>
+                  Explore Available Cars ({vehicles.length || 12})
+                </Text>
+                <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.5} />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-
-          {/* Doorstep Delivery Toggle */}
-          <TouchableOpacity
-            style={s.deliveryToggleRow}
-            onPress={() => setDeliveryAnywhere((v) => !v)}
-            activeOpacity={0.8}
-          >
-            <View style={[s.checkboxBox, deliveryAnywhere && s.checkboxBoxActive]}>
-              {deliveryAnywhere && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
-            </View>
-            <Text style={s.deliveryToggleLabel}>
-              Doorstep delivery & collection across {city}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Search Button */}
-          <TouchableOpacity
-            style={s.searchBtn}
-            onPress={handleSearchCars}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={['#FF6000', '#FF7A1A']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={s.searchBtnGradient}
-            >
-              {isSearching ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Search size={16} color="#FFFFFF" strokeWidth={2.4} />
-                  <Text style={s.searchBtnText}>Search Available Cars</Text>
-                  <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.4} />
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         {/* ────────── HORIZONTAL INSTITUTIONAL TRUST RIBBON ────────── */}
         <View style={s.trustRibbon}>
@@ -417,65 +583,91 @@ export default function HomeScreen() {
           >
             {TRUST_PILLARS.map((item, idx) => (
               <View key={idx} style={s.trustItem}>
-                <ShieldCheck size={13} color="#2D114D" />
+                <ShieldCheck size={13} color="#059669" />
                 <Text style={s.trustText}>{item.text}</Text>
               </View>
             ))}
           </ScrollView>
         </View>
 
-        {/* ────────── PREMIUM RENTAL TIERS ────────── */}
-        <View style={s.tierSectionHeader}>
-          <Text style={s.tierSectionTitle}>Curated Rental Categories</Text>
-          <Text style={s.tierSectionSub}>Select a format tailored to your trip requirements</Text>
+        {/* ────────── THE 2 FLAGSHIP RENTAL PROGRAMS ────────── */}
+        <View style={s.sectionHeaderWrap}>
+          <View>
+            <Text style={s.sectionEyebrow}>TAILORED MOBILITY PROGRAMS</Text>
+            <Text style={s.sectionTitle}>Choose Your Driving Format</Text>
+          </View>
         </View>
 
-        <View style={s.tiersGrid}>
-          {RENTAL_TIERS.map((tier) => {
-            const isSelected = selectedTier === tier.id;
-            const Icon = tier.Icon;
-
+        <View style={s.programsContainer}>
+          {RENTAL_PROGRAMS.map((prog) => {
+            const isSelected = selectedTier === prog.id;
             return (
               <TouchableOpacity
-                key={tier.id}
-                style={[s.tierCard, isSelected && s.tierCardActive]}
-                onPress={() => handleSelectTier(tier.id)}
-                activeOpacity={0.85}
+                key={prog.id}
+                style={[s.programCard, isSelected && s.programCardActive]}
+                onPress={() => handleSelectProgram(prog.id)}
+                activeOpacity={0.88}
               >
-                <View style={s.tierTopRow}>
-                  <View style={[s.tierIconWrap, isSelected && s.tierIconWrapActive]}>
-                    <Icon size={16} color={isSelected ? '#FFFFFF' : '#2D114D'} />
+                <View style={s.programTopRow}>
+                  <View>
+                    <Text style={s.programEyebrow}>{prog.eyebrow}</Text>
+                    <Text style={s.programTitle}>{prog.title}</Text>
                   </View>
-                  <View style={[s.tierBadge, isSelected && s.tierBadgeActive]}>
-                    <Text style={[s.tierBadgeText, isSelected && s.tierBadgeTextActive]}>
-                      {tier.badge}
+                  <View
+                    style={[
+                      s.programBadge,
+                      {
+                        backgroundColor: prog.badgeBg,
+                        borderColor: prog.badgeBorder,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[s.programBadgeText, { color: prog.accentColor }]}
+                    >
+                      {prog.badge}
                     </Text>
                   </View>
                 </View>
 
-                <Text style={[s.tierTitle, isSelected && s.tierTitleActive]}>
-                  {tier.title}
-                </Text>
-                <Text style={s.tierHeadline}>{tier.headline}</Text>
-                <Text style={s.tierSub}>{tier.sub}</Text>
+                <Text style={s.programHeadline}>{prog.headline}</Text>
+                <Text style={s.programSub}>{prog.sub}</Text>
 
-                <View style={s.tierFooter}>
-                  <Text style={[s.tierPerk, isSelected && s.tierPerkActive]}>
-                    ✓ {tier.perk}
-                  </Text>
+                {/* Perks & Studio Car Preview Row */}
+                <View style={s.programBottomSplit}>
+                  <View style={s.programPerksCol}>
+                    {prog.perks.map((p, i) => (
+                      <View key={i} style={s.programPerkRow}>
+                        <CheckCircle2 size={13} color="#059669" />
+                        <Text style={s.programPerkText}>{p}</Text>
+                      </View>
+                    ))}
+                    <View style={s.programCtaRow}>
+                      <Text style={s.programPriceTag}>From {prog.priceFrom}</Text>
+                      <View style={s.programArrowCircle}>
+                        <ArrowRight size={13} color="#FFFFFF" />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={s.programImageBox}>
+                    <Image
+                      source={getVehicleImageSource(prog.sampleCar)}
+                      style={s.programCarImg}
+                      resizeMode="contain"
+                    />
+                  </View>
                 </View>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* ────────── VERIFIED FLEET SHOWCASE ────────── */}
-        <View style={s.fleetHeaderRow}>
+        {/* ────────── VERIFIED FLEET SHOWCASE WITH BODY FILTERS ────────── */}
+        <View style={s.fleetSectionHeader}>
           <View>
-            <Text style={s.fleetTitle}>Available Fleet in {city}</Text>
-            <Text style={s.fleetCountSub}>
-              Showing {fleet.length} verified private vehicles for your dates
-            </Text>
+            <Text style={s.sectionEyebrow}>STUDIO INSPECTED FLEET</Text>
+            <Text style={s.sectionTitle}>Available Cars in {city}</Text>
           </View>
 
           <TouchableOpacity
@@ -483,33 +675,62 @@ export default function HomeScreen() {
             onPress={handleSearchCars}
             activeOpacity={0.8}
           >
-            <Text style={s.viewAllFleetBtnText}>View All ({vehicles.length})</Text>
-            <ArrowRight size={12} color="#FF6000" />
+            <Text style={s.viewAllFleetBtnText}>See All ({vehicles.length})</Text>
+            <ArrowRight size={13} color="#FF6000" />
           </TouchableOpacity>
         </View>
+
+        {/* Body Style Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.bodyFiltersScroll}
+        >
+          {BODY_STYLE_FILTERS.map((f) => {
+            const active = activeBodyFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[s.bodyFilterChip, active && s.bodyFilterChipActive]}
+                onPress={() => setActiveBodyFilter(f.key)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    s.bodyFilterChipText,
+                    active && s.bodyFilterChipTextActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {/* ────────── CAR GRID ────────── */}
         {loading ? (
           <View style={s.loadingContainer}>
-            <ActivityIndicator size="large" color="#2D114D" />
-            <Text style={s.loadingText}>Fetching available vehicles…</Text>
+            <ActivityIndicator size="large" color="#0F172A" />
+            <Text style={s.loadingText}>Loading verified vehicles in {city}…</Text>
           </View>
         ) : fleet.length === 0 ? (
           <View style={s.emptyContainer}>
-            <Car size={36} color="#9CA3AF" />
-            <Text style={s.emptyTitle}>No cars currently available</Text>
-            <Text style={s.emptySub}>Try switching cities or choosing another rental category.</Text>
+            <Car size={36} color="#94A3B8" />
+            <Text style={s.emptyTitle}>No cars match this filter</Text>
+            <Text style={s.emptySub}>
+              Try selecting All Fleet or switching to another Gujarat hub.
+            </Text>
             <TouchableOpacity
               style={s.emptyResetBtn}
-              onPress={() => setSelectedTier('daily')}
+              onPress={() => setActiveBodyFilter('ALL')}
             >
-              <Text style={s.emptyResetText}>View All Cars</Text>
+              <Text style={s.emptyResetText}>Show All Cars</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={s.carGrid}>
             {fleet.map((car) => {
-              const terms = getVehicleTerms(car);
               const price = Number(car.pricePerDay || 2500);
               const isFav = !!favorites[car.id];
               const dist = getCarDistance(car);
@@ -547,6 +768,11 @@ export default function HomeScreen() {
                         fill={isFav ? '#FF6000' : 'transparent'}
                       />
                     </TouchableOpacity>
+
+                    {/* White Plate Tag */}
+                    <View style={s.plateBadge}>
+                      <Text style={s.plateBadgeText}>WHITE PLATE</Text>
+                    </View>
                   </View>
 
                   {/* Body Content */}
@@ -556,9 +782,14 @@ export default function HomeScreen() {
                       {car.model}
                     </Text>
 
-                    <Text style={s.carSpecsText} numberOfLines={1}>
-                      {car.fuelType || 'Petrol'} • {car.transmission || 'Manual'}
-                    </Text>
+                    <View style={s.carSpecsMiniRow}>
+                      <Text style={s.carSpecsText} numberOfLines={1}>
+                        {car.transmission || 'Manual'} • {car.fuelType || 'Petrol'} •{' '}
+                        {car.seats || 5} Seats
+                      </Text>
+                    </View>
+
+                    <Text style={s.carDistanceText}>📍 {dist} km from hub</Text>
 
                     <View style={s.cardDivider} />
 
@@ -569,7 +800,7 @@ export default function HomeScreen() {
                           <Text style={s.priceUnit}>/day</Text>
                         </Text>
                         <Text style={s.totalPriceText}>
-                          ₹{(price * days).toLocaleString('en-IN')} total
+                          ₹{(price * days).toLocaleString('en-IN')} for {days}d
                         </Text>
                       </View>
 
@@ -584,7 +815,48 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ────────── HOSTING BANNER ────────── */}
+        {/* ────────── CURATED GUJARAT ROAD TRIP SPOTLIGHTS ────────── */}
+        <View style={s.sectionHeaderWrap}>
+          <View>
+            <Text style={s.sectionEyebrow}>WEEKEND & HERITAGE DRIVES</Text>
+            <Text style={s.sectionTitle}>Signature Gujarat Road Trips</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push({ pathname: '/guides', params: { section: 'guides' } })}
+          >
+            <Text style={s.viewAllFleetBtnText}>All Guides →</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.spotlightsScroll}
+        >
+          {ROADTRIP_SPOTLIGHTS.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={s.spotlightCard}
+              onPress={() =>
+                router.push({ pathname: '/guides', params: { section: 'guides' } })
+              }
+              activeOpacity={0.85}
+            >
+              <View style={s.spotlightTagPill}>
+                <Compass size={11} color="#FF6000" />
+                <Text style={s.spotlightTagText}>{item.tag}</Text>
+              </View>
+              <Text style={s.spotlightTitle}>{item.title}</Text>
+              <Text style={s.spotlightRoute}>{item.route}</Text>
+              <View style={s.spotlightFooter}>
+                <Text style={s.spotlightCarText}>Best in: {item.car}</Text>
+                <ArrowRight size={13} color="#0F172A" />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* ────────── SAFAR PRIVILEGE HOST BANNER ────────── */}
         <TouchableOpacity
           style={s.hostCard}
           onPress={() => router.push('/host')}
@@ -592,16 +864,17 @@ export default function HomeScreen() {
         >
           <View style={{ flex: 1 }}>
             <View style={s.hostPill}>
-              <Text style={s.hostPillText}>HOST PARTNER PROGRAM</Text>
+              <Sparkles size={11} color="#FF6000" />
+              <Text style={s.hostPillText}>SAFAR FLEET PARTNER PROGRAM</Text>
             </View>
-            <Text style={s.hostTitle}>List Your Car in Gujarat</Text>
+            <Text style={s.hostTitle}>List Your Car & Earn 80% Revenue</Text>
             <Text style={s.hostSub}>
-              Earn ₹45,000+ monthly with complete insurance & verified guests.
+              Turn your idle car into ₹45,000+ monthly income with 8-angle handover security & comprehensive insurance.
             </Text>
           </View>
           <View style={s.hostCta}>
-            <Text style={s.hostCtaText}>Host Now</Text>
-            <ArrowRight size={13} color="#2D114D" />
+            <Text style={s.hostCtaText}>Host Car</Text>
+            <ArrowRight size={13} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
       </ScrollView>
@@ -619,7 +892,10 @@ export default function HomeScreen() {
           onPress={() => setCityModalOpen(false)}
         >
           <View style={s.cityDialog}>
-            <Text style={s.cityDialogTitle}>Select Gujarat Location</Text>
+            <Text style={s.cityDialogTitle}>Select Gujarat City Hub</Text>
+            <Text style={s.cityDialogSub}>
+              24×7 doorstep & hub handovers across major Gujarat cities
+            </Text>
             {CITIES.map((c) => {
               const active = c === city;
               return (
@@ -628,12 +904,19 @@ export default function HomeScreen() {
                   style={[s.cityOption, active && s.cityOptionActive]}
                   onPress={() => {
                     setCity(c);
-                    setHubAddress(`${c}, Gujarat (Airport & City Hubs)`);
+                    const defaultHub =
+                      (POPULAR_HUBS[c] && POPULAR_HUBS[c][0]) ||
+                      `${c}, Gujarat (Airport & City Hubs)`;
+                    setHubAddress(defaultHub);
                     setCityModalOpen(false);
                   }}
                 >
-                  <MapPin size={15} color={active ? '#FF6000' : '#6B7280'} />
-                  <Text style={[s.cityOptionText, active && s.cityOptionTextActive]}>{c}</Text>
+                  <MapPin size={15} color={active ? '#FF6000' : '#64748B'} />
+                  <Text
+                    style={[s.cityOptionText, active && s.cityOptionTextActive]}
+                  >
+                    {c}
+                  </Text>
                   {active && <Check size={16} color="#FF6000" />}
                 </TouchableOpacity>
               );
@@ -676,10 +959,10 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F7F6FA',
+    backgroundColor: '#F8FAFC',
   },
 
-  /* Top Bar */
+  /* Executive Top Navbar */
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -688,172 +971,321 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#EBE7F3',
+    borderBottomColor: '#E2E8F0',
   },
   brandGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
+  logoFrame: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   brandLogo: {
-    width: 36,
-    height: 36,
+    width: 30,
+    height: 30,
   },
-  brandName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#2D114D',
-    letterSpacing: -0.2,
-  },
-  citySelector: {
+  brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 5,
+  },
+  brandName: {
+    fontSize: 16.5,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.6,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  brandTagline: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#FF6000',
+    letterSpacing: 1.1,
     marginTop: 1,
   },
-  cityName: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  topBarRight: {},
-  loginPill: {
-    backgroundColor: '#2D114D',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+  citySelectorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 10,
     paddingVertical: 6,
+    borderRadius: 999,
+  },
+  cityNameText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  helplineIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginPill: {
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   loginPillText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FF6000',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   userInitial: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 13,
   },
+  verifiedDot: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
 
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 44,
   },
 
-  /* Editorial Hero */
+  /* Hero Section */
   heroContainer: {
-    paddingTop: 18,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
+    paddingTop: 16,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#EBE7F3',
+    borderBottomColor: '#E2E8F0',
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   heroPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FAF5FF',
-    borderWidth: 1,
-    borderColor: '#E9D5FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  heroLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
   },
   heroPillText: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
-    color: '#2D114D',
-    letterSpacing: 0.8,
+    color: '#334155',
+    letterSpacing: 0.6,
+  },
+  ratingHeroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  ratingHeroText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
   },
   heroTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#2D114D',
-    letterSpacing: -0.3,
+    color: '#0F172A',
+    letterSpacing: -0.4,
   },
   heroSub: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 3,
-    lineHeight: 17,
+    fontSize: 12.5,
+    color: '#475569',
+    marginTop: 4,
+    marginBottom: 14,
+    lineHeight: 18,
   },
 
   /* Search Card */
   searchCard: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 14,
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EBE7F3',
-    shadowColor: '#2D114D',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 4,
+    gap: 12,
   },
   locationIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#FAF5FF',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   inputLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
   },
   inputValue: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: '#2D114D',
-    marginTop: 1,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  changeCityChip: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  changeCityChipText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#FF6000',
+  },
+  hubsChipRow: {
+    gap: 6,
+    marginTop: 10,
+    paddingBottom: 2,
+  },
+  hubChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  hubChipActive: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FED7AA',
+  },
+  hubChipText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  hubChipTextActive: {
+    color: '#C2410C',
+    fontWeight: '800',
   },
   divider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     marginVertical: 12,
   },
   datesContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   dateCol: {
     flex: 1,
   },
+  dateLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   dateValueText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#2D114D',
-    marginTop: 2,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 3,
   },
   timeValueText: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '600',
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FF6000',
     marginTop: 1,
   },
-  verticalDivider: {
+  durationCenterWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  durationLine: {
     width: 1,
-    height: 36,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 12,
+    height: 10,
+    backgroundColor: '#E2E8F0',
+  },
+  durationPill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    marginVertical: 2,
+  },
+  durationPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   kmPackageRow: {
     flexDirection: 'row',
@@ -861,29 +1293,33 @@ const s = StyleSheet.create({
     marginTop: 14,
     backgroundColor: '#F8FAFC',
     padding: 4,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   kmSegment: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 5,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 9,
   },
   kmSegmentActive: {
-    backgroundColor: '#2D114D',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 1,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   kmSegmentText: {
     fontSize: 11.5,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontWeight: '700',
+    color: '#64748B',
   },
   kmSegmentTextActive: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontWeight: '800',
   },
   deliveryToggleRow: {
@@ -891,231 +1327,262 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 12,
-    paddingHorizontal: 2,
+    marginBottom: 14,
   },
   checkboxBox: {
     width: 18,
     height: 18,
-    borderRadius: 4,
+    borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#9CA3AF',
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxBoxActive: {
-    backgroundColor: '#2D114D',
-    borderColor: '#2D114D',
+    backgroundColor: '#059669',
+    borderColor: '#059669',
   },
   deliveryToggleLabel: {
+    flex: 1,
     fontSize: 11.5,
-    color: '#4B5563',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#334155',
+  },
+  expressBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  expressBadgeText: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#059669',
   },
   searchBtn: {
-    marginTop: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#FF6000',
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
   },
   searchBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 13,
+    paddingVertical: 14,
   },
   searchBtnText: {
     color: '#FFFFFF',
     fontSize: 14.5,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.2,
   },
 
   /* Trust Ribbon */
   trustRibbon: {
-    marginTop: 12,
-    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingVertical: 10,
   },
   trustRibbonScroll: {
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 16,
   },
   trustItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EBE7F3',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
   },
   trustText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#2D114D',
+    color: '#334155',
   },
 
-  /* Curated Rental Categories */
-  tierSectionHeader: {
-    marginTop: 18,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-  },
-  tierSectionTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#2D114D',
-    letterSpacing: -0.2,
-  },
-  tierSectionSub: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 1,
-  },
-  tiersGrid: {
+  /* Section Headers */
+  sectionHeaderWrap: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: 16,
-    gap: 10,
-  },
-  tierCard: {
-    width: (W - 42) / 2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#EBE7F3',
-    shadowColor: '#2D114D',
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    elevation: 1,
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    minHeight: 140,
+    paddingHorizontal: 16,
+    marginTop: 22,
+    marginBottom: 12,
   },
-  tierCardActive: {
-    borderColor: '#2D114D',
-    borderWidth: 1.8,
+  sectionEyebrow: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FF6000',
+    letterSpacing: 1,
   },
-  tierTopRow: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+
+  /* The 2 Flagship Rental Programs */
+  programsContainer: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  programCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  programCardActive: {
+    borderColor: '#FF6000',
+    borderWidth: 1.5,
+  },
+  programTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  programEyebrow: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.8,
+  },
+  programTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  programBadge: {
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  programBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  programHeadline: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#334155',
+    marginTop: 6,
+  },
+  programSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  programBottomSplit: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
-  tierIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#FAF5FF',
+  programPerksCol: {
+    flex: 1,
+    gap: 5,
+  },
+  programPerkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  programPerkText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  programCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  programPriceTag: {
+    fontSize: 12.5,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  programArrowCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FF6000',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tierIconWrapActive: {
-    backgroundColor: '#2D114D',
+  programImageBox: {
+    width: 115,
+    height: 72,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  tierBadge: {
-    backgroundColor: '#F3EEFA',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  tierBadgeActive: {
-    backgroundColor: '#FFF1E8',
-  },
-  tierBadgeText: {
-    fontSize: 8.5,
-    fontWeight: '800',
-    color: '#2D114D',
-  },
-  tierBadgeTextActive: {
-    color: '#FF6000',
-  },
-  tierTitle: {
-    fontSize: 13.5,
-    fontWeight: '900',
-    color: '#2D114D',
-    marginTop: 6,
-  },
-  tierTitleActive: {
-    color: '#2D114D',
-  },
-  tierHeadline: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FF6000',
-    marginTop: 1,
-  },
-  tierSub: {
-    fontSize: 9.5,
-    color: '#6B7280',
-    lineHeight: 13,
-    marginTop: 2,
-  },
-  tierFooter: {
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  tierPerk: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#4B5563',
-  },
-  tierPerkActive: {
-    color: '#2D114D',
-    fontWeight: '800',
+  programCarImg: {
+    width: '94%',
+    height: '94%',
   },
 
-  /* Fleet Header */
-  fleetHeaderRow: {
+  /* Fleet Section */
+  fleetSectionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginHorizontal: 16,
+    paddingHorizontal: 16,
     marginTop: 24,
-    marginBottom: 8,
-  },
-  fleetTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#2D114D',
-  },
-  fleetCountSub: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 1,
+    marginBottom: 10,
   },
   viewAllFleetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FFF1E8',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
   },
   viewAllFleetBtnText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FF6000',
   },
-  datesBadge: {
-    backgroundColor: '#FAF5FF',
-    borderWidth: 1,
-    borderColor: '#E9D5FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  bodyFiltersScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 14,
   },
-  datesBadgeText: {
-    fontSize: 11,
+  bodyFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  bodyFilterChipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  bodyFilterChipText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  bodyFilterChipTextActive: {
+    color: '#FFFFFF',
     fontWeight: '800',
-    color: '#2D114D',
   },
 
   /* Car Grid */
@@ -1124,23 +1591,23 @@ const s = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 16,
     gap: 10,
-    marginTop: 6,
   },
   carCard: {
     width: CARD_WIDTH,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#EBE7F3',
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
-    shadowColor: '#2D114D',
+    shadowColor: '#0F172A',
     shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowRadius: 8,
     elevation: 2,
+    marginBottom: 4,
   },
   carPhotoCanvas: {
-    height: 115,
-    backgroundColor: '#F9FAFB',
+    height: 118,
+    backgroundColor: '#F8FAFC',
     position: 'relative',
   },
   carImage: {
@@ -1154,7 +1621,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(45, 17, 77, 0.85)',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1171,34 +1638,57 @@ const s = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  plateBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  plateBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: 0.4,
+  },
   carBody: {
-    padding: 10,
+    padding: 11,
   },
   carMakeText: {
     fontSize: 9,
-    fontWeight: '700',
-    color: '#9CA3AF',
+    fontWeight: '800',
+    color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   carModelText: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
     marginTop: 1,
+  },
+  carSpecsMiniRow: {
+    marginTop: 3,
   },
   carSpecsText: {
     fontSize: 10,
-    color: '#6B7280',
-    marginTop: 2,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  carDistanceText: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 3,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     marginVertical: 8,
   },
   pricingRow: {
@@ -1207,25 +1697,25 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   priceNumber: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   priceUnit: {
     fontSize: 9.5,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#64748B',
   },
   totalPriceText: {
-    fontSize: 9,
-    color: '#9CA3AF',
+    fontSize: 9.5,
+    color: '#64748B',
     marginTop: 1,
   },
   viewDetailsBtn: {
     backgroundColor: '#FF6000',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
   viewDetailsText: {
     color: '#FFFFFF',
@@ -1233,43 +1723,150 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
 
+  /* Roadtrip Spotlights */
+  spotlightsScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  spotlightCard: {
+    width: 240,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  spotlightTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  spotlightTagText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#C2410C',
+  },
+  spotlightTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  spotlightRoute: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  spotlightFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  spotlightCarText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#334155',
+  },
+
+  /* Host Banner */
+  hostCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    marginHorizontal: 16,
+    marginTop: 22,
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+  },
+  hostPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    backgroundColor: 'rgba(255, 96, 0, 0.18)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  hostPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FF7A1A',
+    letterSpacing: 0.7,
+  },
+  hostTitle: {
+    fontSize: 15.5,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  hostSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 3,
+    lineHeight: 16,
+  },
+  hostCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FF6000',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  hostCtaText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
   loadingContainer: {
     padding: 40,
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   loadingText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '600',
   },
   emptyContainer: {
     marginHorizontal: 16,
-    marginTop: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 26,
+    borderRadius: 18,
+    padding: 28,
     alignItems: 'center',
-    gap: 8,
     borderWidth: 1,
-    borderColor: '#EBE7F3',
+    borderColor: '#E2E8F0',
+    gap: 6,
   },
   emptyTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   emptySub: {
-    fontSize: 11,
-    color: '#6B7280',
+    fontSize: 12,
+    color: '#64748B',
     textAlign: 'center',
   },
   emptyResetBtn: {
-    backgroundColor: '#2D114D',
-    borderRadius: 10,
+    marginTop: 8,
+    backgroundColor: '#0F172A',
     paddingHorizontal: 14,
     paddingVertical: 8,
-    marginTop: 4,
+    borderRadius: 10,
   },
   emptyResetText: {
     color: '#FFFFFF',
@@ -1277,63 +1874,10 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
 
-  /* Host Card */
-  hostCard: {
-    marginHorizontal: 16,
-    marginTop: 22,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#EBE7F3',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  hostPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFF1E8',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginBottom: 4,
-  },
-  hostPillText: {
-    fontSize: 8.5,
-    fontWeight: '800',
-    color: '#FF6000',
-    letterSpacing: 0.5,
-  },
-  hostTitle: {
-    fontSize: 13.5,
-    fontWeight: '900',
-    color: '#2D114D',
-  },
-  hostSub: {
-    fontSize: 10.5,
-    color: '#6B7280',
-    marginTop: 2,
-    lineHeight: 14,
-  },
-  hostCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F3EEFA',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 8,
-  },
-  hostCtaText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#2D114D',
-  },
-
   /* City Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -1341,35 +1885,42 @@ const s = StyleSheet.create({
   cityDialog: {
     width: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 18,
-    gap: 4,
+    borderRadius: 20,
+    padding: 20,
+    gap: 6,
   },
   cityDialogTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#2D114D',
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  cityDialogSub: {
+    fontSize: 11.5,
+    color: '#64748B',
     marginBottom: 8,
   },
   cityOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
     gap: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
   },
   cityOptionActive: {
-    backgroundColor: '#FAF5FF',
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
   },
   cityOptionText: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#334155',
   },
   cityOptionTextActive: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontWeight: '800',
   },
 });

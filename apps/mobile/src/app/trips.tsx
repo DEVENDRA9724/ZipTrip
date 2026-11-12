@@ -17,7 +17,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
 import {
@@ -30,9 +29,7 @@ import {
   Clock,
   Car,
   FileText,
-  ChevronRight,
   X,
-  Heart,
   Key,
   Camera,
   ShieldAlert,
@@ -42,17 +39,51 @@ import {
   Fuel,
   CheckCircle2,
   Navigation,
-  AlertTriangle,
   Upload,
+  Sparkles,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
 
 const TABS = [
-  { key: 'Upcoming', label: 'Upcoming' },
+  { key: 'Upcoming', label: 'Upcoming & Active' },
   { key: 'Completed', label: 'Completed' },
   { key: 'Cancelled', label: 'Cancelled' },
 ];
+
+// All 8 mandatory vehicle inspection angles
+const CAR_8_ANGLES = [
+  { key: 'FRONT', label: '1. Front View', hint: 'Bumper, Grille & Number Plate' },
+  { key: 'REAR', label: '2. Rear View', hint: 'Tailgate, Boot & Rear Plate' },
+  { key: 'LEFT_SIDE', label: '3. Left Side Profile', hint: 'Left Doors, Fenders & Tyres' },
+  { key: 'RIGHT_SIDE', label: '4. Right Side Profile', hint: 'Driver Side Doors & Mirrors' },
+  { key: 'FRONT_LEFT', label: '5. Front-Left 45° Angle', hint: 'Front Left Corner & Headlamp' },
+  { key: 'FRONT_RIGHT', label: '6. Front-Right 45° Angle', hint: 'Front Right Corner & Wheel' },
+  { key: 'ODOMETER', label: '7. Dashboard & Odometer', hint: 'Live KM Reading & Fuel Gauge' },
+  { key: 'INTERIOR', label: '8. Interior & Cabin Seats', hint: 'Front & Rear Upholstery' },
+];
+
+const DEMO_BOOKING = {
+  id: 'DEMO-SFR-9082',
+  bookingId: 'SFR-9082',
+  status: 'CONFIRMED',
+  startDate: '2026-11-14T10:00:00.000Z',
+  endDate: '2026-11-16T10:00:00.000Z',
+  pickupHub: 'SVPI Airport Terminal 1, Ahmedabad',
+  totalAmount: 5800,
+  securityDeposit: 0,
+  vehicleId: '1',
+  vehicle: {
+    id: '1',
+    make: 'Mahindra',
+    model: 'Thar ROXX 4x4 AT',
+    year: 2025,
+    city: 'Ahmedabad',
+    registrationNumber: 'GJ-01-WK-4590',
+    fuelType: 'Diesel',
+    transmission: 'Automatic',
+  },
+};
 
 export default function TripsScreen() {
   const insets = useSafeAreaInsets();
@@ -60,6 +91,7 @@ export default function TripsScreen() {
 
   const [activeTab, setActiveTab] = useState('Upcoming');
   const [allBookings, setAllBookings] = useState<any[]>([]);
+  const [useDemoTrip, setUseDemoTrip] = useState(false);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -70,12 +102,12 @@ export default function TripsScreen() {
   const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // 1. Customer Handover Walkaround (Photo Inspection)
+  // 1. Customer Handover 8-Angle Walkaround (Photo Inspection)
   const [inspectionModalOpen, setInspectionModalOpen] = useState(false);
   const [inspectionBooking, setInspectionBooking] = useState<any | null>(null);
   const [inspectionPhotos, setInspectionPhotos] = useState<Record<string, string>>({});
-  const [inspectionOdometer, setInspectionOdometer] = useState('');
-  const [inspectionFuel, setInspectionFuel] = useState('100%');
+  const [inspectionOdometer, setInspectionOdometer] = useState('18420');
+  const [inspectionFuel, setInspectionFuel] = useState('100% (Full)');
   const [inspectedTrips, setInspectedTrips] = useState<Record<string, boolean>>({});
 
   // 2. Emergency 24x7 Roadside & SOS Modal
@@ -113,10 +145,15 @@ export default function TripsScreen() {
   };
 
   const filteredTrips = React.useMemo(() => {
+    const sourceList =
+      allBookings.length === 0 && useDemoTrip ? [DEMO_BOOKING] : allBookings;
     const now = new Date();
-    return allBookings.filter((b) => {
+    return sourceList.filter((b) => {
       if (b.status === 'CANCELLED') {
         return activeTab === 'Cancelled';
+      }
+      if (b.id === 'DEMO-SFR-9082') {
+        return activeTab === 'Upcoming';
       }
       const tripEnd = new Date(b.endDate);
       const isCompleted = tripEnd < now || b.status === 'COMPLETED';
@@ -124,9 +161,14 @@ export default function TripsScreen() {
       if (activeTab === 'Upcoming') return !isCompleted;
       return true;
     });
-  }, [allBookings, activeTab]);
+  }, [allBookings, activeTab, useDemoTrip]);
 
   const handleCancelBooking = (bookingId: string) => {
+    if (bookingId === 'DEMO-SFR-9082') {
+      setUseDemoTrip(false);
+      Alert.alert('Demo Trip Closed', 'Sample preview trip removed.');
+      return;
+    }
     Alert.alert(
       'Cancel Booking',
       'Are you sure you want to cancel this booking? Eligible refunds will be processed back to your Safar wallet or source account.',
@@ -177,20 +219,42 @@ export default function TripsScreen() {
     }
   };
 
-  // 1. Handover Walkaround Photo Picker
-  const handleCapturePhoto = async (slot: string) => {
+  // 1. Handover 8-Angle Walkaround Photo Picker (Camera OR Gallery)
+  const handleCapturePhoto = async (slot: string, mode: 'camera' | 'gallery') => {
     try {
-      const res = await ImagePicker.launchCameraAsync({
-        quality: 0.8,
-        allowsEditing: false,
-      });
-      if (!res.canceled && res.assets?.[0]?.uri) {
-        setInspectionPhotos((prev) => ({ ...prev, [slot]: res.assets[0].uri }));
+      if (mode === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Camera Permission Needed', 'Please allow camera access to capture live vehicle walkaround photos.');
+          return;
+        }
+        const res = await ImagePicker.launchCameraAsync({
+          quality: 0.85,
+          allowsEditing: true,
+          aspect: [4, 3],
+        });
+        if (!res.canceled && res.assets?.[0]?.uri) {
+          setInspectionPhotos((prev) => ({ ...prev, [slot]: res.assets[0].uri }));
+        }
+      } else {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Gallery Permission Needed', 'Please allow photo library access to upload vehicle images.');
+          return;
+        }
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.85,
+          allowsEditing: true,
+          aspect: [4, 3],
+        });
+        if (!res.canceled && res.assets?.[0]?.uri) {
+          setInspectionPhotos((prev) => ({ ...prev, [slot]: res.assets[0].uri }));
+        }
       }
     } catch {
-      // Fallback to library if camera unavailable in simulator
       const res = await ImagePicker.launchImageLibraryAsync({
-        quality: 0.8,
+        quality: 0.85,
       });
       if (!res.canceled && res.assets?.[0]?.uri) {
         setInspectionPhotos((prev) => ({ ...prev, [slot]: res.assets[0].uri }));
@@ -198,9 +262,14 @@ export default function TripsScreen() {
     }
   };
 
+  const completedAnglesCount = CAR_8_ANGLES.filter((a) => !!inspectionPhotos[a.key]).length;
+
   const handleSubmitCustomerInspection = () => {
-    if (Object.keys(inspectionPhotos).length === 0) {
-      Alert.alert('Photos Recommended', 'Please capture at least 1 photo of the car condition or odometer reading.');
+    if (completedAnglesCount === 0) {
+      Alert.alert(
+        'Capture Vehicle Angles',
+        'Please capture or upload at least 1 photo from the 8-side walkaround checklist before locking your inspection.'
+      );
       return;
     }
     if (inspectionBooking) {
@@ -208,15 +277,15 @@ export default function TripsScreen() {
     }
     setInspectionModalOpen(false);
     Alert.alert(
-      'Inspection Verified',
-      'Your pre-trip condition photos and odometer reading have been timestamped. Zero damage liability is activated.'
+      '8-Angle Walkaround Verified',
+      `${completedAnglesCount}/8 vehicle angles and odometer reading (${inspectionOdometer || '18,420'} km) have been timestamped. Zero damage liability is now active.`
     );
   };
 
   // 2. Share WhatsApp Digital Pass
   const handleShareWhatsAppPass = (booking: any) => {
     const v = booking.vehicle || {};
-    const text = `🚗 *SAFAR SELF DRIVE - DIGITAL PASS*\n\n• *Booking Ref:* #${booking.bookingId || booking.id}\n• *Car:* ${v.make || 'Safar'} ${v.model || 'Self Drive'}\n• *Registration:* ${v.registrationNumber || 'Private White Plate'}\n• *Dates:* ${formatTripDates(booking.startDate, booking.endDate)}\n• *Pickup Hub:* ${booking.pickupHub || v.city || 'Ahmedabad Hub'}\n• *24x7 Roadside Helpline:* +91 99000 00001\n\n*Verified by Govt. DigiLocker e-KYC. Present Driving Licence at Handover.*`;
+    const text = `🚗 *SAFAR SELF DRIVE - DIGITAL HANDOVER PASS*\n\n• *Booking Ref:* #${booking.bookingId || booking.id}\n• *Car:* ${v.make || 'Safar'} ${v.model || 'Self Drive'}\n• *Registration:* ${v.registrationNumber || 'Private White Plate'}\n• *Dates:* ${formatTripDates(booking.startDate, booking.endDate)}\n• *Pickup Hub:* ${booking.pickupHub || v.city || 'Ahmedabad Hub'}\n• *24x7 Roadside Helpline:* +91 99000 00001\n\n*Verified by Govt. DigiLocker e-KYC. Present Driving Licence at Handover.*`;
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(text)}`).catch(() => {
       Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
     });
@@ -248,18 +317,32 @@ export default function TripsScreen() {
     <View style={[s.screen, { paddingTop: topPadding }]}>
       {/* ────────── HEADER ────────── */}
       <View style={s.header}>
-        <View>
-          <Text style={s.headerTitle}>My Trips</Text>
-          <Text style={s.headerSub}>Manage your bookings, digital passes & inspection</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerTitle}>My Trips & Handover</Text>
+          <Text style={s.headerSub}>8-Angle camera walkaround, digital passes & GST invoices</Text>
         </View>
 
-        <TouchableOpacity
-          style={s.newDriveBtn}
-          onPress={() => router.push('/')}
-          activeOpacity={0.8}
-        >
-          <Text style={s.newDriveBtnText}>+ New Drive</Text>
-        </TouchableOpacity>
+        <View style={s.headerRightRow}>
+          <TouchableOpacity
+            style={s.cameraQuickBtn}
+            onPress={() => {
+              setInspectionBooking(filteredTrips[0] || DEMO_BOOKING);
+              setInspectionModalOpen(true);
+            }}
+            activeOpacity={0.85}
+          >
+            <Camera size={14} color="#0F172A" />
+            <Text style={s.cameraQuickBtnText}>8-Side Camera</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.newDriveBtn}
+            onPress={() => router.push('/cars')}
+            activeOpacity={0.85}
+          >
+            <Text style={s.newDriveBtnText}>+ Book</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ────────── SUB TABS ────────── */}
@@ -283,36 +366,62 @@ export default function TripsScreen() {
       {/* ────────── CONTENT ────────── */}
       {!user ? (
         <View style={s.guestBox}>
-          <Car size={48} color="#2D114D" />
-          <Text style={s.guestTitle}>Sign in to view your trips</Text>
+          <View style={s.emptyIconCircle}>
+            <Car size={36} color="#0F172A" />
+          </View>
+          <Text style={s.guestTitle}>Sign in to manage your trips</Text>
           <Text style={s.guestSub}>
-            Track upcoming bookings, download GST tax invoices, and access your digital vehicle handover pass.
+            Access your 8-angle handover camera walkaround, digital WhatsApp pass, live FASTag ledger, and GST tax invoices.
           </Text>
           <TouchableOpacity style={s.loginBtn} onPress={() => router.push('/auth/login')}>
-            <Text style={s.loginBtnText}>Log In to Your Account</Text>
+            <Text style={s.loginBtnText}>Sign In to Safar Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.demoCameraBtn}
+            onPress={() => {
+              setInspectionBooking(DEMO_BOOKING);
+              setInspectionModalOpen(true);
+            }}
+            activeOpacity={0.85}
+          >
+            <Camera size={15} color="#0F172A" />
+            <Text style={s.demoCameraBtnText}>Preview 8-Angle Car Camera Studio</Text>
           </TouchableOpacity>
         </View>
       ) : loading ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator size="large" color="#2D114D" />
-          <Text style={s.loadingText}>Fetching your trips…</Text>
+          <ActivityIndicator size="large" color="#0F172A" />
+          <Text style={s.loadingText}>Syncing your reservations…</Text>
         </View>
       ) : filteredTrips.length === 0 ? (
         <ScrollView contentContainerStyle={s.emptyScroll}>
           <View style={s.emptyCard}>
             <View style={s.emptyIconCircle}>
-              <CalendarDays size={36} color="#2D114D" />
+              <CalendarDays size={32} color="#0F172A" />
             </View>
-            <Text style={s.emptyTitle}>No {activeTab.toLowerCase()} trips found</Text>
+            <Text style={s.emptyTitle}>No {activeTab.toLowerCase()} trips yet</Text>
             <Text style={s.emptySub}>
               {activeTab === 'Upcoming'
-                ? "You don't have any active or upcoming drives. Plan your next weekend getaway now!"
+                ? 'Book a self-drive SUV or sedan across Gujarat, or launch the 8-side walkaround camera studio below.'
                 : `No ${activeTab.toLowerCase()} bookings recorded in your account history.`}
             </Text>
-            <TouchableOpacity style={s.browseBtn} onPress={() => router.push('/')}>
-              <Text style={s.browseBtnText}>Explore Available Cars</Text>
+
+            <TouchableOpacity style={s.browseBtn} onPress={() => router.push('/cars')}>
+              <Text style={s.browseBtnText}>Explore Self-Drive Fleet</Text>
               <ArrowRight size={16} color="#FFF" />
             </TouchableOpacity>
+
+            {activeTab === 'Upcoming' && (
+              <TouchableOpacity
+                style={s.demoCameraBtn}
+                onPress={() => setUseDemoTrip(true)}
+                activeOpacity={0.85}
+              >
+                <Sparkles size={14} color="#FF6000" />
+                <Text style={s.demoCameraBtnText}>Load Sample Active Trip (Test 8-Side Camera)</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       ) : (
@@ -336,6 +445,11 @@ export default function TripsScreen() {
                     style={s.cardCarImage}
                     resizeMode="contain"
                   />
+                  <View style={s.regBadgeTopLeft}>
+                    <Text style={s.regBadgeTopLeftText}>
+                      {vehicle.registrationNumber || 'GJ-01 PRIVATE PLATE'}
+                    </Text>
+                  </View>
                   {/* WhatsApp Quick Share Button */}
                   <TouchableOpacity
                     style={s.whatsappBtnCorner}
@@ -378,7 +492,7 @@ export default function TripsScreen() {
 
                   {/* Date & Time Row */}
                   <View style={s.dateBox}>
-                    <Clock size={13} color="#6B7280" />
+                    <Clock size={13} color="#64748B" />
                     <Text style={s.dateRangeText}>
                       {formatTripDates(booking.startDate, booking.endDate)}
                     </Text>
@@ -392,22 +506,21 @@ export default function TripsScreen() {
                     </Text>
                   </View>
 
-                  {/* ────────── NEW: QUICK ACTION PILLS (INSPECTION, FASTAG, RSA) ────────── */}
+                  {/* ────────── QUICK ACTION PILLS (8-SIDE CAMERA, FASTAG, RSA) ────────── */}
                   {isConfirmed && (
                     <View style={s.featurePillsRow}>
-                      {/* Customer Handover Walkaround */}
+                      {/* Customer 8-Angle Walkaround */}
                       <TouchableOpacity
                         style={[s.featurePill, isInspected && s.featurePillActive]}
                         onPress={() => {
                           setInspectionBooking(booking);
-                          setInspectionPhotos({});
                           setInspectionModalOpen(true);
                         }}
                         activeOpacity={0.8}
                       >
-                        <Camera size={12} color={isInspected ? '#059669' : '#2D114D'} />
+                        <Camera size={12} color={isInspected ? '#059669' : '#0F172A'} />
                         <Text style={[s.featurePillText, isInspected && s.featurePillTextGreen]}>
-                          {isInspected ? 'Inspection Saved' : 'Walkaround (Photos)'}
+                          {isInspected ? '8/8 Angles Saved' : '8-Side Camera'}
                         </Text>
                       </TouchableOpacity>
 
@@ -434,7 +547,7 @@ export default function TripsScreen() {
                         activeOpacity={0.8}
                       >
                         <ShieldAlert size={12} color="#DC2626" />
-                        <Text style={s.featurePillTextRed}>24x7 SOS</Text>
+                        <Text style={s.featurePillTextRed}>24×7 SOS</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -450,7 +563,9 @@ export default function TripsScreen() {
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={s.depositLabel}>Security Deposit</Text>
                       <Text style={s.depositValue}>
-                        {Number(booking.securityDeposit || 0) === 0 ? 'Zero Deposit (KYC)' : `₹${booking.securityDeposit} (Refunded)`}
+                        {Number(booking.securityDeposit || 0) === 0
+                          ? '₹0 Deposit (DigiLocker)'
+                          : `₹${booking.securityDeposit} (Refundable)`}
                       </Text>
                     </View>
                   </View>
@@ -463,10 +578,15 @@ export default function TripsScreen() {
                       <>
                         <TouchableOpacity
                           style={s.bookAgainBtn}
-                          onPress={() => router.push({ pathname: '/details/[id]', params: { id: String(vehicle.id || booking.vehicleId) } })}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/details/[id]',
+                              params: { id: String(vehicle.id || booking.vehicleId) },
+                            })
+                          }
                           activeOpacity={0.8}
                         >
-                          <RotateCcw size={14} color="#2D114D" />
+                          <RotateCcw size={14} color="#0F172A" />
                           <Text style={s.bookAgainText}>Book Again</Text>
                         </TouchableOpacity>
 
@@ -479,7 +599,7 @@ export default function TripsScreen() {
                           }}
                           activeOpacity={0.8}
                         >
-                          <FileText size={14} color="#2D114D" />
+                          <FileText size={14} color="#0F172A" />
                           <Text style={s.invoiceBtnText}>GST Invoice</Text>
                         </TouchableOpacity>
 
@@ -507,6 +627,18 @@ export default function TripsScreen() {
                         </TouchableOpacity>
 
                         <TouchableOpacity
+                          style={s.invoiceBtn}
+                          onPress={() => {
+                            setInvoiceBooking(booking);
+                            setInvoiceModalOpen(true);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <FileText size={14} color="#0F172A" />
+                          <Text style={s.invoiceBtnText}>Invoice</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
                           style={s.cancelTripBtn}
                           onPress={() => handleCancelBooking(booking.id)}
                           activeOpacity={0.8}
@@ -522,11 +654,11 @@ export default function TripsScreen() {
                     ) : (
                       <TouchableOpacity
                         style={s.bookAgainBtn}
-                        onPress={() => router.push('/')}
+                        onPress={() => router.push('/cars')}
                         activeOpacity={0.8}
                       >
-                        <RotateCcw size={15} color="#2D114D" />
-                        <Text style={s.bookAgainText}>Search Other Cars</Text>
+                        <RotateCcw size={15} color="#0F172A" />
+                        <Text style={s.bookAgainText}>Browse Available Fleet</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -537,7 +669,7 @@ export default function TripsScreen() {
         </ScrollView>
       )}
 
-      {/* ────────── MODAL 1: CUSTOMER HANDOVER WALKAROUND INSPECTION ────────── */}
+      {/* ────────── MODAL 1: 8-ANGLE CUSTOMER HANDOVER WALKAROUND STUDIO ────────── */}
       <Modal
         visible={inspectionModalOpen}
         transparent
@@ -545,59 +677,124 @@ export default function TripsScreen() {
         onRequestClose={() => setInspectionModalOpen(false)}
       >
         <View style={s.modalBackdrop}>
-          <View style={s.modalSheet}>
+          <View style={[s.modalSheet, { maxHeight: '92%' }]}>
             <View style={s.modalHeader}>
-              <View>
-                <Text style={s.modalTitle}>Vehicle Walkaround Inspection</Text>
-                <Text style={s.modalSubtitle}>Protect yourself against false damage claims</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.modalTitle}>8-Angle Vehicle Walkaround Studio</Text>
+                <Text style={s.modalSubtitle}>
+                  Capture all 8 sides with Camera or Upload for 100% damage protection
+                </Text>
               </View>
-              <TouchableOpacity onPress={() => setInspectionModalOpen(false)}>
-                <X size={20} color="#374151" />
+              <TouchableOpacity onPress={() => setInspectionModalOpen(false)} style={s.closeCircle}>
+                <X size={18} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
-              <Text style={s.inspectInstText}>
-                Take 4 photos of the exterior & 1 photo of the odometer before starting your drive.
-              </Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
+              {/* Progress & Quick Launch Camera Bar */}
+              <View style={s.progressBanner}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.progressTitle}>
+                    {completedAnglesCount} of 8 Angles Captured
+                  </Text>
+                  <Text style={s.progressSub}>
+                    Timestamped pre-trip evidence protects your ₹0 liability
+                  </Text>
+                  <View style={s.progressBarTrack}>
+                    <View
+                      style={[
+                        s.progressBarFill,
+                        { width: `${(completedAnglesCount / 8) * 100}%` },
+                      ]}
+                    />
+                  </View>
+                </View>
 
-              {/* 4 Photos Grid */}
+                <TouchableOpacity
+                  style={s.quickLaunchCameraBtn}
+                  onPress={() => {
+                    const nextMissing =
+                      CAR_8_ANGLES.find((a) => !inspectionPhotos[a.key]) || CAR_8_ANGLES[0];
+                    handleCapturePhoto(nextMissing.key, 'camera');
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Camera size={15} color="#FFFFFF" />
+                  <Text style={s.quickLaunchCameraText}>Open Camera</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 8-Side Photo Grid */}
               <View style={s.photoSlotsGrid}>
-                {['Front', 'Rear', 'Left Side', 'Right Side'].map((side) => {
-                  const key = side.toLowerCase().replace(' ', '_');
-                  const hasPhoto = !!inspectionPhotos[key];
+                {CAR_8_ANGLES.map((angle) => {
+                  const uri = inspectionPhotos[angle.key];
+                  const hasPhoto = !!uri;
                   return (
-                    <TouchableOpacity
-                      key={side}
-                      style={[s.photoSlot, hasPhoto && s.photoSlotDone]}
-                      onPress={() => handleCapturePhoto(key)}
+                    <View
+                      key={angle.key}
+                      style={[s.photoSlotCard, hasPhoto && s.photoSlotCardDone]}
                     >
                       {hasPhoto ? (
-                        <CheckCircle2 size={20} color="#059669" />
+                        <View style={s.previewBox}>
+                          <Image source={{ uri }} style={s.previewImg} resizeMode="cover" />
+                          <View style={s.doneTag}>
+                            <CheckCircle2 size={11} color="#FFFFFF" />
+                            <Text style={s.doneTagText}>Captured</Text>
+                          </View>
+                        </View>
                       ) : (
-                        <Camera size={18} color="#2D114D" />
+                        <View style={s.emptySlotHeader}>
+                          <View style={s.slotCameraIconWrap}>
+                            <Camera size={16} color="#0F172A" />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={s.photoSlotTitle}>{angle.label}</Text>
+                            <Text style={s.photoSlotHint}>{angle.hint}</Text>
+                          </View>
+                        </View>
                       )}
-                      <Text style={[s.photoSlotText, hasPhoto && { color: '#059669', fontWeight: '800' }]}>
-                        {hasPhoto ? `${side} ✓` : `+ ${side}`}
-                      </Text>
-                    </TouchableOpacity>
+
+                      {hasPhoto && (
+                        <Text style={[s.photoSlotTitle, { marginTop: 6 }]}>{angle.label}</Text>
+                      )}
+
+                      <View style={s.slotActionsRow}>
+                        <TouchableOpacity
+                          style={s.slotCamBtn}
+                          onPress={() => handleCapturePhoto(angle.key, 'camera')}
+                          activeOpacity={0.8}
+                        >
+                          <Camera size={12} color="#FFFFFF" />
+                          <Text style={s.slotCamBtnText}>Camera</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={s.slotGalleryBtn}
+                          onPress={() => handleCapturePhoto(angle.key, 'gallery')}
+                          activeOpacity={0.8}
+                        >
+                          <Upload size={12} color="#0F172A" />
+                          <Text style={s.slotGalleryBtnText}>Upload</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   );
                 })}
               </View>
 
               {/* Odometer & Fuel */}
               <View style={s.odometerCard}>
-                <Text style={s.cardInputLabel}>Current Odometer (km)</Text>
+                <Text style={s.cardInputLabel}>Current Odometer Reading (km)</Text>
                 <TextInput
                   style={s.odometerInput}
-                  placeholder="e.g. 24,580"
-                  placeholderTextColor="#9CA3AF"
+                  placeholder="e.g. 18,420"
+                  placeholderTextColor="#94A3B8"
                   keyboardType="numeric"
                   value={inspectionOdometer}
                   onChangeText={setInspectionOdometer}
                 />
 
-                <Text style={[s.cardInputLabel, { marginTop: 10 }]}>Fuel Level at Pickup</Text>
+                <Text style={[s.cardInputLabel, { marginTop: 10 }]}>Fuel Level at Handover</Text>
                 <View style={s.fuelChipsRow}>
                   {['100% (Full)', '75%', '50%', '25%'].map((level) => (
                     <TouchableOpacity
@@ -619,7 +816,9 @@ export default function TripsScreen() {
                 activeOpacity={0.88}
               >
                 <ShieldCheck size={18} color="#FFF" />
-                <Text style={s.confirmInspectionText}>Save & Lock Handover Inspection</Text>
+                <Text style={s.confirmInspectionText}>
+                  Save & Lock 8-Angle Inspection ({completedAnglesCount}/8)
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -637,16 +836,15 @@ export default function TripsScreen() {
           <View style={s.modalSheet}>
             <View style={s.modalHeader}>
               <View>
-                <Text style={s.modalTitle}>24x7 Gujarat Roadside SOS</Text>
+                <Text style={s.modalTitle}>24×7 Gujarat Roadside SOS</Text>
                 <Text style={s.modalSubtitle}>Immediate roadside support across all Gujarat highways</Text>
               </View>
-              <TouchableOpacity onPress={() => setSosModalOpen(false)}>
-                <X size={20} color="#374151" />
+              <TouchableOpacity onPress={() => setSosModalOpen(false)} style={s.closeCircle}>
+                <X size={18} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
             <View style={{ gap: 12 }}>
-              {/* Emergency Hotline Button */}
               <TouchableOpacity
                 style={s.sosCallBtn}
                 onPress={() => Linking.openURL('tel:+919900000001')}
@@ -654,12 +852,11 @@ export default function TripsScreen() {
               >
                 <Phone size={20} color="#FFF" />
                 <View>
-                  <Text style={s.sosCallBtnTitle}>Call 24x7 Roadside Helpline</Text>
+                  <Text style={s.sosCallBtnTitle}>Call 24×7 Roadside Helpline</Text>
                   <Text style={s.sosCallBtnSub}>+91 99000 00001 • Instant Dispatch</Text>
                 </View>
               </TouchableOpacity>
 
-              {/* Share Live Location via WhatsApp */}
               <TouchableOpacity
                 style={s.sosWhatsappBtn}
                 onPress={() => {
@@ -669,10 +866,9 @@ export default function TripsScreen() {
                 activeOpacity={0.88}
               >
                 <Navigation size={18} color="#25D366" />
-                <Text style={s.sosWhatsappText}>Share Live Location with Safar Desk</Text>
+                <Text style={s.sosWhatsappText}>Share Live GPS Location with Safar Desk</Text>
               </TouchableOpacity>
 
-              {/* Service Cards */}
               <View style={s.sosServicesList}>
                 <View style={s.sosServiceItem}>
                   <Text style={s.sosServiceTitle}>🔧 Flat Tyre Assistance</Text>
@@ -680,15 +876,15 @@ export default function TripsScreen() {
                 </View>
                 <View style={s.sosServiceItem}>
                   <Text style={s.sosServiceTitle}>⚡ Dead Battery Jumpstart</Text>
-                  <Text style={s.sosServiceSub}>Quick booster battery restart within 30-45 minutes</Text>
+                  <Text style={s.sosServiceSub}>Quick booster battery restart within 30–45 minutes</Text>
                 </View>
                 <View style={s.sosServiceItem}>
                   <Text style={s.sosServiceTitle}>⛽ 5L Emergency Fuel</Text>
                   <Text style={s.sosServiceSub}>Direct emergency fuel delivery if stranded</Text>
                 </View>
                 <View style={s.sosServiceItem}>
-                  <Text style={s.sosServiceTitle}>🛞 Flatbed Towing</Text>
-                  <Text style={s.sosServiceSub}>Free towing to the nearest authorized service hub</Text>
+                  <Text style={s.sosServiceTitle}>🛞 Flatbed Towing & Replacement</Text>
+                  <Text style={s.sosServiceSub}>Free towing to nearest hub & replacement vehicle</Text>
                 </View>
               </View>
             </View>
@@ -708,47 +904,45 @@ export default function TripsScreen() {
             <View style={s.modalHeader}>
               <View>
                 <Text style={s.modalTitle}>FASTag & Fuel Live Ledger</Text>
-                <Text style={s.modalSubtitle}>Transparent toll tracking & fuel policy</Text>
+                <Text style={s.modalSubtitle}>Transparent NHAI toll tracking & fuel policy</Text>
               </View>
-              <TouchableOpacity onPress={() => setLedgerModalOpen(false)}>
-                <X size={20} color="#374151" />
+              <TouchableOpacity onPress={() => setLedgerModalOpen(false)} style={s.closeCircle}>
+                <X size={18} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={{ gap: 12 }}>
-              {/* Fuel Rule Card */}
               <View style={s.ledgerCard}>
                 <View style={s.ledgerCardHeader}>
                   <Fuel size={16} color="#FF6000" />
                   <Text style={s.ledgerCardTitle}>Like-to-Like Fuel Guarantee</Text>
                 </View>
                 <Text style={s.ledgerCardText}>
-                  You received this car with a <Text style={{ fontWeight: '800' }}>100% Full Tank</Text>. Return with the same level or settle the difference at exact Gujarat petrol/diesel pump rates without any surcharge.
+                  You received this car with a <Text style={{ fontWeight: '800' }}>100% Full Tank</Text>. Return with the same level or settle the difference at exact Gujarat pump rates without any surcharge.
                 </Text>
               </View>
 
-              {/* FASTag Tolls */}
               <View style={s.ledgerCard}>
                 <View style={s.ledgerCardHeader}>
-                  <Receipt size={16} color="#2D114D" />
-                  <Text style={s.ledgerCardTitle}>Gujarat FASTag Toll Passes</Text>
+                  <Receipt size={16} color="#0F172A" />
+                  <Text style={s.ledgerCardTitle}>Gujarat NHAI FASTag Toll Passes</Text>
                 </View>
                 <View style={s.tollRow}>
-                  <Text style={s.tollName}>Ahmedabad - Vadodara NE-1 Expressway</Text>
+                  <Text style={s.tollName}>Ahmedabad – Vadodara NE-1 Expressway</Text>
                   <Text style={s.tollAmount}>₹135</Text>
                 </View>
                 <View style={s.tollRow}>
                   <Text style={s.tollName}>SG Highway Ring Road Plaza</Text>
                   <Text style={s.tollAmount}>₹50</Text>
                 </View>
-                <View style={[s.tollRow, { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 8, marginTop: 4 }]}>
-                  <Text style={[s.tollName, { fontWeight: '800', color: '#2D114D' }]}>Total Tolls Incurred</Text>
-                  <Text style={[s.tollAmount, { fontWeight: '800', color: '#2D114D', fontSize: 14 }]}>₹185</Text>
+                <View style={[s.tollRow, { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 8, marginTop: 4 }]}>
+                  <Text style={[s.tollName, { fontWeight: '800', color: '#0F172A' }]}>Total Tolls Incurred</Text>
+                  <Text style={[s.tollAmount, { fontWeight: '800', color: '#0F172A', fontSize: 14 }]}>₹185</Text>
                 </View>
               </View>
 
               <Text style={s.ledgerFootnote}>
-                FASTag toll amounts are auto-settled from your Safar Digital Cash wallet or refunded deposit.
+                FASTag toll amounts are auto-settled from your Safar Cash wallet at trip completion.
               </Text>
             </ScrollView>
           </View>
@@ -767,10 +961,10 @@ export default function TripsScreen() {
             <View style={s.modalHeader}>
               <View>
                 <Text style={s.modalTitle}>GST Tax Invoice</Text>
-                <Text style={s.modalSubtitle}>Government GST-compliant tax receipt</Text>
+                <Text style={s.modalSubtitle}>Government GST-compliant tax receipt (SAC: 997311)</Text>
               </View>
-              <TouchableOpacity onPress={() => setInvoiceModalOpen(false)}>
-                <X size={20} color="#374151" />
+              <TouchableOpacity onPress={() => setInvoiceModalOpen(false)} style={s.closeCircle}>
+                <X size={18} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
@@ -781,7 +975,7 @@ export default function TripsScreen() {
                     <View>
                       <Text style={s.companyName}>Safar Self Drive Pvt. Ltd.</Text>
                       <Text style={s.gstinText}>GSTIN: 24AABCS1234F1Z5 (Gujarat)</Text>
-                      <Text style={s.gstinText}>SAC Code: 997311 (Passenger Rental)</Text>
+                      <Text style={s.gstinText}>SAC Code: 997311 (Self-Drive Rental)</Text>
                     </View>
                     <View style={s.invoiceNumberBox}>
                       <Text style={s.invoiceNumberLabel}>TAX INVOICE</Text>
@@ -809,7 +1003,6 @@ export default function TripsScreen() {
 
                   <View style={s.invoiceDivider} />
 
-                  {/* Calculations */}
                   <View style={s.invoiceLineRow}>
                     <Text style={s.invoiceLineKey}>Base Vehicle Rental</Text>
                     <Text style={s.invoiceLineVal}>
@@ -843,7 +1036,7 @@ export default function TripsScreen() {
                   activeOpacity={0.88}
                 >
                   <FileText size={16} color="#FFF" />
-                  <Text style={s.shareInvoiceBtnText}>Share / Save Tax Invoice</Text>
+                  <Text style={s.shareInvoiceBtnText}>Share / Download Tax Invoice</Text>
                 </TouchableOpacity>
               </ScrollView>
             )}
@@ -862,8 +1055,8 @@ export default function TripsScreen() {
           <View style={s.modalSheet}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Rate Your Drive</Text>
-              <TouchableOpacity onPress={() => setReviewModalOpen(false)}>
-                <X size={20} color="#374151" />
+              <TouchableOpacity onPress={() => setReviewModalOpen(false)} style={s.closeCircle}>
+                <X size={18} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
@@ -871,7 +1064,6 @@ export default function TripsScreen() {
               How was your experience with {selectedBooking?.vehicle?.make} {selectedBooking?.vehicle?.model}?
             </Text>
 
-            {/* Stars */}
             <View style={s.starsRow}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -891,7 +1083,7 @@ export default function TripsScreen() {
             <TextInput
               style={s.reviewInput}
               placeholder="Tell us about the car condition, cleanliness, handover..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#94A3B8"
               multiline
               numberOfLines={4}
               value={comment}
@@ -907,7 +1099,7 @@ export default function TripsScreen() {
               {submittingReview ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={s.submitReviewText}>Submit Review</Text>
+                <Text style={s.submitReviewText}>Submit Verified Review</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -920,50 +1112,69 @@ export default function TripsScreen() {
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F8F6FB',
+    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEBF5',
+    borderBottomColor: '#E2E8F0',
+    gap: 10,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
+    letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 2,
+  },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cameraQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  cameraQuickBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   newDriveBtn: {
     backgroundColor: '#FF6000',
     borderRadius: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    shadowColor: '#FF6000',
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
   },
   newDriveBtnText: {
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   /* Tabs */
   tabBarWrap: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
   },
@@ -975,12 +1186,12 @@ const s = StyleSheet.create({
   },
   tabItemActive: {},
   tabText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#64748B',
   },
   tabTextActive: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontWeight: '800',
   },
   tabUnderline: {
@@ -989,7 +1200,7 @@ const s = StyleSheet.create({
     left: 20,
     right: 20,
     height: 3,
-    backgroundColor: '#2D114D',
+    backgroundColor: '#FF6000',
     borderTopLeftRadius: 3,
     borderTopRightRadius: 3,
   },
@@ -1001,41 +1212,56 @@ const s = StyleSheet.create({
   },
   tripCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
-    shadowColor: '#2D114D',
-    shadowOpacity: 0.06,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
   },
   cardImageContainer: {
-    height: 170,
-    backgroundColor: '#FAF8FC',
+    height: 165,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   cardCarImage: {
-    width: '90%',
-    height: '90%',
+    width: '88%',
+    height: '88%',
+  },
+  regBadgeTopLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  regBadgeTopLeftText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   whatsappBtnCorner: {
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   cardBody: {
     padding: 16,
@@ -1046,19 +1272,20 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
   },
   carMake: {
-    fontSize: 11,
-    color: '#8A8F98',
+    fontSize: 10.5,
+    color: '#64748B',
     fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   carModel: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
     marginTop: 2,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 8,
   },
@@ -1094,7 +1321,7 @@ const s = StyleSheet.create({
   dateRangeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#374151',
+    color: '#334155',
   },
   locationBox: {
     flexDirection: 'row',
@@ -1104,8 +1331,8 @@ const s = StyleSheet.create({
   },
   locationText: {
     fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
+    color: '#64748B',
+    fontWeight: '600',
   },
 
   /* Feature Action Pills */
@@ -1120,12 +1347,12 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#FAF5FF',
+    gap: 5,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E9D5FF',
-    borderRadius: 8,
-    paddingVertical: 6,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingVertical: 7,
   },
   featurePillActive: {
     backgroundColor: '#ECFDF5',
@@ -1138,20 +1365,20 @@ const s = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECACA',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   featurePillText: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   featurePillTextGreen: {
     color: '#059669',
   },
   featurePillTextRed: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#DC2626',
   },
@@ -1160,36 +1387,38 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FAF8FD',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
-    padding: 10,
+    padding: 11,
     marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   fareLabel: {
     fontSize: 10,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '600',
   },
   fareValue: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
     marginTop: 1,
   },
   depositLabel: {
     fontSize: 10,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '600',
   },
   depositValue: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#059669',
     marginTop: 1,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     marginVertical: 14,
   },
   actionsRow: {
@@ -1204,12 +1433,12 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     borderWidth: 1.5,
-    borderColor: '#2D114D',
+    borderColor: '#0F172A',
     borderRadius: 12,
     paddingVertical: 9,
   },
   bookAgainText: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontSize: 11.5,
     fontWeight: '800',
   },
@@ -1219,12 +1448,14 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#F3EEFA',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   invoiceBtnText: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontSize: 11.5,
     fontWeight: '800',
   },
@@ -1243,7 +1474,7 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
   handoverPassBtn: {
-    flex: 1,
+    flex: 1.2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1251,25 +1482,21 @@ const s = StyleSheet.create({
     backgroundColor: '#25D366',
     borderRadius: 12,
     paddingVertical: 10,
-    shadowColor: '#25D366',
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
   },
   handoverPassText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   cancelTripBtn: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     backgroundColor: '#FEF2F2',
   },
   cancelTripText: {
     color: '#DC2626',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
 
@@ -1278,68 +1505,89 @@ const s = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    padding: 32,
+    padding: 28,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
     width: '100%',
   },
   emptyIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FAF5FF',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   emptyTitle: {
     fontSize: 17,
-    fontWeight: '800',
-    color: '#2D114D',
+    fontWeight: '900',
+    color: '#0F172A',
   },
   emptySub: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
     marginTop: 6,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   browseBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#2D114D',
+    backgroundColor: '#0F172A',
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 12,
+    width: '100%',
   },
   browseBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },
+  demoCameraBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    width: '100%',
+  },
+  demoCameraBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
   guestBox: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    gap: 12,
+    padding: 28,
+    gap: 10,
   },
   guestTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#2D114D',
+    fontWeight: '900',
+    color: '#0F172A',
   },
   guestSub: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -1349,6 +1597,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     marginTop: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   loginBtnText: {
     color: '#FFFFFF',
@@ -1363,13 +1613,13 @@ const s = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#64748B',
   },
 
   /* Modals */
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
@@ -1377,8 +1627,8 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
-    paddingBottom: 36,
-    maxHeight: '85%',
+    paddingBottom: 34,
+    maxHeight: '88%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1386,115 +1636,247 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#E2E8F0',
     marginBottom: 12,
+  },
+  closeCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   modalSubtitle: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 2,
   },
-  inspectInstText: {
-    fontSize: 12,
-    color: '#4B5563',
-    lineHeight: 17,
+
+  /* 8-Angle Studio Styles */
+  progressBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
+  progressTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  progressSub: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#059669',
+    borderRadius: 3,
+  },
+  quickLaunchCameraBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FF6000',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  quickLaunchCameraText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
   photoSlotsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },
-  photoSlot: {
-    width: (W - 50) / 2,
-    height: 70,
-    backgroundColor: '#FAF8FD',
-    borderRadius: 12,
+  photoSlotCard: {
+    width: (W - 52) / 2,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E6DDF2',
-    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    padding: 10,
+    justifyContent: 'space-between',
+  },
+  photoSlotCardDone: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#6EE7B7',
+  },
+  emptySlotHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 10,
+  },
+  slotCameraIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoSlotTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  photoSlotHint: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  previewBox: {
+    height: 78,
+    borderRadius: 10,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+  },
+  previewImg: {
+    width: '100%',
+    height: '100%',
+  },
+  doneTag: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(5, 150, 105, 0.92)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  doneTagText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  slotActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  slotCamBtn: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    paddingVertical: 6,
   },
-  photoSlotDone: {
-    borderStyle: 'solid',
-    borderColor: '#10B981',
-    backgroundColor: '#ECFDF5',
+  slotCamBtnText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
-  photoSlotText: {
-    fontSize: 11,
+  slotGalleryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingVertical: 6,
+  },
+  slotGalleryBtnText: {
+    color: '#0F172A',
+    fontSize: 10,
     fontWeight: '700',
-    color: '#2D114D',
   },
+
   odometerCard: {
-    backgroundColor: '#FAF8FD',
+    backgroundColor: '#F8FAFC',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E6DDF2',
+    borderColor: '#E2E8F0',
   },
   cardInputLabel: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#2D114D',
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
   },
   odometerInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D8CEE8',
-    borderRadius: 8,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#2D114D',
-    marginTop: 6,
+    fontSize: 13,
+    color: '#0F172A',
+    fontWeight: '700',
   },
   fuelChipsRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 8,
+    gap: 8,
   },
   fuelChip: {
     flex: 1,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
   fuelChipActive: {
-    backgroundColor: '#2D114D',
-    borderColor: '#2D114D',
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   fuelChipText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#4B5563',
+    color: '#475569',
   },
   fuelChipTextActive: {
     color: '#FFFFFF',
-    fontWeight: '800',
   },
   confirmInspectionBtn: {
-    backgroundColor: '#2D114D',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 14,
+    backgroundColor: '#059669',
     borderRadius: 14,
-    marginTop: 6,
+    paddingVertical: 14,
+    marginTop: 4,
   },
   confirmInspectionText: {
     color: '#FFFFFF',
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
   },
 
@@ -1505,16 +1887,16 @@ const s = StyleSheet.create({
     gap: 12,
     backgroundColor: '#DC2626',
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
   },
   sosCallBtnTitle: {
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '900',
-    color: '#FFFFFF',
   },
   sosCallBtnSub: {
-    fontSize: 11,
     color: '#FEE2E2',
+    fontSize: 11,
     marginTop: 2,
   },
   sosWhatsappBtn: {
@@ -1522,92 +1904,93 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FAF5FF',
-    borderWidth: 1.5,
-    borderColor: '#25D366',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
     borderRadius: 12,
     paddingVertical: 12,
   },
   sosWhatsappText: {
-    fontSize: 12.5,
+    color: '#065F46',
+    fontSize: 12,
     fontWeight: '800',
-    color: '#15803D',
   },
   sosServicesList: {
     gap: 8,
     marginTop: 4,
   },
   sosServiceItem: {
-    backgroundColor: '#FAF8FD',
-    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
   },
   sosServiceTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   sosServiceSub: {
-    fontSize: 10.5,
-    color: '#6B7280',
-    marginTop: 1,
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
   },
 
-  /* Ledger Modal */
+  /* FASTag & Fuel Ledger Modal */
   ledgerCard: {
-    backgroundColor: '#FAF8FD',
+    backgroundColor: '#F8FAFC',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
+    gap: 8,
   },
   ledgerCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: 6,
   },
   ledgerCardTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   ledgerCardText: {
     fontSize: 11.5,
-    color: '#4B5563',
-    lineHeight: 16,
+    color: '#475569',
+    lineHeight: 17,
   },
   tollRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   tollName: {
-    fontSize: 11,
-    color: '#4B5563',
+    fontSize: 11.5,
+    color: '#475569',
+    fontWeight: '600',
   },
   tollAmount: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   ledgerFootnote: {
     fontSize: 10.5,
-    color: '#9CA3AF',
+    color: '#64748B',
     textAlign: 'center',
-    marginTop: 6,
+    marginTop: 4,
   },
 
   /* GST Invoice Modal */
   invoiceCard: {
-    backgroundColor: '#FAF8FD',
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
   },
   invoiceHeaderRow: {
     flexDirection: 'row',
@@ -1615,33 +1998,36 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
   },
   companyName: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#2D114D',
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   gstinText: {
-    fontSize: 9.5,
-    color: '#6B7280',
-    marginTop: 1,
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 2,
   },
   invoiceNumberBox: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     alignItems: 'flex-end',
   },
   invoiceNumberLabel: {
-    fontSize: 8.5,
+    fontSize: 8,
     fontWeight: '800',
-    color: '#FF6000',
-    letterSpacing: 0.5,
+    color: '#0F172A',
   },
   invoiceNumberVal: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#2D114D',
+    fontWeight: '900',
+    color: '#FF6000',
   },
   invoiceDivider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 10,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 12,
   },
   invoiceMetaRow: {
     flexDirection: 'row',
@@ -1649,19 +2035,19 @@ const s = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 9.5,
-    color: '#9CA3AF',
+    color: '#64748B',
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   metaVal: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#2D114D',
-    marginTop: 1,
+    color: '#0F172A',
+    marginTop: 2,
   },
   metaSub: {
     fontSize: 10,
-    color: '#6B7280',
+    color: '#64748B',
   },
   invoiceLineRow: {
     flexDirection: 'row',
@@ -1670,37 +2056,37 @@ const s = StyleSheet.create({
   },
   invoiceLineKey: {
     fontSize: 11.5,
-    color: '#4B5563',
+    color: '#475569',
   },
   invoiceLineVal: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   invoiceTotalRow: {
     borderTopWidth: 1,
-    borderTopColor: '#2D114D',
-    paddingTop: 8,
-    marginTop: 6,
+    borderTopColor: '#E2E8F0',
+    marginTop: 8,
+    paddingTop: 10,
   },
   invoiceTotalKey: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   invoiceTotalVal: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
-    color: '#FF6000',
+    color: '#059669',
   },
   shareInvoiceBtn: {
-    backgroundColor: '#2D114D',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 13,
-    borderRadius: 12,
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    paddingVertical: 14,
   },
   shareInvoiceBtnText: {
     color: '#FFFFFF',
@@ -1712,25 +2098,25 @@ const s = StyleSheet.create({
   starsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 14,
+    marginVertical: 16,
   },
   reviewInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
+    borderColor: '#CBD5E1',
+    borderRadius: 14,
     padding: 12,
     fontSize: 13,
-    color: '#1F2937',
+    color: '#0F172A',
+    minHeight: 90,
     textAlignVertical: 'top',
-    height: 90,
+    marginBottom: 16,
   },
   submitReviewBtn: {
     backgroundColor: '#FF6000',
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 14,
   },
   submitReviewText: {
     color: '#FFFFFF',

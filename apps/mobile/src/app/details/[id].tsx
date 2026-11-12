@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import {
   apiRequest,
   getVehicleImageSource,
@@ -28,7 +29,6 @@ import {
   Heart,
   Edit2,
   Calendar,
-  Clock,
   MapPin,
   Gauge,
   Fuel,
@@ -42,17 +42,42 @@ import {
   Camera,
   ArrowRight,
   Zap,
+  X,
+  Upload,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
 
-const DETAIL_TABS = ['Photos', 'Km Package', 'About Host', 'Reviews', 'Features'];
+const DETAIL_TABS = ['8-Side Photos', 'Km Package', 'About Host', 'Reviews', 'Features'];
+
+const CAR_8_ANGLES = [
+  { key: 'FRONT', label: '1. Front View', sub: 'Bumper, Grille & White Plate' },
+  { key: 'REAR', label: '2. Rear View', sub: 'Boot, Tailgate & Rear Plate' },
+  { key: 'LEFT_SIDE', label: '3. Left Side Profile', sub: 'Left Doors & Alloy Wheels' },
+  { key: 'RIGHT_SIDE', label: '4. Right Side Profile', sub: 'Driver Side Doors & ORVM' },
+  { key: 'FRONT_LEFT', label: '5. Front-Left 45°', sub: 'Quarter Panel & Headlamp' },
+  { key: 'FRONT_RIGHT', label: '6. Front-Right 45°', sub: 'Fender & Tyre Tread' },
+  { key: 'ODOMETER', label: '7. Odometer & Cockpit', sub: 'Digital Cluster & Infotainment' },
+  { key: 'INTERIOR', label: '8. Cabin & Rear Seats', sub: 'Sanitized Leatherette Upholstery' },
+];
 
 const QUICK_QUESTIONS = [
-  { q: "What's the fuel policy?", a: "Same-to-same fuel policy. Pick up the car with whatever fuel level it has, and return it at the same level. No hidden fuel surcharges!" },
-  { q: "How much is security deposit?", a: "Zero Security Deposit for DigiLocker verified Indian citizens! If unverified, a standard ₹2,000 refundable deposit applies." },
-  { q: "Can I drive outside Gujarat?", a: "Yes! All Safar Self Drive vehicles come with all-India permit capability and private white number plates with zero interstate taxi hassles." },
-  { q: "Is doorstep delivery available?", a: "Yes! We offer doorstep pickup & drop at Ahmedabad Airport (AMD), Surat Airport (STV), Vadodara, and your hotel/residence across Gujarat." },
+  {
+    q: "What's the fuel policy?",
+    a: 'Same-to-same fuel policy. Pick up the car with whatever fuel level it has, and return it at the same level. Zero hidden fuel surcharges!',
+  },
+  {
+    q: 'How much is security deposit?',
+    a: 'Zero Security Deposit for DigiLocker verified Indian citizens! Complete your KYC from the Account page in 60 seconds.',
+  },
+  {
+    q: 'Can I drive outside Gujarat?',
+    a: 'Yes! All Safar Self Drive vehicles come with private white number plates and zero commercial border hassles.',
+  },
+  {
+    q: 'Is doorstep delivery available?',
+    a: 'Yes! We offer doorstep pickup & drop at Ahmedabad Airport (AMD), Surat Airport (STV), Vadodara, and your hotel or residence.',
+  },
 ];
 
 export default function VehicleDetailsScreen() {
@@ -69,7 +94,7 @@ export default function VehicleDetailsScreen() {
 
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Photos');
+  const [activeTab, setActiveTab] = useState('8-Side Photos');
   const [isFavorite, setIsFavorite] = useState(false);
 
   // Dates
@@ -82,6 +107,8 @@ export default function VehicleDetailsScreen() {
   const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [endPickerOpen, setEndPickerOpen] = useState(false);
   const [breakupOpen, setBreakupOpen] = useState(false);
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
+  const [customAnglePhotos, setCustomAnglePhotos] = useState<Record<string, string>>({});
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
 
   // KM Package selection
@@ -104,6 +131,46 @@ export default function VehicleDetailsScreen() {
     }
   };
 
+  const handleCaptureAnglePhoto = async (angleKey: string, mode: 'camera' | 'gallery') => {
+    try {
+      if (mode === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Camera Permission Needed', 'Please allow camera access to capture live car angle photos.');
+          return;
+        }
+        const res = await ImagePicker.launchCameraAsync({
+          quality: 0.85,
+          allowsEditing: true,
+          aspect: [4, 3],
+        });
+        if (!res.canceled && res.assets?.[0]?.uri) {
+          setCustomAnglePhotos((prev) => ({ ...prev, [angleKey]: res.assets[0].uri }));
+        }
+      } else {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('Gallery Permission Needed', 'Please allow photo library access.');
+          return;
+        }
+        const res = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          quality: 0.85,
+          allowsEditing: true,
+          aspect: [4, 3],
+        });
+        if (!res.canceled && res.assets?.[0]?.uri) {
+          setCustomAnglePhotos((prev) => ({ ...prev, [angleKey]: res.assets[0].uri }));
+        }
+      }
+    } catch {
+      const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.85 });
+      if (!res.canceled && res.assets?.[0]?.uri) {
+        setCustomAnglePhotos((prev) => ({ ...prev, [angleKey]: res.assets[0].uri }));
+      }
+    }
+  };
+
   const days = useMemo(() => {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -118,7 +185,7 @@ export default function VehicleDetailsScreen() {
     if (!vehicle) return;
     try {
       await Share.share({
-        message: `Book ${vehicle.make} ${vehicle.model} on Safar Self Drive for ₹${vehicle.pricePerDay}/day! Private plates, zero deposit. https://safarselfdrive.com`,
+        message: `Book ${vehicle.make} ${vehicle.model} on Safar Self Drive for ₹${vehicle.pricePerDay}/day! Private white plates, ₹0 deposit. https://safarselfdrive.com`,
       });
     } catch (e) {
       console.error(e);
@@ -130,7 +197,7 @@ export default function VehicleDetailsScreen() {
   if (loading) {
     return (
       <View style={[s.center, { paddingTop: topPadding }]}>
-        <ActivityIndicator size="large" color="#2D114D" />
+        <ActivityIndicator size="large" color="#0F172A" />
         <Text style={s.centerText}>Loading vehicle specifications…</Text>
       </View>
     );
@@ -141,7 +208,7 @@ export default function VehicleDetailsScreen() {
       <View style={[s.center, { paddingTop: topPadding }]}>
         <Text style={{ color: '#64748B', fontSize: 16 }}>Vehicle details not found</Text>
         <TouchableOpacity style={s.backBtnSimple} onPress={() => router.back()}>
-          <Text style={{ color: '#2D114D', fontWeight: '700' }}>Go Back</Text>
+          <Text style={{ color: '#0F172A', fontWeight: '800' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -164,7 +231,7 @@ export default function VehicleDetailsScreen() {
       {/* ────────── TOP APP BAR (CLEAR OF NOTCH) ────────── */}
       <View style={s.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={s.navIconBtn} activeOpacity={0.7}>
-          <ArrowLeft size={20} color="#2D114D" />
+          <ArrowLeft size={19} color="#0F172A" />
         </TouchableOpacity>
 
         <View style={s.topBarTitleBox}>
@@ -180,13 +247,13 @@ export default function VehicleDetailsScreen() {
             <Text style={s.datesEditText}>
               {startDate} · {startTime} → {endDate}
             </Text>
-            <Edit2 size={10} color="#6B7280" />
+            <Edit2 size={10} color="#64748B" />
           </TouchableOpacity>
         </View>
 
         <View style={s.topBarRightActions}>
           <TouchableOpacity onPress={handleShare} style={s.navIconBtn} activeOpacity={0.7}>
-            <Share2 size={18} color="#2D114D" />
+            <Share2 size={17} color="#0F172A" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setIsFavorite((v) => !v)}
@@ -194,8 +261,8 @@ export default function VehicleDetailsScreen() {
             activeOpacity={0.7}
           >
             <Heart
-              size={18}
-              color={isFavorite ? '#FF6000' : '#2D114D'}
+              size={17}
+              color={isFavorite ? '#FF6000' : '#0F172A'}
               fill={isFavorite ? '#FF6000' : 'transparent'}
             />
           </TouchableOpacity>
@@ -204,7 +271,7 @@ export default function VehicleDetailsScreen() {
 
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={{ paddingBottom: 110 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
         {/* ────────── SUB NAVIGATION TABS ────────── */}
@@ -218,7 +285,12 @@ export default function VehicleDetailsScreen() {
             return (
               <TouchableOpacity
                 key={tab}
-                onPress={() => setActiveTab(tab)}
+                onPress={() => {
+                  setActiveTab(tab);
+                  if (tab === '8-Side Photos') {
+                    setGalleryModalOpen(true);
+                  }
+                }}
                 style={[s.tabPill, active && s.tabPillActive]}
                 activeOpacity={0.75}
               >
@@ -228,45 +300,61 @@ export default function VehicleDetailsScreen() {
           })}
         </ScrollView>
 
-        {/* ────────── MULTI-PHOTO GALLERY GRID ────────── */}
-        <View style={s.galleryContainer}>
+        {/* ────────── MULTI-PHOTO 8-ANGLE GALLERY GRID ────────── */}
+        <TouchableOpacity
+          style={s.galleryContainer}
+          activeOpacity={0.9}
+          onPress={() => setGalleryModalOpen(true)}
+        >
           {/* Main Hero Photo (Left) */}
           <View style={s.mainPhotoWrap}>
-            <Image source={mainImageSource} style={s.mainPhoto} resizeMode="contain" />
+            <Image
+              source={customAnglePhotos.FRONT ? { uri: customAnglePhotos.FRONT } : mainImageSource}
+              style={s.mainPhoto}
+              resizeMode="contain"
+            />
             <View style={s.coverBadge}>
-              <Text style={s.coverBadgeText}>Cover Photo</Text>
+              <Text style={s.coverBadgeText}>8-Side Verified Studio</Text>
             </View>
           </View>
 
           {/* Stacked Thumbnails (Right) */}
           <View style={s.thumbStack}>
             <View style={s.thumbBox}>
-              <Image source={mainImageSource} style={s.thumbImg} resizeMode="cover" />
+              <Image
+                source={customAnglePhotos.REAR ? { uri: customAnglePhotos.REAR } : mainImageSource}
+                style={s.thumbImg}
+                resizeMode="cover"
+              />
             </View>
             <View style={s.thumbBox}>
-              <Image source={mainImageSource} style={s.thumbImg} resizeMode="cover" />
+              <Image
+                source={customAnglePhotos.INTERIOR ? { uri: customAnglePhotos.INTERIOR } : mainImageSource}
+                style={s.thumbImg}
+                resizeMode="cover"
+              />
             </View>
             <View style={[s.thumbBox, s.morePhotosBox]}>
-              <Image source={mainImageSource} style={[s.thumbImg, { opacity: 0.35 }]} resizeMode="cover" />
+              <Image source={mainImageSource} style={[s.thumbImg, { opacity: 0.3 }]} resizeMode="cover" />
               <View style={s.morePhotosOverlay}>
                 <Camera size={14} color="#FFF" />
-                <Text style={s.morePhotosText}>+4 more</Text>
+                <Text style={s.morePhotosText}>All 8 Sides</Text>
               </View>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* ────────── VEHICLE HEADER INFO ────────── */}
         <View style={s.vehicleInfoCard}>
           <View style={s.vehicleTitleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={s.carMakeYear}>{vehicle.make} · {vehicle.year || '2024'}</Text>
+              <Text style={s.carMakeYear}>{vehicle.make} · {vehicle.year || '2025'} • PRIVATE PLATE</Text>
               <Text style={s.carFullTitle}>{vehicle.model}</Text>
             </View>
             <View style={s.ratingBadge}>
               <Star size={13} color="#FFB800" fill="#FFB800" />
               <Text style={s.ratingScore}>4.94</Text>
-              <Text style={s.ratingReviews}>(52 reviews)</Text>
+              <Text style={s.ratingReviews}>(52 trips)</Text>
             </View>
           </View>
 
@@ -279,27 +367,27 @@ export default function VehicleDetailsScreen() {
             <Text style={s.distanceBadge}>{distance} km away</Text>
           </View>
 
-          {/* Specs Pills Grid - Fixed No Text Break */}
+          {/* Specs Pills Grid */}
           <View style={s.specsGrid}>
             <View style={s.specCard}>
-              <Gauge size={16} color="#2D114D" />
+              <Gauge size={16} color="#0F172A" />
               <Text style={s.specVal} numberOfLines={1}>{vehicle.transmission || 'Automatic'}</Text>
               <Text style={s.specLbl}>Gearbox</Text>
             </View>
             <View style={s.specCard}>
-              <Fuel size={16} color="#2D114D" />
+              <Fuel size={16} color="#0F172A" />
               <Text style={s.specVal} numberOfLines={1}>{vehicle.fuelType || 'Diesel'}</Text>
               <Text style={s.specLbl}>Fuel Type</Text>
             </View>
             <View style={s.specCard}>
-              <Users size={16} color="#2D114D" />
+              <Users size={16} color="#0F172A" />
               <Text style={s.specVal} numberOfLines={1}>{vehicle.seats || 5} Seats</Text>
               <Text style={s.specLbl}>Capacity</Text>
             </View>
             <View style={s.specCard}>
               <ShieldCheck size={16} color="#059669" />
-              <Text style={[s.specVal, { color: '#059669' }]} numberOfLines={1}>Zero Dep</Text>
-              <Text style={s.specLbl}>KYC Passed</Text>
+              <Text style={[s.specVal, { color: '#059669' }]} numberOfLines={1}>₹0 Dep</Text>
+              <Text style={s.specLbl}>DigiLocker</Text>
             </View>
           </View>
         </View>
@@ -361,10 +449,9 @@ export default function VehicleDetailsScreen() {
         <View style={s.sectionBox}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <Sparkles size={16} color="#FF6000" />
-            <Text style={s.sectionHeaderTitle}>Ask Anything About This Car</Text>
+            <Text style={s.sectionHeaderTitle}>Quick Answers About This Car</Text>
           </View>
 
-          {/* Inquiry Chips */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -384,7 +471,6 @@ export default function VehicleDetailsScreen() {
             ))}
           </ScrollView>
 
-          {/* Answer Preview Box */}
           {selectedQuestion && (
             <View style={s.answerBox}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
@@ -405,9 +491,9 @@ export default function VehicleDetailsScreen() {
           <View style={s.hostReliabilityHeader}>
             <ShieldCheck size={20} color="#059669" />
             <View style={{ flex: 1 }}>
-              <Text style={s.hostReliabilityTitle}>Highly Reliable Safar Verified Host</Text>
+              <Text style={s.hostReliabilityTitle}>Safar Executive Verified Host</Text>
               <Text style={s.hostReliabilitySub}>
-                100% on-time car handover · Zero cancellations in last 20 bookings
+                100% on-time car handover · 8-angle pre-inspected before every trip
               </Text>
             </View>
           </View>
@@ -421,7 +507,7 @@ export default function VehicleDetailsScreen() {
 
         {/* ────────── SAFAR STANDARD PROMISE ────────── */}
         <View style={s.promiseCard}>
-          <Text style={s.promiseTitle}>Included with Every Booking</Text>
+          <Text style={s.promiseTitle}>Included with Every Safar Drive</Text>
           <View style={s.promiseList}>
             <View style={s.promiseItem}>
               <CheckCircle2 size={14} color="#059669" />
@@ -429,15 +515,15 @@ export default function VehicleDetailsScreen() {
             </View>
             <View style={s.promiseItem}>
               <CheckCircle2 size={14} color="#059669" />
-              <Text style={s.promiseText}>Full Comprehensive Insurance Included</Text>
+              <Text style={s.promiseText}>Full Comprehensive Insurance & 8-Side Walkaround</Text>
             </View>
             <View style={s.promiseItem}>
               <CheckCircle2 size={14} color="#059669" />
-              <Text style={s.promiseText}>24x7 Roadside Assistance across Gujarat</Text>
+              <Text style={s.promiseText}>24×7 Roadside Assistance across Gujarat</Text>
             </View>
             <View style={s.promiseItem}>
               <CheckCircle2 size={14} color="#059669" />
-              <Text style={s.promiseText}>Complete Dual GST Invoice (80/20 Invoicing)</Text>
+              <Text style={s.promiseText}>Complete Dual GST Invoice (SAC 997311)</Text>
             </View>
           </View>
         </View>
@@ -450,8 +536,8 @@ export default function VehicleDetailsScreen() {
           onPress={() => setBreakupOpen((v) => !v)}
           activeOpacity={0.7}
         >
-          <Text style={s.fareBreakupToggleText}>View Fare Breakup</Text>
-          {breakupOpen ? <ChevronDown size={14} color="#2D114D" /> : <ChevronUp size={14} color="#2D114D" />}
+          <Text style={s.fareBreakupToggleText}>View Transparent Fare Breakup</Text>
+          {breakupOpen ? <ChevronDown size={14} color="#0F172A" /> : <ChevronUp size={14} color="#0F172A" />}
         </TouchableOpacity>
 
         <View style={s.footerMainRow}>
@@ -495,6 +581,76 @@ export default function VehicleDetailsScreen() {
           Zero Security Deposit on DigiLocker verified KYC.
         </Text>
       </View>
+
+      {/* ────────── 8-ANGLE VEHICLE PHOTO GALLERY & CAMERA MODAL ────────── */}
+      <Modal
+        visible={galleryModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setGalleryModalOpen(false)}
+      >
+        <View style={s.breakupBackdrop}>
+          <View style={[s.breakupSheet, { maxHeight: '90%' }]}>
+            <View style={s.galleryHeaderRow}>
+              <View>
+                <Text style={s.breakupTitle}>8-Side Vehicle Photo Studio</Text>
+                <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                  Inspect all 8 angles or capture live walkaround photos with Camera
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setGalleryModalOpen(false)}
+                style={s.closeCircleBtn}
+              >
+                <X size={18} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 20 }}>
+              <View style={s.angleGrid}>
+                {CAR_8_ANGLES.map((angle) => {
+                  const customUri = customAnglePhotos[angle.key];
+                  return (
+                    <View key={angle.key} style={s.angleCard}>
+                      <View style={s.anglePhotoWrap}>
+                        <Image
+                          source={customUri ? { uri: customUri } : mainImageSource}
+                          style={s.anglePhotoImg}
+                          resizeMode="cover"
+                        />
+                        {customUri && (
+                          <View style={s.liveCapturedBadge}>
+                            <Text style={s.liveCapturedBadgeText}>LIVE PHOTO</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={s.angleCardTitle}>{angle.label}</Text>
+                      <Text style={s.angleCardSub}>{angle.sub}</Text>
+
+                      <View style={s.angleBtnRow}>
+                        <TouchableOpacity
+                          style={s.angleCamBtn}
+                          onPress={() => handleCaptureAnglePhoto(angle.key, 'camera')}
+                        >
+                          <Camera size={11} color="#FFFFFF" />
+                          <Text style={s.angleCamBtnText}>Camera</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={s.angleUploadBtn}
+                          onPress={() => handleCaptureAnglePhoto(angle.key, 'gallery')}
+                        >
+                          <Upload size={11} color="#0F172A" />
+                          <Text style={s.angleUploadBtnText}>Upload</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* ────────── EXPANDABLE FARE BREAKUP MODAL ────────── */}
       <Modal
@@ -577,17 +733,17 @@ export default function VehicleDetailsScreen() {
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F8F6FB',
+    backgroundColor: '#F8FAFC',
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F6FB',
+    backgroundColor: '#F8FAFC',
   },
   centerText: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 10,
     fontWeight: '600',
   },
@@ -596,7 +752,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#EFE9F6',
+    backgroundColor: '#E2E8F0',
   },
 
   /* Top Bar */
@@ -607,14 +763,14 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEBF5',
+    borderBottomColor: '#E2E8F0',
     gap: 10,
   },
   navIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3EEFA',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -624,7 +780,7 @@ const s = StyleSheet.create({
   topBarTitle: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   datesEditPill: {
     flexDirection: 'row',
@@ -634,7 +790,7 @@ const s = StyleSheet.create({
   },
   datesEditText: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '600',
   },
   topBarRightActions: {
@@ -649,20 +805,22 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   tabPill: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F3EEFA',
+    backgroundColor: '#F1F5F9',
   },
   tabPillActive: {
-    backgroundColor: '#2D114D',
+    backgroundColor: '#0F172A',
   },
   tabPillText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontWeight: '700',
+    color: '#475569',
   },
   tabPillTextActive: {
     color: '#FFFFFF',
@@ -681,7 +839,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
@@ -695,7 +853,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: 'rgba(45, 17, 77, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -714,7 +872,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
   },
   thumbImg: {
@@ -723,7 +881,7 @@ const s = StyleSheet.create({
   },
   morePhotosBox: {
     position: 'relative',
-    backgroundColor: '#2D114D',
+    backgroundColor: '#0F172A',
   },
   morePhotosOverlay: {
     position: 'absolute',
@@ -745,7 +903,7 @@ const s = StyleSheet.create({
     marginHorizontal: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
   },
   vehicleTitleRow: {
     flexDirection: 'row',
@@ -753,15 +911,16 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
   },
   carMakeYear: {
-    fontSize: 11,
-    color: '#8A8F98',
-    fontWeight: '700',
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '800',
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   carFullTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
     marginTop: 1,
   },
   ratingBadge: {
@@ -789,12 +948,12 @@ const s = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: '#F1F5F9',
   },
   hubText: {
     flex: 1,
     fontSize: 11,
-    color: '#374151',
+    color: '#334155',
     fontWeight: '600',
   },
   distanceBadge: {
@@ -803,7 +962,7 @@ const s = StyleSheet.create({
     color: '#FF6000',
   },
 
-  /* Responsive Specs Grid - No word break */
+  /* Responsive Specs Grid */
   specsGrid: {
     flexDirection: 'row',
     gap: 6,
@@ -811,23 +970,25 @@ const s = StyleSheet.create({
   },
   specCard: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 4,
     alignItems: 'center',
     minWidth: 64,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   specVal: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
     marginTop: 4,
     textAlign: 'center',
   },
   specLbl: {
     fontSize: 9,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 2,
     textAlign: 'center',
   },
@@ -839,12 +1000,12 @@ const s = StyleSheet.create({
   },
   sectionHeaderTitle: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#2D114D',
+    fontWeight: '900',
+    color: '#0F172A',
   },
   sectionHeaderSub: {
     fontSize: 11,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 2,
     marginBottom: 10,
   },
@@ -858,42 +1019,42 @@ const s = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     borderWidth: 1.5,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
   },
   packageCardActive: {
-    borderColor: '#2D114D',
-    backgroundColor: '#FAF7FD',
+    borderColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   radioCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioCircleActive: {
-    borderColor: '#2D114D',
+    borderColor: '#FF6000',
   },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#2D114D',
+    backgroundColor: '#FF6000',
   },
   packageTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#374151',
+    color: '#334155',
   },
   packageTitleActive: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontWeight: '800',
   },
   packageSub: {
     fontSize: 10,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 2,
   },
   recommendedBadge: {
@@ -910,7 +1071,7 @@ const s = StyleSheet.create({
   packagePrice: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
   },
 
   /* Ask Anything Chips */
@@ -924,15 +1085,15 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
   },
   inquiryChipActive: {
-    backgroundColor: '#2D114D',
-    borderColor: '#2D114D',
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   inquiryChipText: {
     fontSize: 11,
-    color: '#374151',
+    color: '#334155',
     fontWeight: '600',
   },
   inquiryChipTextActive: {
@@ -951,55 +1112,56 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#065F46',
-    marginBottom: 2,
   },
   answerBodyText: {
     fontSize: 11,
     color: '#047857',
+    marginTop: 3,
     lineHeight: 16,
   },
 
   /* Host Reliability Card */
   hostReliabilityCard: {
     marginHorizontal: 16,
-    marginTop: 18,
+    marginTop: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
-    overflow: 'hidden',
+    borderColor: '#E2E8F0',
   },
   hostReliabilityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 14,
   },
   hostReliabilityTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   hostReliabilitySub: {
     fontSize: 11,
-    color: '#6B7280',
-    marginTop: 1,
+    color: '#64748B',
+    marginTop: 2,
   },
   hostOfferStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#2D114D',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 12,
   },
   hostOfferText: {
-    fontSize: 10,
-    color: '#E9DDF7',
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400E',
   },
 
-  /* Promise Card */
+  /* Standard Promise Card */
   promiseCard: {
     marginHorizontal: 16,
     marginTop: 16,
@@ -1007,12 +1169,12 @@ const s = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
   },
   promiseTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
     marginBottom: 10,
   },
   promiseList: {
@@ -1024,9 +1186,9 @@ const s = StyleSheet.create({
     gap: 8,
   },
   promiseText: {
-    fontSize: 11,
-    color: '#374151',
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
   },
 
   /* Sticky Footer */
@@ -1037,60 +1199,55 @@ const s = StyleSheet.create({
     right: 0,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingHorizontal: 20,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 14,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 10,
   },
   fareBreakupToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    paddingVertical: 3,
+    paddingBottom: 6,
   },
   fareBreakupToggleText: {
     fontSize: 11,
-    color: '#2D114D',
     fontWeight: '700',
+    color: '#0F172A',
   },
   footerMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
   },
   footerLabel: {
-    fontSize: 11,
-    color: '#6B7280',
+    fontSize: 10.5,
+    color: '#64748B',
     fontWeight: '600',
   },
   footerPriceTotal: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   footerGstInclusive: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#64748B',
   },
   proceedBtn: {
-    backgroundColor: '#FF6000',
-    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    shadowColor: '#FF6000',
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: '#FF6000',
+    borderRadius: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 13,
   },
   proceedBtnText: {
     color: '#FFFFFF',
@@ -1100,82 +1257,186 @@ const s = StyleSheet.create({
   refundableNote: {
     fontSize: 10,
     color: '#059669',
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
     marginTop: 6,
   },
 
-  /* Breakup Modal */
+  /* Breakup & 8-Angle Gallery Modals */
   breakupBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
     justifyContent: 'flex-end',
   },
   breakupSheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    paddingBottom: 32,
   },
   breakupGrabber: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: '#CBD5E1',
     alignSelf: 'center',
     marginBottom: 14,
   },
   breakupTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#2D114D',
-    marginBottom: 14,
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
   },
   breakupRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    marginVertical: 6,
   },
   breakupKey: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 12.5,
+    color: '#475569',
   },
   breakupVal: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#1F1235',
+    color: '#0F172A',
   },
   breakupDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
-    marginVertical: 10,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 12,
   },
   breakupRowTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    alignItems: 'center',
   },
   breakupTotalKey: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   breakupTotalVal: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#FF6000',
+    color: '#0F172A',
   },
   closeBreakupBtn: {
-    backgroundColor: '#2D114D',
-    borderRadius: 14,
+    marginTop: 18,
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 18,
   },
   closeBreakupText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
+  },
+
+  /* 8-Angle Gallery Grid inside Modal */
+  galleryHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  closeCircleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  angleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  angleCard: {
+    width: (W - 52) / 2,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 9,
+  },
+  anglePhotoWrap: {
+    height: 85,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  anglePhotoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  liveCapturedBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#059669',
+    borderRadius: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  liveCapturedBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  angleCardTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 6,
+  },
+  angleCardSub: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  angleBtnRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 8,
+  },
+  angleCamBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#0F172A',
+    borderRadius: 7,
+    paddingVertical: 6,
+  },
+  angleCamBtnText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
+  angleUploadBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 7,
+    paddingVertical: 6,
+  },
+  angleUploadBtnText: {
+    color: '#0F172A',
+    fontSize: 9.5,
+    fontWeight: '700',
   },
 });

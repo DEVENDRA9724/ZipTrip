@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
+  Linking,
 } from 'react-native';
-import { router, usePathname } from 'expo-router';
+import { router } from 'expo-router';
 import {
   MapPin,
   User,
@@ -24,6 +25,7 @@ import {
   KeyRound,
   Wallet,
   PhoneCall,
+  ChevronDown,
 } from 'lucide-react-native';
 
 interface SafarHeaderProps {
@@ -34,7 +36,6 @@ interface SafarHeaderProps {
 
 export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
   const { user, logout } = require('@/context/AuthContext').useAuth();
-  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navigateTo = (href: any) => {
@@ -58,8 +59,8 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
             />
           </View>
           <View style={styles.brandTextWrap}>
-            <Text style={styles.brandMain}>safar</Text>
-            <Text style={styles.brandSub}>- SELF DRIVE -</Text>
+            <Text style={styles.brandMain}>SAFAR</Text>
+            <Text style={styles.brandSub}>SELF DRIVE • GUJARAT</Text>
           </View>
         </TouchableOpacity>
 
@@ -70,12 +71,22 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
               activeOpacity={0.8}
               onPress={onPressCity}
             >
-              <MapPin size={13} color="#FF6000" strokeWidth={2.4} />
+              <MapPin size={12} color="#FF6000" strokeWidth={2.5} />
               <Text style={styles.cityPillText} numberOfLines={1}>
                 {selectedCity === 'All' || !selectedCity ? 'All Cities' : selectedCity}
               </Text>
+              <ChevronDown size={11} color="#64748B" />
             </TouchableOpacity>
           )}
+
+          {/* 24x7 Quick Support Button */}
+          <TouchableOpacity
+            style={styles.sosBtn}
+            activeOpacity={0.8}
+            onPress={() => Linking.openURL('tel:+919909031177')}
+          >
+            <PhoneCall size={14} color="#059669" />
+          </TouchableOpacity>
 
           {user ? (
             <TouchableOpacity
@@ -83,7 +94,7 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
               activeOpacity={0.85}
               onPress={() => router.push('/wallet')}
             >
-              <User size={15} color="#2D114D" strokeWidth={2.4} />
+              <User size={14} color="#0F172A" strokeWidth={2.4} />
               <Text style={styles.userBtnText} numberOfLines={1}>
                 {user.firstName || 'Account'}
               </Text>
@@ -95,7 +106,7 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
               onPress={() => router.push('/auth/login')}
             >
               <LogIn size={13} color="#FFFFFF" strokeWidth={2.4} />
-              <Text style={styles.signUpBtnText}>Log In</Text>
+              <Text style={styles.signUpBtnText}>Sign In</Text>
             </TouchableOpacity>
           )}
 
@@ -104,7 +115,7 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
             activeOpacity={0.8}
             onPress={() => setMenuOpen(true)}
           >
-            <Menu size={19} color="#2D114D" strokeWidth={2.4} />
+            <Menu size={18} color="#0F172A" strokeWidth={2.4} />
           </TouchableOpacity>
         </View>
       </View>
@@ -127,26 +138,26 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
                   />
                 </View>
                 <View style={styles.brandTextWrap}>
-                  <Text style={styles.brandMain}>safar</Text>
-                  <Text style={styles.brandSub}>- SELF DRIVE -</Text>
+                  <Text style={styles.brandMain}>SAFAR</Text>
+                  <Text style={styles.brandSub}>SELF DRIVE • GUJARAT</Text>
                 </View>
               </View>
               <TouchableOpacity
                 onPress={() => setMenuOpen(false)}
                 style={styles.closeBtn}
               >
-                <X size={20} color="#1E1B2E" />
+                <X size={20} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.drawerSectionTitle}>PORTAL NAVIGATION</Text>
+              <Text style={styles.drawerSectionTitle}>DISCOVER & BOOK</Text>
 
-              <TouchableOpacity style={styles.drawerRow} onPress={() => navigateTo('/')}>
+              <TouchableOpacity style={styles.drawerRow} onPress={() => navigateTo('/cars')}>
                 <Car size={18} color="#FF6000" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.drawerRowTitle}>Explore Verified Cars</Text>
-                  <Text style={styles.drawerRowSub}>Search fleet by hub, dates, budget & brand</Text>
+                  <Text style={styles.drawerRowTitle}>Explore Verified Fleet</Text>
+                  <Text style={styles.drawerRowSub}>Search cars by hub, dates, budget & body style</Text>
                 </View>
               </TouchableOpacity>
 
@@ -154,9 +165,9 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
                 style={styles.drawerRow}
                 onPress={() => navigateTo({ pathname: '/guides', params: { section: 'guides' } })}
               >
-                <Compass size={18} color="#2D114D" />
+                <Compass size={18} color="#0F172A" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.drawerRowTitle}>Gujarat Travel Guides</Text>
+                  <Text style={styles.drawerRowTitle}>Gujarat Road Trip Guides</Text>
                   <Text style={styles.drawerRowSub}>Statue of Unity, Gir, Rann of Kutch, Saputara</Text>
                 </View>
               </TouchableOpacity>
@@ -165,9 +176,9 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
                 style={styles.drawerRow}
                 onPress={() => navigateTo({ pathname: '/guides', params: { section: 'how' } })}
               >
-                <CheckCircle2 size={18} color="#0D9488" />
+                <CheckCircle2 size={18} color="#059669" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.drawerRowTitle}>How It Works</Text>
+                  <Text style={styles.drawerRowTitle}>How Safar Works</Text>
                   <Text style={styles.drawerRowSub}>4-step digital rental, 8-angle handover & 80/20 GST</Text>
                 </View>
               </TouchableOpacity>
@@ -178,42 +189,42 @@ export function SafarHeader({ selectedCity, onPressCity }: SafarHeaderProps) {
               >
                 <HelpCircle size={18} color="#FF6000" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.drawerRowTitle}>Help & 24×7 Roadside Support</Text>
+                  <Text style={styles.drawerRowTitle}>24×7 Roadside SOS & Support</Text>
                   <Text style={styles.drawerRowSub}>Call +91 99090 31177, WhatsApp & FAQs</Text>
                 </View>
               </TouchableOpacity>
 
-              <Text style={[styles.drawerSectionTitle, { marginTop: 16 }]}>CUSTOMER & HOST HUB</Text>
+              <Text style={[styles.drawerSectionTitle, { marginTop: 16 }]}>ACCOUNT & HOST CENTER</Text>
 
               <TouchableOpacity style={styles.drawerRow} onPress={() => navigateTo('/trips')}>
-                <Calendar size={18} color="#2D114D" />
+                <Calendar size={18} color="#0F172A" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.drawerRowTitle}>My Trips, Agreements & Invoices</Text>
-                  <Text style={styles.drawerRowSub}>Manage active bookings & view Dual GST Invoices</Text>
+                  <Text style={styles.drawerRowTitle}>My Trips & 8-Angle Inspection</Text>
+                  <Text style={styles.drawerRowSub}>Manage bookings, handover photos & GST invoices</Text>
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.drawerRow} onPress={() => navigateTo('/verification')}>
-                <ShieldCheck size={18} color="#0D9488" />
+                <ShieldCheck size={18} color="#059669" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.drawerRowTitle}>DigiLocker Aadhaar & DL e-KYC</Text>
-                  <Text style={styles.drawerRowSub}>Instant government driver verification</Text>
+                  <Text style={styles.drawerRowSub}>Instant government verification for ₹0 deposit</Text>
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.drawerRow} onPress={() => navigateTo('/host')}>
                 <KeyRound size={18} color="#FF6000" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.drawerRowTitle}>List Your Car (Host & Dealer Hub)</Text>
-                  <Text style={styles.drawerRowSub}>Earn 80% revenue share & perform handover inspections</Text>
+                  <Text style={styles.drawerRowTitle}>Safar Host & Fleet Hub</Text>
+                  <Text style={styles.drawerRowSub}>List your car, upload 8-side photos & earn 80%</Text>
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.drawerRow} onPress={() => navigateTo('/wallet')}>
-                <Wallet size={18} color="#2D114D" />
+                <Wallet size={18} color="#0F172A" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.drawerRowTitle}>Account Profile & Wallet</Text>
-                  <Text style={styles.drawerRowSub}>Manage profile, wallet balance & security deposits</Text>
+                  <Text style={styles.drawerRowTitle}>Account Profile, KYC & Wallet</Text>
+                  <Text style={styles.drawerRowSub}>Manage profile, Safar Cash & billing GSTIN</Text>
                 </View>
               </TouchableOpacity>
             </ScrollView>
@@ -258,25 +269,25 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#E2E8F0',
   },
   navbar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 10,
   },
   logoCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     justifyContent: 'center',
@@ -284,29 +295,26 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   logoImg: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     resizeMode: 'contain',
   },
   brandTextWrap: {
     justifyContent: 'center',
   },
   brandMain: {
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: '900',
-    fontStyle: 'italic',
-    color: '#2D114D',
-    letterSpacing: -0.5,
-    lineHeight: 23,
-    textTransform: 'lowercase',
+    color: '#0F172A',
+    letterSpacing: 0.6,
+    lineHeight: 19,
   },
   brandSub: {
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: '800',
     color: '#FF6000',
-    letterSpacing: 1.7,
+    letterSpacing: 1.2,
     marginTop: 1,
-    textTransform: 'uppercase',
   },
   rightActions: {
     flexDirection: 'row',
@@ -320,82 +328,66 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 9,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    maxWidth: 110,
+    maxWidth: 120,
   },
   cityPillText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#1E1B2E',
+    color: '#0F172A',
+  },
+  sosBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   signUpBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FF6000',
+    backgroundColor: '#0F172A',
     paddingHorizontal: 11,
     paddingVertical: 7,
-    borderRadius: 9,
+    borderRadius: 10,
   },
   signUpBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   userBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: '#CBD5E1',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
     maxWidth: 100,
   },
   userBtnText: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontSize: 11.5,
     fontWeight: '800',
   },
   menuBtn: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  subNavBar: {
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    backgroundColor: '#FAFAFC',
-  },
-  subNavScroll: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    gap: 16,
-  },
-  subNavItem: {
-    paddingVertical: 2,
-  },
-  subNavItemActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#FF6000',
-  },
-  subNavText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  subNavTextActive: {
-    color: '#FF6000',
-    fontWeight: '800',
   },
   drawerBackdrop: {
     flex: 1,
@@ -469,11 +461,11 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#2D114D',
+    borderColor: '#0F172A',
     alignItems: 'center',
   },
   drawerLoginBtnText: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
   },

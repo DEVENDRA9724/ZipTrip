@@ -14,24 +14,22 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { apiRequest, getVehicleImageSource, getCarDistance, getVehicleTerms } from '@/services/api';
+import { apiRequest, getVehicleImageSource, getCarDistance } from '@/services/api';
 import { DateTimePickerModal } from '@/components/datetime-picker-modal';
 import {
   ArrowLeft,
   Search,
-  SlidersHorizontal,
   Star,
   Heart,
   MapPin,
   Calendar,
-  Clock,
-  Sparkles,
-  ChevronDown,
   ShieldCheck,
   Check,
   X,
   Car as CarIcon,
+  Award,
+  Zap,
+  ArrowUpDown,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
@@ -42,10 +40,16 @@ const CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Gandhinagar', 'Rajkot'];
 const FILTER_PILLS = [
   { key: 'ALL', label: 'All Fleet' },
   { key: 'SUV', label: 'SUVs & 4x4' },
-  { key: 'SEDAN', label: 'Sedans' },
+  { key: 'SEDAN', label: 'Executive Sedans' },
   { key: 'AUTOMATIC', label: 'Automatic' },
   { key: 'UNLIMITED', label: 'Unlimited KMs' },
   { key: 'BUDGET', label: 'Under ₹2,500' },
+];
+
+const SORT_OPTIONS = [
+  { key: 'POPULAR', label: 'Recommended' },
+  { key: 'PRICE_ASC', label: 'Price: Low → High' },
+  { key: 'PRICE_DESC', label: 'Price: High → Low' },
 ];
 
 export default function CarListingScreen() {
@@ -60,24 +64,24 @@ export default function CarListingScreen() {
     endTime?: string;
     kmPackage?: 'standard' | 'unlimited';
     tier?: string;
+    bodyFilter?: string;
     deliveryAnywhere?: string;
   }>();
 
   // Search Parameters from Home or default
   const [city, setCity] = useState(params.city || 'Ahmedabad');
-  const [hubAddress, setHubAddress] = useState(params.hub || 'Swami Vivekanand Bridge, Ahmedabad');
+  const [hubAddress, setHubAddress] = useState(params.hub || 'SVPI Airport Terminal 1, Ahmedabad');
   const [startDate, setStartDate] = useState(params.startDate || '2026-11-13');
   const [startTime, setStartTime] = useState(params.startTime || '10:00 AM');
   const [endDate, setEndDate] = useState(params.endDate || '2026-11-14');
   const [endTime, setEndTime] = useState(params.endTime || '10:00 AM');
-  const [kmPackage, setKmPackage] = useState<'standard' | 'unlimited'>(
-    (params.kmPackage as any) || (params.tier === 'outstation' ? 'unlimited' : 'standard')
+  const [activeTier, setActiveTier] = useState<'daily' | 'lease'>(
+    params.tier === 'lease' ? 'lease' : 'daily'
   );
 
-  // Filters & Search
-  const [activeFilter, setActiveFilter] = useState(
-    params.tier === 'outstation' ? 'SUV' : params.tier === 'airport' ? 'SEDAN' : 'ALL'
-  );
+  // Filters, Sort & Search
+  const [activeFilter, setActiveFilter] = useState(params.bodyFilter || 'ALL');
+  const [sortBy, setSortBy] = useState('POPULAR');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
@@ -92,7 +96,6 @@ export default function CarListingScreen() {
 
   const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 54) + 6 : Math.max(insets.top, 24);
 
-  // Fetch vehicles for selected city
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -121,30 +124,27 @@ export default function CarListingScreen() {
   const days = useMemo(() => {
     const a = new Date(startDate).getTime();
     const b = new Date(endDate).getTime();
-    if (isNaN(a) || isNaN(b) || b <= a) return 1;
+    if (isNaN(a) || isNaN(b) || b <= a) return activeTier === 'lease' ? 7 : 1;
     return Math.max(1, Math.ceil((b - a) / 864e5));
-  }, [startDate, endDate]);
+  }, [startDate, endDate, activeTier]);
 
   const formatShortDate = (s: string) => {
     const d = new Date(s);
     return isNaN(d.getTime()) ? s : d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
   };
 
-  // Filtered & Searched Fleet
+  // Filtered & Sorted Fleet
   const filteredCars = useMemo(() => {
-    return vehicles.filter((v) => {
-      // Exclude taxi if not relevant
+    const base = vehicles.filter((v) => {
       const isTaxi = String(v.model || '').toLowerCase().includes('taxi');
       if (isTaxi) return false;
 
-      // Filter query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const fullName = `${v.make} ${v.model}`.toLowerCase();
+        const fullName = `${v.make} ${v.model} ${v.fuelType || ''} ${v.transmission || ''}`.toLowerCase();
         if (!fullName.includes(q)) return false;
       }
 
-      // Filter pills
       const cat = String(v.category || '').toUpperCase();
       const trans = String(v.transmission || '').toLowerCase();
       const price = Number(v.pricePerDay || 2500);
@@ -163,7 +163,15 @@ export default function CarListingScreen() {
       }
       return true;
     });
-  }, [vehicles, activeFilter, searchQuery]);
+
+    if (sortBy === 'PRICE_ASC') {
+      return [...base].sort((a, b) => Number(a.pricePerDay || 2500) - Number(b.pricePerDay || 2500));
+    }
+    if (sortBy === 'PRICE_DESC') {
+      return [...base].sort((a, b) => Number(b.pricePerDay || 2500) - Number(a.pricePerDay || 2500));
+    }
+    return base;
+  }, [vehicles, activeFilter, searchQuery, sortBy]);
 
   const openCar = (id: string) => {
     router.push({
@@ -174,14 +182,14 @@ export default function CarListingScreen() {
 
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>
-      {/* ────────── TOP APP BAR WITH BACK NAVIGATION ────────── */}
+      {/* ────────── TOP APP BAR ────────── */}
       <View style={s.topBar}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.push('/'))}
           style={s.backBtn}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={20} color="#2D114D" />
+          <ArrowLeft size={19} color="#0F172A" />
         </TouchableOpacity>
 
         {/* Date & Location Capsule */}
@@ -195,7 +203,7 @@ export default function CarListingScreen() {
               <Text style={s.capsuleCityText}>{city}</Text>
               <Text style={s.capsuleDot}>•</Text>
               <Text style={s.capsuleDaysText}>
-                {days} {days === 1 ? 'day' : 'days'}
+                {days} {days === 1 ? 'Day' : 'Days'}
               </Text>
             </View>
             <Text style={s.capsuleDatesText} numberOfLines={1}>
@@ -204,7 +212,7 @@ export default function CarListingScreen() {
           </View>
 
           <View style={s.modifyBtn}>
-            <Calendar size={13} color="#2D114D" />
+            <Calendar size={13} color="#0F172A" />
           </View>
         </TouchableOpacity>
 
@@ -218,21 +226,49 @@ export default function CarListingScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ────────── PROGRAM SWITCHER BAR (DAILY DRIVE vs SAFAR RESERVE™) ────────── */}
+      <View style={s.programSwitchBar}>
+        <TouchableOpacity
+          style={[s.programTab, activeTier === 'daily' && s.programTabActive]}
+          onPress={() => setActiveTier('daily')}
+          activeOpacity={0.85}
+        >
+          <Zap size={13} color={activeTier === 'daily' ? '#FF6000' : '#64748B'} />
+          <Text style={[s.programTabText, activeTier === 'daily' && s.programTabTextActive]}>
+            Daily & Weekend Drive
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[s.programTab, activeTier === 'lease' && s.programTabActive]}
+          onPress={() => {
+            setActiveTier('lease');
+            setEndDate('2026-11-20');
+          }}
+          activeOpacity={0.85}
+        >
+          <Award size={13} color={activeTier === 'lease' ? '#FF6000' : '#64748B'} />
+          <Text style={[s.programTabText, activeTier === 'lease' && s.programTabTextActive]}>
+            Safar Reserve™ (-25% Lease)
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* ────────── SEARCH INPUT & FILTER PILLS ────────── */}
       <View style={s.filterHeaderWrap}>
         {/* Search Bar */}
         <View style={s.searchBarBox}>
-          <Search size={15} color="#9CA3AF" />
+          <Search size={15} color="#94A3B8" />
           <TextInput
             style={s.searchInput}
-            placeholder="Search Thar, Creta, Swift, Automatic…"
-            placeholderTextColor="#9CA3AF"
+            placeholder="Search Thar, Creta, Virtus, Diesel, Automatic…"
+            placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <X size={15} color="#6B7280" />
+              <X size={15} color="#64748B" />
             </TouchableOpacity>
           )}
         </View>
@@ -261,29 +297,47 @@ export default function CarListingScreen() {
         </ScrollView>
       </View>
 
-      {/* ────────── RESULTS STATUS STRIP ────────── */}
+      {/* ────────── RESULTS STATUS & SORT STRIP ────────── */}
       <View style={s.resultsStrip}>
-        <Text style={s.resultsCountText}>
-          {loading ? 'Finding available cars…' : `${filteredCars.length} verified cars available`}
-        </Text>
-        <View style={s.trustBadge}>
-          <ShieldCheck size={12} color="#059669" />
-          <Text style={s.trustBadgeText}>Zero Deposit on DigiLocker</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={s.resultsCountText}>
+            {loading ? 'Loading fleet…' : `${filteredCars.length} Private-Plate Cars`}
+          </Text>
+          <View style={s.trustBadge}>
+            <ShieldCheck size={11} color="#059669" />
+            <Text style={s.trustBadgeText}>₹0 Deposit</Text>
+          </View>
         </View>
+
+        {/* Sort Cycle Button */}
+        <TouchableOpacity
+          style={s.sortCycleBtn}
+          onPress={() => {
+            const idx = SORT_OPTIONS.findIndex((o) => o.key === sortBy);
+            const next = SORT_OPTIONS[(idx + 1) % SORT_OPTIONS.length];
+            setSortBy(next.key);
+          }}
+          activeOpacity={0.8}
+        >
+          <ArrowUpDown size={11} color="#0F172A" />
+          <Text style={s.sortCycleText}>
+            {SORT_OPTIONS.find((o) => o.key === sortBy)?.label}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* ────────── 2-COLUMN CAR GRID ────────── */}
       {loading ? (
         <View style={s.loadingContainer}>
-          <ActivityIndicator size="large" color="#2D114D" />
-          <Text style={s.loadingText}>Loading available vehicles…</Text>
+          <ActivityIndicator size="large" color="#0F172A" />
+          <Text style={s.loadingText}>Loading verified Gujarat fleet…</Text>
         </View>
       ) : filteredCars.length === 0 ? (
         <View style={s.emptyContainer}>
           <CarIcon size={44} color="#CBD5E1" />
           <Text style={s.emptyTitle}>No cars match your filters</Text>
           <Text style={s.emptySub}>
-            Try clearing the search or selecting a different filter category.
+            Try clearing the search query or selecting All Fleet.
           </Text>
           <TouchableOpacity
             style={s.resetFiltersBtn}
@@ -302,8 +356,8 @@ export default function CarListingScreen() {
         >
           <View style={s.carGrid}>
             {filteredCars.map((car) => {
-              const terms = getVehicleTerms(car);
-              const price = Number(car.pricePerDay || 2500);
+              const rawPrice = Number(car.pricePerDay || 2500);
+              const price = activeTier === 'lease' ? Math.round(rawPrice * 0.78) : rawPrice;
               const isFav = !!favorites[car.id];
               const dist = getCarDistance(car);
 
@@ -340,6 +394,12 @@ export default function CarListingScreen() {
                         fill={isFav ? '#FF6000' : 'transparent'}
                       />
                     </TouchableOpacity>
+
+                    {activeTier === 'lease' && (
+                      <View style={s.reserveDiscountTag}>
+                        <Text style={s.reserveDiscountText}>RESERVE -22%</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Body Content */}
@@ -354,7 +414,7 @@ export default function CarListingScreen() {
                     </Text>
 
                     <Text style={s.carDistanceText}>
-                      📍 {dist} km away
+                      📍 {dist} km • White Plate
                     </Text>
 
                     <View style={s.cardDivider} />
@@ -395,7 +455,7 @@ export default function CarListingScreen() {
           onPress={() => setCityModalOpen(false)}
         >
           <View style={s.cityDialog}>
-            <Text style={s.cityDialogTitle}>Select Gujarat Location</Text>
+            <Text style={s.cityDialogTitle}>Select Gujarat City Hub</Text>
             {CITIES.map((c) => {
               const active = c === city;
               return (
@@ -408,7 +468,7 @@ export default function CarListingScreen() {
                     setCityModalOpen(false);
                   }}
                 >
-                  <MapPin size={15} color={active ? '#FF6000' : '#6B7280'} />
+                  <MapPin size={15} color={active ? '#FF6000' : '#64748B'} />
                   <Text style={[s.cityOptionText, active && s.cityOptionTextActive]}>{c}</Text>
                   {active && <Check size={16} color="#FF6000" />}
                 </TouchableOpacity>
@@ -452,7 +512,7 @@ export default function CarListingScreen() {
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F7F6FA',
+    backgroundColor: '#F8FAFC',
   },
 
   /* Top Bar */
@@ -463,14 +523,14 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#EBE7F3',
+    borderBottomColor: '#E2E8F0',
     gap: 10,
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3EEFA',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -479,10 +539,10 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FAF8FD',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E6DDF2',
+    borderColor: '#CBD5E1',
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
@@ -497,11 +557,11 @@ const s = StyleSheet.create({
   capsuleCityText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   capsuleDot: {
     fontSize: 10,
-    color: '#9CA3AF',
+    color: '#94A3B8',
   },
   capsuleDaysText: {
     fontSize: 11,
@@ -510,14 +570,14 @@ const s = StyleSheet.create({
   },
   capsuleDatesText: {
     fontSize: 10.5,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 1,
   },
   modifyBtn: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#EBE2F5',
+    backgroundColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -525,16 +585,52 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFF1E8',
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  /* Program Switch Bar */
+  programSwitchBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    gap: 8,
+  },
+  programTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  programTabActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  programTabText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  programTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
 
   /* Filters */
   filterHeaderWrap: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#EBE7F3',
+    borderBottomColor: '#E2E8F0',
     paddingTop: 10,
     paddingBottom: 10,
   },
@@ -544,7 +640,7 @@ const s = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
     marginHorizontal: 16,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -553,7 +649,7 @@ const s = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 12.5,
-    color: '#1F2937',
+    color: '#0F172A',
     padding: 0,
   },
   filterPillsScroll: {
@@ -565,18 +661,18 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: '#F3EEFA',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#EFEBF5',
+    borderColor: '#E2E8F0',
   },
   filterPillActive: {
-    backgroundColor: '#2D114D',
-    borderColor: '#2D114D',
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
   },
   filterPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#2D114D',
+    color: '#334155',
   },
   filterPillTextActive: {
     color: '#FFFFFF',
@@ -594,21 +690,37 @@ const s = StyleSheet.create({
   resultsCountText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   trustBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
   },
   trustBadgeText: {
-    fontSize: 10,
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  sortCycleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  sortCycleText: {
+    fontSize: 10.5,
     fontWeight: '700',
-    color: '#065F46',
+    color: '#0F172A',
   },
 
   /* Grid */
@@ -626,9 +738,9 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#EBE7F3',
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
-    shadowColor: '#2D114D',
+    shadowColor: '#0F172A',
     shadowOpacity: 0.04,
     shadowRadius: 6,
     elevation: 2,
@@ -636,7 +748,7 @@ const s = StyleSheet.create({
   },
   carPhotoCanvas: {
     height: 115,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
     position: 'relative',
   },
   carImage: {
@@ -650,7 +762,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(45, 17, 77, 0.85)',
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -667,9 +779,23 @@ const s = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  reserveDiscountTag: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    backgroundColor: '#059669',
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  reserveDiscountText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '900',
   },
   carBody: {
     padding: 10,
@@ -677,29 +803,29 @@ const s = StyleSheet.create({
   carMakeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   carModelText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
     marginTop: 1,
   },
   carSpecsText: {
     fontSize: 10,
-    color: '#6B7280',
+    color: '#64748B',
     marginTop: 2,
   },
   carDistanceText: {
     fontSize: 9.5,
-    color: '#8A8F98',
+    color: '#64748B',
     marginTop: 3,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     marginVertical: 8,
   },
   pricingRow: {
@@ -710,16 +836,16 @@ const s = StyleSheet.create({
   priceNumber: {
     fontSize: 13.5,
     fontWeight: '900',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   priceUnit: {
     fontSize: 9.5,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#64748B',
   },
   totalPriceText: {
     fontSize: 9,
-    color: '#9CA3AF',
+    color: '#64748B',
     marginTop: 1,
   },
   bookBtn: {
@@ -741,7 +867,7 @@ const s = StyleSheet.create({
   },
   loadingText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
     fontWeight: '600',
   },
   emptyContainer: {
@@ -753,21 +879,21 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#EBE7F3',
+    borderColor: '#E2E8F0',
   },
   emptyTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#2D114D',
+    color: '#0F172A',
   },
   emptySub: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 17,
   },
   resetFiltersBtn: {
-    backgroundColor: '#2D114D',
+    backgroundColor: '#0F172A',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -782,7 +908,7 @@ const s = StyleSheet.create({
   /* City Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -796,8 +922,8 @@ const s = StyleSheet.create({
   },
   cityDialogTitle: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#2D114D',
+    fontWeight: '900',
+    color: '#0F172A',
     marginBottom: 8,
   },
   cityOption: {
@@ -809,16 +935,16 @@ const s = StyleSheet.create({
     gap: 10,
   },
   cityOptionActive: {
-    backgroundColor: '#FAF5FF',
+    backgroundColor: '#F8FAFC',
   },
   cityOptionText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: '#334155',
   },
   cityOptionTextActive: {
-    color: '#2D114D',
+    color: '#0F172A',
     fontWeight: '800',
   },
 });
