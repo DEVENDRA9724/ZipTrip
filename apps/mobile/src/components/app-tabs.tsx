@@ -1,4 +1,5 @@
 import React from 'react';
+import { Tabs, router, usePathname } from 'expo-router';
 import {
   View,
   Text,
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
-import { usePathname, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Home,
@@ -17,38 +17,67 @@ import {
 } from 'lucide-react-native';
 
 const TABS = [
-  { name: 'Home', route: '/', Icon: Home },
-  { name: 'Explore', route: '/cars', Icon: Search },
-  { name: 'Trips', route: '/trips', Icon: Calendar },
-  { name: 'Host', route: '/host', Icon: Car },
-  { name: 'Account', route: '/wallet', Icon: User },
+  {
+    name: 'Home',
+    route: '/',
+    match: (p: string) => p === '/' || p === '/index',
+    Icon: Home,
+  },
+  {
+    name: 'Explore',
+    route: '/cars',
+    match: (p: string) => p.startsWith('/cars'),
+    Icon: Search,
+  },
+  {
+    name: 'Trips',
+    route: '/trips',
+    match: (p: string) => p.startsWith('/trips'),
+    Icon: Calendar,
+  },
+  {
+    name: 'Host',
+    route: '/host',
+    match: (p: string) => p.startsWith('/host'),
+    Icon: Car,
+  },
+  {
+    name: 'Account',
+    route: '/wallet',
+    match: (p: string) =>
+      p.startsWith('/wallet') || p.startsWith('/verification') || p.startsWith('/guides'),
+    Icon: User,
+  },
 ];
 
-export default function AppTabs() {
+function SafarTabBar() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
 
-  const isActive = (route: string) => {
-    if (route === '/') return pathname === '/' || pathname === '/index';
-    return pathname.startsWith(route);
-  };
+  if (
+    pathname.startsWith('/details') ||
+    pathname.startsWith('/booking') ||
+    pathname.startsWith('/auth')
+  ) {
+    return null;
+  }
 
   return (
     <View
       style={[
         styles.barContainer,
         {
-          paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : 10,
+          paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 18) : 10,
         },
       ]}
     >
       <View style={styles.barInner}>
-        {TABS.map(({ name, route, Icon }) => {
-          const active = isActive(route);
+        {TABS.map(({ name, route, match, Icon }) => {
+          const active = match(pathname);
           return (
             <TouchableOpacity
               key={route}
-              onPress={() => router.push(route as any)}
+              onPress={() => router.navigate(route as any)}
               activeOpacity={0.7}
               style={styles.tabItem}
             >
@@ -65,6 +94,25 @@ export default function AppTabs() {
         })}
       </View>
     </View>
+  );
+}
+
+export default function AppTabs() {
+  return (
+    <Tabs tabBar={() => <SafarTabBar />} screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="cars" />
+      <Tabs.Screen name="trips" />
+      <Tabs.Screen name="verification" />
+      <Tabs.Screen name="host" />
+      <Tabs.Screen name="wallet" />
+      <Tabs.Screen name="guides" />
+      <Tabs.Screen name="details/[id]" />
+      <Tabs.Screen name="booking/confirm" />
+      <Tabs.Screen name="booking/agreement" />
+      <Tabs.Screen name="auth/login" />
+      <Tabs.Screen name="auth/register" />
+    </Tabs>
   );
 }
 
