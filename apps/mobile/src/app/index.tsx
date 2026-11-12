@@ -8,8 +8,8 @@ import {
   Image,
   ActivityIndicator,
   Modal,
-  Dimensions,
   Platform,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -18,54 +18,49 @@ import { DateTimePickerModal } from '@/components/datetime-picker-modal';
 import {
   MapPin,
   ChevronDown,
-  Search,
-  Star,
   ShieldCheck,
   Car,
   Heart,
   ArrowRight,
   Check,
-  Award,
-  Zap,
   Calendar,
   User,
+  PhoneCall,
 } from 'lucide-react-native';
-
-const { width: W } = Dimensions.get('window');
 
 const CITIES = ['Ahmedabad', 'Surat', 'Vadodara', 'Gandhinagar', 'Rajkot'];
 
 const POPULAR_HUBS: Record<string, string[]> = {
   Ahmedabad: [
-    'SVP International Airport (T1)',
+    'SVP International Airport (Terminal 1)',
     'SG Highway Hub, Prahlad Nagar',
     'Swami Vivekanand Bridge, Riverfront',
-    'Sabarmati Bullet Train Hub',
+    'Sabarmati Bullet Train Station Hub',
   ],
   Surat: [
     'Surat International Airport (STV)',
-    'Vesu VIP Road Executive Hub',
+    'Vesu VIP Road Hub',
     'Adajan Riverfront Hub',
   ],
   Vadodara: [
     'Vadodara Airport (BDQ)',
-    'Alkapuri Railway Station Hub',
+    'Alkapuri Station Road Hub',
   ],
   Gandhinagar: [
     'GIFT City Tower 1 Hub',
     'Mahatma Mandir Sector 13',
   ],
   Rajkot: [
-    'Hirasar International Airport',
-    'Kalawad Road Crystal Hub',
+    'Hirasar Airport Hub',
+    'Kalawad Road Hub',
   ],
 };
 
-const QUICK_CATEGORIES = [
-  { key: 'ALL', label: 'All Cars' },
-  { key: 'SUV', label: 'SUVs' },
+const FLEET_FILTERS = [
+  { key: 'ALL', label: 'All Vehicles' },
+  { key: 'SUV', label: 'SUV & 4x4' },
   { key: 'AUTOMATIC', label: 'Automatic' },
-  { key: 'SEDAN', label: 'Sedans' },
+  { key: 'SEDAN', label: 'Sedan' },
   { key: 'BUDGET', label: 'Under ₹2,500' },
 ];
 
@@ -73,15 +68,15 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = require('@/context/AuthContext').useAuth();
 
-  // Search state
+  // Booking Widget State
   const [city, setCity] = useState('Ahmedabad');
-  const [hubAddress, setHubAddress] = useState('SVP International Airport (T1)');
+  const [hubAddress, setHubAddress] = useState('SVP International Airport (Terminal 1)');
   const [startDate, setStartDate] = useState('2026-11-13');
   const [startTime, setStartTime] = useState('10:00 AM');
   const [endDate, setEndDate] = useState('2026-11-14');
   const [endTime, setEndTime] = useState('10:00 AM');
   const [kmPackage, setKmPackage] = useState<'standard' | 'unlimited'>('standard');
-  const [activeTier, setActiveTier] = useState<'daily' | 'lease'>('daily');
+  const [bookingMode, setBookingMode] = useState<'daily' | 'lease'>('daily');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
 
   // Modals
@@ -157,9 +152,9 @@ export default function HomeScreen() {
   const days = useMemo(() => {
     const a = new Date(startDate).getTime();
     const b = new Date(endDate).getTime();
-    if (isNaN(a) || isNaN(b) || b <= a) return 1;
+    if (isNaN(a) || isNaN(b) || b <= a) return bookingMode === 'lease' ? 7 : 1;
     return Math.max(1, Math.ceil((b - a) / 864e5));
-  }, [startDate, endDate]);
+  }, [startDate, endDate, bookingMode]);
 
   const formatShortDate = (s: string) => {
     const d = new Date(s);
@@ -179,7 +174,7 @@ export default function HomeScreen() {
         startTime,
         endTime,
         kmPackage,
-        tier: activeTier,
+        tier: bookingMode,
         bodyFilter: selectedCategory,
       },
     });
@@ -209,234 +204,240 @@ export default function HomeScreen() {
 
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>
-      {/* ────────── MINIMALIST HEADER (NO OVERFLOW) ────────── */}
-      <View style={s.header}>
+      {/* ────────── 1. AUTHORITATIVE TOP HEADER ────────── */}
+      <View style={s.topHeader}>
         <TouchableOpacity
-          style={s.brandLocationBtn}
+          style={s.brandRow}
           onPress={() => setCityModalOpen(true)}
           activeOpacity={0.75}
         >
-          <View style={s.logoBox}>
-            <Image
-              source={require('../../assets/safar-logo.png')}
-              style={s.logoImg}
-              resizeMode="contain"
-            />
-          </View>
+          <Image
+            source={require('../../assets/safar-logo.png')}
+            style={s.brandLogo}
+            resizeMode="contain"
+          />
           <View>
-            <Text style={s.brandTitle}>Safar</Text>
-            <View style={s.citySelectorRow}>
-              <MapPin size={11} color="#FF6000" />
-              <Text style={s.cityText}>{city}</Text>
-              <ChevronDown size={12} color="#64748B" />
+            <Text style={s.brandName}>SAFAR</Text>
+            <View style={s.locationRow}>
+              <Text style={s.locationCity}>{city}</Text>
+              <ChevronDown size={13} color="#475569" />
             </View>
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={s.accountBtn}
-          onPress={() => router.push(user ? '/wallet' : '/auth/login')}
-          activeOpacity={0.8}
-        >
-          {user ? (
-            <View style={s.userAvatar}>
-              <Text style={s.userAvatarText}>
+        <View style={s.headerActions}>
+          <TouchableOpacity
+            style={s.helplineBtn}
+            onPress={() => Linking.openURL('tel:+919900000001')}
+            activeOpacity={0.75}
+          >
+            <PhoneCall size={14} color="#0F172A" />
+            <Text style={s.helplineText}>24x7 Help</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.profileBtn}
+            onPress={() => router.push(user ? '/wallet' : '/auth/login')}
+            activeOpacity={0.8}
+          >
+            {user ? (
+              <Text style={s.profileInitial}>
                 {(user.firstName?.[0] || user.email?.[0] || 'U').toUpperCase()}
               </Text>
-            </View>
-          ) : (
-            <View style={s.signInChip}>
-              <User size={14} color="#0F172A" />
-              <Text style={s.signInChipText}>Sign In</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+            ) : (
+              <User size={16} color="#FFFFFF" />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ────────── CLEAN GREETING & SEARCH CARD ────────── */}
-        <View style={s.heroSection}>
-          <Text style={s.heroHeading}>Find your next drive</Text>
-          <Text style={s.heroSubheading}>
-            Private white-plate cars in {city} • ₹0 security deposit
-          </Text>
-
-          {/* Clean Light Search Card */}
-          <View style={s.searchCard}>
-            {/* 1. Location Selector */}
-            <TouchableOpacity
-              style={s.locationInputRow}
-              onPress={() => setCityModalOpen(true)}
-              activeOpacity={0.75}
-            >
-              <View style={s.iconCircle}>
-                <MapPin size={16} color="#FF6000" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.inputLabel}>Pickup & Return Hub</Text>
-                <Text style={s.inputValue} numberOfLines={1}>
-                  {hubAddress}
-                </Text>
-              </View>
-              <Text style={s.changeLink}>Change</Text>
-            </TouchableOpacity>
-
-            <View style={s.divider} />
-
-            {/* 2. Dates Row */}
-            <View style={s.datesRow}>
+        {/* ────────── 2. STRUCTURED RESERVATION ENGINE (LIKE SIXT / REVV) ────────── */}
+        <View style={s.bookingSection}>
+          {/* Mode Tabs Built Directly Into the Reservation Card */}
+          <View style={s.reservationCard}>
+            <View style={s.modeTabsBar}>
               <TouchableOpacity
-                style={s.dateCol}
-                onPress={() => setStartPickerOpen(true)}
-                activeOpacity={0.75}
+                style={[s.modeTab, bookingMode === 'daily' && s.modeTabActive]}
+                onPress={() => {
+                  setBookingMode('daily');
+                  setEndDate('2026-11-14');
+                }}
+                activeOpacity={0.85}
               >
-                <View style={s.dateLabelRow}>
-                  <Calendar size={12} color="#64748B" />
-                  <Text style={s.inputLabel}>Pick-up</Text>
-                </View>
-                <Text style={s.dateValue}>{formatShortDate(startDate)}</Text>
-                <Text style={s.timeValue}>{startTime}</Text>
+                <Text style={[s.modeTabTitle, bookingMode === 'daily' && s.modeTabTitleActive]}>
+                  Daily & Weekend
+                </Text>
+                <Text style={s.modeTabSub}>1 to 6 Days Rental</Text>
               </TouchableOpacity>
 
-              <View style={s.durationPill}>
-                <Text style={s.durationPillText}>
-                  {days} {days === 1 ? 'Day' : 'Days'}
-                </Text>
-              </View>
-
               <TouchableOpacity
-                style={[s.dateCol, { alignItems: 'flex-end' }]}
-                onPress={() => setEndPickerOpen(true)}
-                activeOpacity={0.75}
+                style={[s.modeTab, bookingMode === 'lease' && s.modeTabActive]}
+                onPress={() => {
+                  setBookingMode('lease');
+                  setEndDate('2026-11-20');
+                }}
+                activeOpacity={0.85}
               >
-                <View style={s.dateLabelRow}>
-                  <Calendar size={12} color="#64748B" />
-                  <Text style={s.inputLabel}>Return</Text>
+                <View style={s.reserveTitleRow}>
+                  <Text style={[s.modeTabTitle, bookingMode === 'lease' && s.modeTabTitleActive]}>
+                    Safar Reserve
+                  </Text>
+                  <View style={s.saveBadge}>
+                    <Text style={s.saveBadgeText}>-35%</Text>
+                  </View>
                 </View>
-                <Text style={s.dateValue}>{formatShortDate(endDate)}</Text>
-                <Text style={s.timeValue}>{endTime}</Text>
+                <Text style={s.modeTabSub}>7 to 90 Days Subscription</Text>
               </TouchableOpacity>
             </View>
 
-            {/* 3. Simple KM Toggle */}
-            <View style={s.kmSegment}>
+            <View style={s.cardInner}>
+              {/* Pickup & Return Location */}
               <TouchableOpacity
-                style={[s.kmOption, kmPackage === 'standard' && s.kmOptionActive]}
-                onPress={() => setKmPackage('standard')}
-                activeOpacity={0.8}
+                style={s.fieldBox}
+                onPress={() => setCityModalOpen(true)}
+                activeOpacity={0.75}
               >
-                <Text style={[s.kmOptionText, kmPackage === 'standard' && s.kmOptionTextActive]}>
-                  300 km/day
-                </Text>
+                <View style={s.fieldHeaderRow}>
+                  <Text style={s.fieldLabel}>PICK-UP & RETURN LOCATION</Text>
+                  <Text style={s.changeBtnText}>CHANGE</Text>
+                </View>
+                <View style={s.locationValueRow}>
+                  <MapPin size={15} color="#FF6000" />
+                  <Text style={s.fieldMainValue} numberOfLines={1}>
+                    {hubAddress}
+                  </Text>
+                </View>
               </TouchableOpacity>
 
+              {/* Pick-up & Drop-off Date Grid */}
+              <View style={s.dateGrid}>
+                <TouchableOpacity
+                  style={s.dateCell}
+                  onPress={() => setStartPickerOpen(true)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={s.fieldLabel}>PICK-UP DATE</Text>
+                  <Text style={s.dateMainText}>{formatShortDate(startDate)}</Text>
+                  <Text style={s.timeSubText}>{startTime}</Text>
+                </TouchableOpacity>
+
+                <View style={s.dateDividerWrap}>
+                  <View style={s.dateVerticalLine} />
+                  <View style={s.daysCountBox}>
+                    <Text style={s.daysCountText}>
+                      {days} {days === 1 ? 'DAY' : 'DAYS'}
+                    </Text>
+                  </View>
+                  <View style={s.dateVerticalLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={[s.dateCell, { alignItems: 'flex-end' }]}
+                  onPress={() => setEndPickerOpen(true)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={s.fieldLabel}>DROP-OFF DATE</Text>
+                  <Text style={s.dateMainText}>{formatShortDate(endDate)}</Text>
+                  <Text style={s.timeSubText}>{endTime}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* KM Allowance Selector */}
+              <View style={s.kmSelectorRow}>
+                <Text style={s.kmRowLabel}>Kilometre Plan:</Text>
+                <View style={s.kmToggleGroup}>
+                  <TouchableOpacity
+                    style={[s.kmPill, kmPackage === 'standard' && s.kmPillActive]}
+                    onPress={() => setKmPackage('standard')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.kmPillText, kmPackage === 'standard' && s.kmPillTextActive]}>
+                      300 KM / Day
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.kmPill, kmPackage === 'unlimited' && s.kmPillActive]}
+                    onPress={() => setKmPackage('unlimited')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.kmPillText, kmPackage === 'unlimited' && s.kmPillTextActive]}>
+                      Unlimited KM
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Primary Search CTA */}
               <TouchableOpacity
-                style={[s.kmOption, kmPackage === 'unlimited' && s.kmOptionActive]}
-                onPress={() => setKmPackage('unlimited')}
-                activeOpacity={0.8}
+                style={s.findCarsBtn}
+                onPress={handleSearchCars}
+                activeOpacity={0.88}
               >
-                <Text style={[s.kmOptionText, kmPackage === 'unlimited' && s.kmOptionTextActive]}>
-                  Unlimited KMs
+                <Text style={s.findCarsBtnText}>
+                  {bookingMode === 'lease'
+                    ? `VIEW SAFAR RESERVE FLEET (${vehicles.length || 6})`
+                    : `SEARCH AVAILABLE CARS (${vehicles.length || 6})`}
                 </Text>
+                <ArrowRight size={17} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-
-            {/* 4. Primary Search Button */}
-            <TouchableOpacity
-              style={s.searchButton}
-              onPress={handleSearchCars}
-              activeOpacity={0.88}
-            >
-              <Search size={17} color="#FFFFFF" strokeWidth={2.4} />
-              <Text style={s.searchButtonText}>Search Cars</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* ────────── 2 COMPACT RENTAL PROGRAMS (SIDE BY SIDE) ────────── */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>Driving Programs</Text>
-          <View style={s.programsRow}>
-            {/* Program 1: Daily & Weekend Drive */}
-            <TouchableOpacity
-              style={[s.programCard, activeTier === 'daily' && s.programCardActive]}
-              onPress={() => {
-                setActiveTier('daily');
-                router.push({
-                  pathname: '/cars',
-                  params: { city, hub: hubAddress, startDate, endDate, tier: 'daily' },
-                });
-              }}
-              activeOpacity={0.85}
-            >
-              <View style={s.programTopRow}>
-                <View style={[s.programIconWrap, { backgroundColor: '#FFF7ED' }]}>
-                  <Zap size={16} color="#FF6000" />
-                </View>
-                <View style={s.programTag}>
-                  <Text style={s.programTagText}>1–6 DAYS</Text>
-                </View>
-              </View>
-              <Text style={s.programName}>Daily Drive</Text>
-              <Text style={s.programDesc}>Hourly & weekend self-drive rentals</Text>
-            </TouchableOpacity>
-
-            {/* Program 2: Safar Reserve™ (Extended Lease) */}
-            <TouchableOpacity
-              style={[s.programCard, activeTier === 'lease' && s.programCardActive]}
-              onPress={() => {
-                setActiveTier('lease');
-                router.push({
-                  pathname: '/cars',
-                  params: { city, hub: hubAddress, startDate, endDate: '2026-11-20', tier: 'lease' },
-                });
-              }}
-              activeOpacity={0.85}
-            >
-              <View style={s.programTopRow}>
-                <View style={[s.programIconWrap, { backgroundColor: '#ECFDF5' }]}>
-                  <Award size={16} color="#059669" />
-                </View>
-                <View style={[s.programTag, { backgroundColor: '#ECFDF5' }]}>
-                  <Text style={[s.programTagText, { color: '#059669' }]}>SAVE 35%</Text>
-                </View>
-              </View>
-              <Text style={s.programName}>Safar Reserve™</Text>
-              <Text style={s.programDesc}>7 to 90 days all-inclusive lease</Text>
-            </TouchableOpacity>
+        {/* ────────── 3. INSTITUTIONAL CUSTOMER PROTECTION BAR ────────── */}
+        <View style={s.protectionGrid}>
+          <View style={s.protectionCell}>
+            <Text style={s.protectionMetric}>₹0 Deposit</Text>
+            <Text style={s.protectionLabel}>DigiLocker Verified</Text>
+          </View>
+          <View style={s.protectionVertDivider} />
+          <View style={s.protectionCell}>
+            <Text style={s.protectionMetric}>White Plate</Text>
+            <Text style={s.protectionLabel}>100% Private Fleet</Text>
+          </View>
+          <View style={s.protectionVertDivider} />
+          <View style={s.protectionCell}>
+            <Text style={s.protectionMetric}>8-Point Check</Text>
+            <Text style={s.protectionLabel}>Insured & Sanitized</Text>
           </View>
         </View>
 
-        {/* ────────── AVAILABLE CARS SECTION ────────── */}
-        <View style={s.section}>
-          <View style={s.sectionHeaderRow}>
-            <Text style={s.sectionTitle}>Available in {city}</Text>
-            <TouchableOpacity onPress={handleSearchCars} style={s.seeAllBtn}>
-              <Text style={s.seeAllText}>See all</Text>
-              <ArrowRight size={14} color="#FF6000" />
+        {/* ────────── 4. VERIFIED FLEET IN SELECTED CITY ────────── */}
+        <View style={s.fleetSection}>
+          <View style={s.sectionTitleBar}>
+            <View>
+              <Text style={s.sectionTitle}>Verified Fleet in {city}</Text>
+              <Text style={s.sectionSubtitle}>
+                All vehicles include comprehensive insurance & 24x7 roadside support
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleSearchCars} style={s.viewAllBtn}>
+              <Text style={s.viewAllText}>View All</Text>
+              <ArrowRight size={13} color="#0F172A" />
             </TouchableOpacity>
           </View>
 
-          {/* Clean Category Filter Pills */}
+          {/* Clean Filter Tabs */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.categoriesScroll}
+            contentContainerStyle={s.filterTabsRow}
           >
-            {QUICK_CATEGORIES.map((cat) => {
-              const active = selectedCategory === cat.key;
+            {FLEET_FILTERS.map((f) => {
+              const active = selectedCategory === f.key;
               return (
                 <TouchableOpacity
-                  key={cat.key}
-                  style={[s.categoryPill, active && s.categoryPillActive]}
-                  onPress={() => setSelectedCategory(cat.key)}
+                  key={f.key}
+                  style={[s.filterTab, active && s.filterTabActive]}
+                  onPress={() => setSelectedCategory(f.key)}
                   activeOpacity={0.75}
                 >
-                  <Text style={[s.categoryPillText, active && s.categoryPillTextActive]}>
-                    {cat.label}
+                  <Text style={[s.filterTabText, active && s.filterTabTextActive]}>
+                    {f.label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -444,40 +445,45 @@ export default function HomeScreen() {
           </ScrollView>
 
           {loading ? (
-            <View style={s.loadingBox}>
+            <View style={s.loadingWrap}>
               <ActivityIndicator size="small" color="#0F172A" />
-              <Text style={s.loadingText}>Loading cars…</Text>
+              <Text style={s.loadingLabel}>Checking real-time fleet availability…</Text>
             </View>
           ) : displayedVehicles.length === 0 ? (
-            <View style={s.emptyBox}>
-              <Car size={32} color="#CBD5E1" />
-              <Text style={s.emptyText}>No cars found in this category.</Text>
+            <View style={s.emptyWrap}>
+              <Car size={30} color="#94A3B8" />
+              <Text style={s.emptyLabel}>No vehicles match this filter in {city}.</Text>
               <TouchableOpacity onPress={() => setSelectedCategory('ALL')}>
-                <Text style={s.resetLink}>Show all cars</Text>
+                <Text style={s.resetFilterText}>Reset Filter</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={s.carsList}>
+            <View style={s.vehicleCardsList}>
               {displayedVehicles.slice(0, 6).map((car) => {
-                const price = Number(car.pricePerDay || 2500);
+                const rawPrice = Number(car.pricePerDay || 2500);
+                const price = bookingMode === 'lease' ? Math.round(rawPrice * 0.75) : rawPrice;
                 const isFav = !!favorites[car.id];
                 const dist = getCarDistance(car);
 
                 return (
                   <TouchableOpacity
                     key={car.id}
-                    style={s.carCard}
+                    style={s.vehicleCard}
                     onPress={() => openCar(String(car.id))}
-                    activeOpacity={0.9}
+                    activeOpacity={0.92}
                   >
-                    <View style={s.carImageWrap}>
+                    {/* Top Image & Registration Series */}
+                    <View style={s.vehicleImgContainer}>
                       <Image
                         source={getVehicleImageSource(car)}
-                        style={s.carImage}
+                        style={s.vehicleImg}
                         resizeMode="cover"
                       />
+                      <View style={s.plateBadge}>
+                        <Text style={s.plateBadgeText}>GJ-01 • PRIVATE WHITE PLATE</Text>
+                      </View>
                       <TouchableOpacity
-                        style={s.favBtn}
+                        style={s.wishlistBtn}
                         onPress={() => toggleFavorite(String(car.id))}
                         activeOpacity={0.8}
                       >
@@ -489,28 +495,54 @@ export default function HomeScreen() {
                       </TouchableOpacity>
                     </View>
 
-                    <View style={s.carCardBody}>
-                      <View style={s.carCardTopRow}>
+                    {/* Structured Vehicle Specs & Pricing */}
+                    <View style={s.vehicleBody}>
+                      <View style={s.vehicleHeaderRow}>
                         <View style={{ flex: 1 }}>
-                          <Text style={s.carTitle} numberOfLines={1}>
-                            {car.make} {car.model}
+                          <Text style={s.vehicleMakeYear}>
+                            {car.make} • {car.year || '2025'} MODEL
                           </Text>
-                          <Text style={s.carMeta}>
-                            {car.transmission || 'Automatic'} • {car.fuelType || 'Petrol'} • {car.seats || 5} Seats
+                          <Text style={s.vehicleModelName} numberOfLines={1}>
+                            {car.model}
                           </Text>
                         </View>
-                        <View style={s.ratingRow}>
-                          <Star size={12} color="#F59E0B" fill="#F59E0B" />
-                          <Text style={s.ratingText}>4.9</Text>
+                        <View style={s.verifiedScoreBox}>
+                          <Text style={s.verifiedScoreVal}>4.9 / 5</Text>
+                          <Text style={s.verifiedScoreSub}>Verified</Text>
                         </View>
                       </View>
 
-                      <View style={s.carCardFooter}>
-                        <Text style={s.distanceText}>📍 {dist} km away</Text>
-                        <Text style={s.priceText}>
-                          ₹{price.toLocaleString('en-IN')}
-                          <Text style={s.priceSub}> / day</Text>
-                        </Text>
+                      {/* Technical Specs Table Strip */}
+                      <View style={s.techSpecsRow}>
+                        <View style={s.techSpecItem}>
+                          <Text style={s.techSpecText}>{car.transmission || 'Automatic'}</Text>
+                        </View>
+                        <View style={s.techSpecItem}>
+                          <Text style={s.techSpecText}>{car.fuelType || 'Diesel'}</Text>
+                        </View>
+                        <View style={s.techSpecItem}>
+                          <Text style={s.techSpecText}>{car.seats || 5} Seats</Text>
+                        </View>
+                        <View style={s.techSpecItem}>
+                          <Text style={s.techSpecText}>{dist} km from hub</Text>
+                        </View>
+                      </View>
+
+                      <View style={s.vehicleFooterRow}>
+                        <View>
+                          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                            <Text style={s.priceValue}>₹{price.toLocaleString('en-IN')}</Text>
+                            <Text style={s.priceUnit}>/ day</Text>
+                          </View>
+                          <Text style={s.priceIncludedNote}>
+                            {kmPackage === 'unlimited' ? 'Unlimited KMs included' : '300 KMs/day included'} • ₹0 Deposit
+                          </Text>
+                        </View>
+
+                        <View style={s.reserveNowBtn}>
+                          <Text style={s.reserveNowBtnText}>Select Car</Text>
+                          <ArrowRight size={14} color="#FFFFFF" />
+                        </View>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -520,13 +552,48 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ────────── MINIMAL TRUST SUMMARY ────────── */}
-        <View style={s.trustCard}>
-          <View style={s.trustItem}>
-            <ShieldCheck size={18} color="#059669" />
-            <View style={{ flex: 1 }}>
-              <Text style={s.trustTitle}>Zero Security Deposit</Text>
-              <Text style={s.trustSub}>Instant verification via DigiLocker in Account</Text>
+        {/* ────────── 5. HOW SAFAR SELF DRIVE WORKS (NUMBERED, AUTHORITATIVE) ────────── */}
+        <View style={s.processSection}>
+          <Text style={s.processSectionTitle}>Standard Handover Protocol</Text>
+          <Text style={s.processSectionSub}>
+            Every rental is backed by documented inspection and government e-KYC
+          </Text>
+
+          <View style={s.processStepsList}>
+            <View style={s.processStepRow}>
+              <View style={s.stepNumberBox}>
+                <Text style={s.stepNumberText}>01</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.stepTitle}>Instant DigiLocker or Camera DL Verification</Text>
+                <Text style={s.stepDesc}>
+                  Verify your Driving Licence in the Account tab to unlock ₹0 security deposit across all vehicles.
+                </Text>
+              </View>
+            </View>
+
+            <View style={s.processStepRow}>
+              <View style={s.stepNumberBox}>
+                <Text style={s.stepNumberText}>02</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.stepTitle}>8-Angle Pre-Trip Camera Walkaround</Text>
+                <Text style={s.stepDesc}>
+                  Record all 8 vehicle sides and odometer reading in the app at handover for complete transparency.
+                </Text>
+              </View>
+            </View>
+
+            <View style={s.processStepRow}>
+              <View style={s.stepNumberBox}>
+                <Text style={s.stepNumberText}>03</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.stepTitle}>GST Tax Invoice & 24x7 Highway Support</Text>
+                <Text style={s.stepDesc}>
+                  Receive an official SAC 997311 GST invoice and dedicated roadside assistance across Gujarat.
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -546,7 +613,7 @@ export default function HomeScreen() {
         >
           <View style={s.modalSheet}>
             <View style={s.modalHandle} />
-            <Text style={s.modalTitle}>Select City & Pickup Hub</Text>
+            <Text style={s.modalTitle}>Select Operating City & Hub</Text>
 
             <View style={s.cityPillsWrap}>
               {CITIES.map((c) => {
@@ -569,7 +636,7 @@ export default function HomeScreen() {
               })}
             </View>
 
-            <Text style={s.hubListLabel}>Pickup Hubs in {city}</Text>
+            <Text style={s.hubListLabel}>AUTHORIZED PICKUP HUBS IN {city.toUpperCase()}</Text>
             {(POPULAR_HUBS[city] || POPULAR_HUBS.Ahmedabad).map((hub) => {
               const selected = hubAddress === hub;
               return (
@@ -609,7 +676,7 @@ export default function HomeScreen() {
 
       <DateTimePickerModal
         visible={endPickerOpen}
-        title="Return Date & Time"
+        title="Drop-off Date & Time"
         selectedDate={endDate}
         selectedTime={endTime}
         minDate={startDate}
@@ -627,250 +694,336 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
 
-  /* Minimal Header */
-  header: {
+  /* 1. Top Header */
+  topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#E2E8F0',
   },
-  brandLocationBtn: {
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  logoBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+  brandLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
-  logoImg: {
-    width: 32,
-    height: 32,
-  },
-  brandTitle: {
-    fontSize: 17,
-    fontWeight: '800',
+  brandName: {
+    fontSize: 15,
+    fontWeight: '900',
     color: '#0F172A',
-    letterSpacing: -0.3,
+    letterSpacing: 1,
   },
-  citySelectorRow: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     marginTop: 1,
   },
-  cityText: {
+  locationCity: {
     fontSize: 12,
     fontWeight: '600',
     color: '#475569',
   },
-  accountBtn: {
+  headerActions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
   },
-  userAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  helplineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  helplineText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  profileBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userAvatarText: {
+  profileInitial: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  signInChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  signInChipText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '800',
   },
 
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 36,
   },
 
-  /* Hero & Search Card */
-  heroSection: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 8,
+  /* 2. Structured Reservation Engine */
+  bookingSection: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
   },
-  heroHeading: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-  },
-  heroSubheading: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  searchCard: {
+  reservationCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+    overflow: 'hidden',
     shadowColor: '#0F172A',
     shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  locationInputRow: {
+  modeTabsBar: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#CBD5E1',
+  },
+  modeTab: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  modeTabActive: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 2.5,
+    borderBottomColor: '#FF6000',
+  },
+  reserveTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 4,
+    gap: 5,
   },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#FFF7ED',
-    alignItems: 'center',
-    justifyContent: 'center',
+  modeTabTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
   },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+  modeTabTitleActive: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  modeTabSub: {
+    fontSize: 10,
     color: '#64748B',
+    marginTop: 2,
   },
-  inputValue: {
+  saveBadge: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  saveBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+
+  cardInner: {
+    padding: 14,
+    gap: 12,
+  },
+  fieldBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+  },
+  fieldHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  fieldLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  changeBtnText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#FF6000',
+    letterSpacing: 0.3,
+  },
+  locationValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  fieldMainValue: {
+    flex: 1,
     fontSize: 14,
     fontWeight: '700',
     color: '#0F172A',
+  },
+
+  /* Date Grid */
+  dateGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+  },
+  dateCell: {
+    flex: 1,
+  },
+  dateMainText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 4,
+  },
+  timeSubText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#475569',
     marginTop: 2,
   },
-  changeLink: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FF6000',
+  dateDividerWrap: {
+    alignItems: 'center',
+    paddingHorizontal: 10,
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 14,
+  dateVerticalLine: {
+    width: 1,
+    height: 10,
+    backgroundColor: '#CBD5E1',
   },
-  datesRow: {
+  daysCountBox: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginVertical: 2,
+  },
+  daysCountText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+
+  /* KM Selector */
+  kmSelectorRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  dateCol: {
-    flex: 1,
-  },
-  dateLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  dateValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginTop: 3,
-  },
-  timeValue: {
+  kmRowLabel: {
     fontSize: 12,
-    color: '#64748B',
-    marginTop: 1,
+    fontWeight: '700',
+    color: '#334155',
   },
-  durationPill: {
-    backgroundColor: '#F8FAFC',
+  kmToggleGroup: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 3,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
-  durationPillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0F172A',
+  kmPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  kmSegment: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 4,
-    marginTop: 16,
+  kmPillActive: {
+    backgroundColor: '#0F172A',
   },
-  kmOption: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 9,
-    alignItems: 'center',
-  },
-  kmOptionActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  kmOptionText: {
-    fontSize: 12,
+  kmPillText: {
+    fontSize: 11.5,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#475569',
   },
-  kmOptionTextActive: {
-    color: '#0F172A',
+  kmPillTextActive: {
+    color: '#FFFFFF',
     fontWeight: '700',
   },
-  searchButton: {
+
+  /* Search CTA */
+  findCarsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#FF6000',
-    borderRadius: 14,
+    borderRadius: 10,
     paddingVertical: 14,
-    marginTop: 14,
+    marginTop: 2,
   },
-  searchButtonText: {
+  findCarsBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 13.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 
-  /* Sections */
-  section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-  },
-  sectionHeaderRow: {
+  /* 3. Protection Grid */
+  protectionGrid: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  protectionCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  protectionVertDivider: {
+    width: 1,
+    height: 26,
+    backgroundColor: '#E2E8F0',
+  },
+  protectionMetric: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  protectionLabel: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+
+  /* 4. Fleet Section */
+  fleetSection: {
+    paddingHorizontal: 16,
+    marginTop: 22,
+  },
+  sectionTitleBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
@@ -878,252 +1031,290 @@ const s = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
-    letterSpacing: -0.3,
   },
-  seeAllBtn: {
+  sectionSubtitle: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  viewAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingBottom: 2,
   },
-  seeAllText: {
-    fontSize: 13,
+  viewAllText: {
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#FF6000',
-  },
-
-  /* 2 Side-by-Side Programs */
-  programsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
-  programCard: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  programCardActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#0F172A',
-  },
-  programTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  programIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  programTag: {
-    backgroundColor: '#FFF7ED',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  programTagText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#EA580C',
-  },
-  programName: {
-    fontSize: 15,
-    fontWeight: '800',
     color: '#0F172A',
   },
-  programDesc: {
-    fontSize: 11.5,
-    color: '#64748B',
-    marginTop: 3,
-    lineHeight: 16,
-  },
 
-  /* Categories Scroll */
-  categoriesScroll: {
+  filterTabsRow: {
     gap: 8,
     paddingBottom: 14,
   },
-  categoryPill: {
+  filterTab: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
   },
-  categoryPillActive: {
+  filterTabActive: {
     backgroundColor: '#0F172A',
     borderColor: '#0F172A',
   },
-  categoryPillText: {
-    fontSize: 12.5,
+  filterTabText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#334155',
   },
-  categoryPillTextActive: {
+  filterTabTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
 
-  /* Clean Car Cards */
-  carsList: {
+  /* Vehicle Cards */
+  vehicleCardsList: {
     gap: 14,
   },
-  carCard: {
+  vehicleCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
     overflow: 'hidden',
   },
-  carImageWrap: {
-    height: 175,
-    backgroundColor: '#F8FAFC',
+  vehicleImgContainer: {
+    height: 180,
+    backgroundColor: '#F1F5F9',
     position: 'relative',
   },
-  carImage: {
+  vehicleImg: {
     width: '100%',
     height: '100%',
   },
-  favBtn: {
+  plateBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  carCardBody: {
-    padding: 14,
-  },
-  carCardTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  carTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  carMeta: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F8FAFC',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
     paddingHorizontal: 8,
     paddingVertical: 4,
+    borderRadius: 6,
+  },
+  plateBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  wishlistBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 34,
+    height: 34,
     borderRadius: 8,
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  carCardFooter: {
-    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  vehicleBody: {
+    padding: 14,
+  },
+  vehicleHeaderRow: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    alignItems: 'flex-start',
   },
-  distanceText: {
-    fontSize: 12,
+  vehicleMakeYear: {
+    fontSize: 10.5,
+    fontWeight: '700',
     color: '#64748B',
-    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  priceText: {
-    fontSize: 16,
+  vehicleModelName: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  verifiedScoreBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignItems: 'flex-end',
+  },
+  verifiedScoreVal: {
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#0F172A',
   },
-  priceSub: {
+  verifiedScoreSub: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#059669',
+  },
+  techSpecsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
+  },
+  techSpecItem: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  techSpecText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  vehicleFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  priceValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  priceUnit: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#64748B',
   },
+  priceIncludedNote: {
+    fontSize: 10.5,
+    color: '#059669',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  reserveNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  reserveNowBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
 
-  loadingBox: {
+  loadingWrap: {
     padding: 32,
     alignItems: 'center',
     gap: 8,
   },
-  loadingText: {
+  loadingLabel: {
     fontSize: 12,
     color: '#64748B',
   },
-  emptyBox: {
+  emptyWrap: {
     padding: 32,
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     gap: 6,
   },
-  emptyText: {
+  emptyLabel: {
     fontSize: 13,
     color: '#64748B',
   },
-  resetLink: {
-    fontSize: 13,
+  resetFilterText: {
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#FF6000',
     marginTop: 4,
   },
 
-  /* Minimal Trust Card */
-  trustCard: {
-    marginHorizontal: 20,
+  /* 5. Process Section */
+  processSection: {
+    marginHorizontal: 16,
     marginTop: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     padding: 16,
-    borderRadius: 16,
-    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
   },
-  trustItem: {
+  processSectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  processSectionSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+    marginBottom: 14,
+  },
+  processStepsList: {
+    gap: 14,
+  },
+  processStepRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
   },
-  trustTitle: {
+  stepNumberBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumberText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  stepTitle: {
     fontSize: 13.5,
     fontWeight: '700',
     color: '#0F172A',
   },
-  trustSub: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 1,
+  stepDesc: {
+    fontSize: 11.5,
+    color: '#475569',
+    marginTop: 2,
+    lineHeight: 16,
   },
 
   /* City Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
     paddingBottom: 36,
   },
@@ -1131,12 +1322,12 @@ const s = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#CBD5E1',
     alignSelf: 'center',
     marginBottom: 14,
   },
   modalTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 12,
@@ -1150,10 +1341,10 @@ const s = StyleSheet.create({
   cityModalPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
   },
   cityModalPillActive: {
     backgroundColor: '#0F172A',
@@ -1162,19 +1353,18 @@ const s = StyleSheet.create({
   cityModalPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: '#334155',
   },
   cityModalPillTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
   hubListLabel: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '800',
     color: '#64748B',
     marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   hubOption: {
     flexDirection: 'row',
@@ -1182,10 +1372,12 @@ const s = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   hubOptionSelected: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   hubOptionText: {
     flex: 1,

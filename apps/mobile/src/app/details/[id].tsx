@@ -38,10 +38,8 @@ import {
   CheckCircle2,
   ChevronUp,
   ChevronDown,
-  Sparkles,
   Camera,
   ArrowRight,
-  Zap,
   X,
   Upload,
 } from 'lucide-react-native';
@@ -445,11 +443,10 @@ export default function VehicleDetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ────────── ASK ANYTHING ABOUT THIS CAR ────────── */}
+        {/* ────────── FREQUENTLY ASKED QUESTIONS ────────── */}
         <View style={s.sectionBox}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <Sparkles size={16} color="#FF6000" />
-            <Text style={s.sectionHeaderTitle}>Quick Answers About This Car</Text>
+            <Text style={s.sectionHeaderTitle}>Rental Terms & Policies</Text>
           </View>
 
           <ScrollView
@@ -498,7 +495,7 @@ export default function VehicleDetailsScreen() {
             </View>
           </View>
           <View style={s.hostOfferStrip}>
-            <Zap size={13} color="#FFB800" />
+            <ShieldCheck size={13} color="#059669" />
             <Text style={s.hostOfferText}>
               DigiLocker KYC Active: ₹0 Security Deposit applied automatically
             </Text>

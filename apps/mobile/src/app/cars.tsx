@@ -27,8 +27,6 @@ import {
   Check,
   X,
   Car as CarIcon,
-  Award,
-  Zap,
   ArrowUpDown,
 } from 'lucide-react-native';
 
@@ -226,14 +224,13 @@ export default function CarListingScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ────────── PROGRAM SWITCHER BAR (DAILY DRIVE vs SAFAR RESERVE™) ────────── */}
+      {/* ────────── PROGRAM SWITCHER BAR (DAILY DRIVE vs SAFAR RESERVE) ────────── */}
       <View style={s.programSwitchBar}>
         <TouchableOpacity
           style={[s.programTab, activeTier === 'daily' && s.programTabActive]}
           onPress={() => setActiveTier('daily')}
           activeOpacity={0.85}
         >
-          <Zap size={13} color={activeTier === 'daily' ? '#FF6000' : '#64748B'} />
           <Text style={[s.programTabText, activeTier === 'daily' && s.programTabTextActive]}>
             Daily & Weekend Drive
           </Text>
@@ -247,9 +244,8 @@ export default function CarListingScreen() {
           }}
           activeOpacity={0.85}
         >
-          <Award size={13} color={activeTier === 'lease' ? '#FF6000' : '#64748B'} />
           <Text style={[s.programTabText, activeTier === 'lease' && s.programTabTextActive]}>
-            Safar Reserve™ (-25% Lease)
+            Safar Reserve (-35% Lease)
           </Text>
         </TouchableOpacity>
       </View>
@@ -414,7 +410,7 @@ export default function CarListingScreen() {
                     </Text>
 
                     <Text style={s.carDistanceText}>
-                      📍 {dist} km • White Plate
+                      {dist} km from hub • White Plate
                     </Text>
 
                     <View style={s.cardDivider} />

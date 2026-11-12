@@ -229,8 +229,8 @@ export default function HostDashboardScreen() {
           </View>
           <View style={s.summaryDivider} />
           <View style={s.summaryCol}>
-            <Text style={s.summaryLabel}>Host Rating</Text>
-            <Text style={[s.summaryBigVal, { color: '#059669' }]}>4.9 ★</Text>
+            <Text style={s.summaryLabel}>Host Score</Text>
+            <Text style={[s.summaryBigVal, { color: '#059669' }]}>4.9 / 5</Text>
           </View>
         </View>
 

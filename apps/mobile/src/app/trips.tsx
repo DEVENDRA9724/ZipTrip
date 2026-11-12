@@ -40,7 +40,6 @@ import {
   CheckCircle2,
   Navigation,
   Upload,
-  Sparkles,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
@@ -418,7 +417,7 @@ export default function TripsScreen() {
                 onPress={() => setUseDemoTrip(true)}
                 activeOpacity={0.85}
               >
-                <Sparkles size={14} color="#FF6000" />
+                <Camera size={14} color="#0F172A" />
                 <Text style={s.demoCameraBtnText}>Load Sample Active Trip (Test 8-Side Camera)</Text>
               </TouchableOpacity>
             )}
@@ -871,19 +870,19 @@ export default function TripsScreen() {
 
               <View style={s.sosServicesList}>
                 <View style={s.sosServiceItem}>
-                  <Text style={s.sosServiceTitle}>🔧 Flat Tyre Assistance</Text>
+                  <Text style={s.sosServiceTitle}>01. Flat Tyre Assistance</Text>
                   <Text style={s.sosServiceSub}>Stepney swap or puncture repair anywhere on highway</Text>
                 </View>
                 <View style={s.sosServiceItem}>
-                  <Text style={s.sosServiceTitle}>⚡ Dead Battery Jumpstart</Text>
+                  <Text style={s.sosServiceTitle}>02. Dead Battery Jumpstart</Text>
                   <Text style={s.sosServiceSub}>Quick booster battery restart within 30–45 minutes</Text>
                 </View>
                 <View style={s.sosServiceItem}>
-                  <Text style={s.sosServiceTitle}>⛽ 5L Emergency Fuel</Text>
+                  <Text style={s.sosServiceTitle}>03. 5L Emergency Fuel Delivery</Text>
                   <Text style={s.sosServiceSub}>Direct emergency fuel delivery if stranded</Text>
                 </View>
                 <View style={s.sosServiceItem}>
-                  <Text style={s.sosServiceTitle}>🛞 Flatbed Towing & Replacement</Text>
+                  <Text style={s.sosServiceTitle}>04. Flatbed Towing & Replacement</Text>
                   <Text style={s.sosServiceSub}>Free towing to nearest hub & replacement vehicle</Text>
                 </View>
               </View>
