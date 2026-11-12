@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 12.0.0"
+    "version": ">= 12.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -13,16 +14,14 @@
         "buildType": "apk"
       },
       "ios": {
-        "simulator": true
+        "simulator": false
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
       },
-      "ios": {
-        "enterpriseProvisioning": false
-      }
+      "ios": {}
     }
   },
   "submit": {
