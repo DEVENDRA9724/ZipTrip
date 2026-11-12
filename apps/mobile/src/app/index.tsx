@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { apiRequest, getVehicleImageSource, getCarDistance } from '@/services/api';
 import { DateTimePickerModal } from '@/components/datetime-picker-modal';
+import { useAuth } from '@/context/AuthContext';
 import {
   MapPin,
   ChevronDown,
@@ -66,7 +67,7 @@ const FLEET_FILTERS = [
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = require('@/context/AuthContext').useAuth();
+  const { user } = useAuth();
 
   // Booking Widget State
   const [city, setCity] = useState('Ahmedabad');

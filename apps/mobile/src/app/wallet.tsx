@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '@/context/AuthContext';
 import {
   Wallet as WalletIcon,
   Plus,
@@ -48,7 +49,7 @@ const KYC_DOC_SLOTS = [
 
 export default function AccountAndWalletScreen() {
   const insets = useSafeAreaInsets();
-  const { user, logout } = require('@/context/AuthContext').useAuth();
+  const { user, logout } = useAuth();
 
   // Wallet balance & promo
   const [balance, setBalance] = useState(user ? 1250 : 0);

@@ -23,6 +23,7 @@ import {
   getVehicleTerms,
 } from '@/services/api';
 import { DateTimePickerModal } from '@/components/datetime-picker-modal';
+import { useAuth } from '@/context/AuthContext';
 import {
   ArrowLeft,
   Share2,
@@ -80,7 +81,7 @@ const QUICK_QUESTIONS = [
 
 export default function VehicleDetailsScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = require('@/context/AuthContext').useAuth();
+  const { user } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
 
   const { id, startDate: paramStart, endDate: paramEnd, hub: paramHub } = useLocalSearchParams<{

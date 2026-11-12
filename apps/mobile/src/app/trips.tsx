@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import {
   CalendarDays,
   RotateCcw,
@@ -86,7 +87,7 @@ const DEMO_BOOKING = {
 
 export default function TripsScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = require('@/context/AuthContext').useAuth();
+  const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('Upcoming');
   const [allBookings, setAllBookings] = useState<any[]>([]);

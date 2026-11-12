@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import {
   Car,
   Plus,
@@ -53,7 +54,7 @@ export const CAR_8_ANGLES = [
 
 export default function HostDashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = require('@/context/AuthContext').useAuth();
+  const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'FLEET' | 'BOOKINGS' | 'EARNINGS'>('FLEET');
   const [vehicles, setVehicles] = useState<any[]>([]);
