@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { apiRequest, getVehicleImageSource } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -24,31 +24,31 @@ import {
   Plus,
   Calendar,
   TrendingUp,
-  CheckCircle2,
   Camera,
   Upload,
   X,
-  Edit3,
+  Settings,
   Power,
+  MapPin,
+  ShieldCheck,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
 
 const HOST_TABS = [
-  { key: 'FLEET', label: 'My Cars' },
-  { key: 'BOOKINGS', label: 'Bookings' },
-  { key: 'EARNINGS', label: 'Earnings' },
+  { key: 'FLEET', label: 'My Listed Cars' },
+  { key: 'MANAGE', label: 'Manage Car' },
+  { key: 'EARNINGS', label: 'Bookings & Payouts' },
 ];
 
-// All 8 mandatory vehicle angles
-export const CAR_8_ANGLES = [
+export const CAR_IMAGE_SLOTS = [
   { key: 'FRONT', label: '1. Front View', hint: 'Bumper, Grille & Plate' },
   { key: 'REAR', label: '2. Rear View', hint: 'Tailgate & Rear Plate' },
   { key: 'LEFT_SIDE', label: '3. Left Side', hint: 'Left Doors & Tyres' },
   { key: 'RIGHT_SIDE', label: '4. Right Side', hint: 'Driver Side Doors' },
-  { key: 'FRONT_LEFT', label: '5. Front-Left 45°', hint: 'Front Left Corner' },
-  { key: 'FRONT_RIGHT', label: '6. Front-Right 45°', hint: 'Front Right Corner' },
-  { key: 'ODOMETER', label: '7. Odometer', hint: 'Live KM & Fuel Cluster' },
+  { key: 'FRONT_LEFT', label: '5. Front-Left Corner', hint: 'Front Left Fender' },
+  { key: 'FRONT_RIGHT', label: '6. Front-Right Corner', hint: 'Front Right Fender' },
+  { key: 'ODOMETER', label: '7. Odometer & Fuel', hint: 'Live KM & Fuel Cluster' },
   { key: 'INTERIOR', label: '8. Interior Cabin', hint: 'Front & Rear Seats' },
 ];
 
@@ -56,18 +56,21 @@ export default function HostDashboardScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'FLEET' | 'BOOKINGS' | 'EARNINGS'>('FLEET');
+  const [activeTab, setActiveTab] = useState<'FLEET' | 'MANAGE' | 'EARNINGS'>('FLEET');
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Edit Rate Modal
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<any | null>(null);
-  const [newPrice, setNewPrice] = useState('');
+  // Selected car for the "Manage Car" tab
+  const [managedCarId, setManagedCarId] = useState<string | null>(null);
+  const [managePrice, setManagePrice] = useState('3200');
+  const [manageHub, setManageHub] = useState('SVP International Airport (T1)');
+  const [manageCity, setManageCity] = useState('Ahmedabad');
+  const [manageRegNo, setManageRegNo] = useState('GJ-01-WK-4590');
+  const [manageKmLimit, setManageKmLimit] = useState('300');
 
-  // List Your Car & 8-Angle Photo Studio Modal
+  // Add New Car Modal
   const [addCarModalOpen, setAddCarModalOpen] = useState(false);
   const [carMake, setCarMake] = useState('Hyundai');
   const [carModel, setCarModel] = useState('Creta SX (O) AT');
@@ -77,10 +80,9 @@ export default function HostDashboardScreen() {
   const [carRegNo, setCarRegNo] = useState('GJ-01-WK-8821');
   const [carAnglePhotos, setCarAnglePhotos] = useState<Record<string, string>>({});
 
-  // 8-Angle Handover Inspection Modal
-  const [inspectModalOpen, setInspectModalOpen] = useState(false);
-  const [inspectBooking, setInspectBooking] = useState<any | null>(null);
-  const [inspectOdometer, setInspectOdometer] = useState('24600');
+  // Car Images Modal (For updating an existing car's images)
+  const [imagesModalOpen, setImagesModalOpen] = useState(false);
+  const [imagesTargetCar, setImagesTargetCar] = useState<any | null>(null);
   const [inspectPhotos, setInspectPhotos] = useState<Record<string, string>>({});
 
   const topPadding = Platform.OS === 'ios' ? Math.max(insets.top, 50) : Math.max(insets.top, 20);
@@ -95,14 +97,27 @@ export default function HostDashboardScreen() {
       const cleanFleet = (Array.isArray(vData) ? vData : []).filter(
         (v: any) => !String(v.model || '').toLowerCase().includes('taxi')
       );
-      setVehicles(cleanFleet.slice(0, 6));
+      const list = cleanFleet.slice(0, 6);
+      setVehicles(list);
+      if (list.length > 0 && !managedCarId) {
+        selectCarToManage(list[0]);
+      }
       setBookings(Array.isArray(bData) ? bData : []);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, managedCarId]);
+
+  const selectCarToManage = (car: any) => {
+    setManagedCarId(String(car.id));
+    setManagePrice(String(car.pricePerDay || 2800));
+    setManageCity(car.city || 'Ahmedabad');
+    setManageHub(car.pickupHub || `${car.city || 'Ahmedabad'} Main Hub`);
+    setManageRegNo(car.registrationNumber || 'GJ-01-WK-4590');
+    setManageKmLimit(String(car.kmPerDay || 300));
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -160,8 +175,8 @@ export default function HostDashboardScreen() {
     }
   };
 
-  const uploadedAnglesCount = CAR_8_ANGLES.filter((a) => !!carAnglePhotos[a.key]).length;
-  const inspectAnglesCount = CAR_8_ANGLES.filter((a) => !!inspectPhotos[a.key]).length;
+  const uploadedAnglesCount = CAR_IMAGE_SLOTS.filter((a) => !!carAnglePhotos[a.key]).length;
+  const inspectAnglesCount = CAR_IMAGE_SLOTS.filter((a) => !!inspectPhotos[a.key]).length;
 
   const handleCreateCarListing = () => {
     if (!carMake.trim() || !carModel.trim()) {
@@ -169,7 +184,7 @@ export default function HostDashboardScreen() {
       return;
     }
     if (uploadedAnglesCount === 0) {
-      Alert.alert('Add Car Photos', 'Please capture or upload at least 1 photo from the 8 angles.');
+      Alert.alert('Add Car Images', 'Please capture or upload at least 1 photo in Car Images.');
       return;
     }
     const newCar = {
@@ -179,6 +194,7 @@ export default function HostDashboardScreen() {
       year: Number(carYear) || 2025,
       city: carCity,
       pricePerDay: Number(carRate) || 2800,
+      registrationNumber: carRegNo,
       transmission: 'Automatic',
       fuelType: 'Diesel',
       seats: 5,
@@ -187,9 +203,34 @@ export default function HostDashboardScreen() {
       anglePhotos: carAnglePhotos,
     };
     setVehicles((prev) => [newCar, ...prev]);
+    selectCarToManage(newCar);
     setAddCarModalOpen(false);
-    Alert.alert('Car Listed', `${carMake} ${carModel} has been added with ${uploadedAnglesCount}/8 verified angle photos.`);
+    Alert.alert('Car Listed', `${carMake} ${carModel} has been added to your listed cars.`);
   };
+
+  const handleSaveManagedCar = () => {
+    if (!managedCarId) return;
+    setVehicles((prev) =>
+      prev.map((v) =>
+        String(v.id) === String(managedCarId)
+          ? {
+              ...v,
+              pricePerDay: Number(managePrice) || 2800,
+              city: manageCity,
+              pickupHub: manageHub,
+              registrationNumber: manageRegNo,
+              kmPerDay: Number(manageKmLimit) || 300,
+            }
+          : v
+      )
+    );
+    Alert.alert('Car Settings Saved', 'Your vehicle pricing, pickup hub, and listing details have been updated.');
+  };
+
+  const managedCar = useMemo(
+    () => vehicles.find((v) => String(v.id) === String(managedCarId)) || vehicles[0],
+    [vehicles, managedCarId]
+  );
 
   const stats = useMemo(() => {
     const gross = bookings.length > 0 ? bookings.reduce((s, b) => s + Number(b.totalAmount || 0), 0) : 64500;
@@ -199,16 +240,19 @@ export default function HostDashboardScreen() {
 
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>
-      {/* ────────── MINIMAL HEADER ────────── */}
+      {/* ────────── HEADER ────────── */}
       <View style={s.header}>
-        <Text style={s.headerTitle}>Host Studio</Text>
+        <View>
+          <Text style={s.headerTitle}>Host Dashboard</Text>
+          <Text style={s.headerSub}>Manage your listed cars, pricing & car images</Text>
+        </View>
         <TouchableOpacity
           style={s.addCarBtn}
           onPress={() => setAddCarModalOpen(true)}
           activeOpacity={0.85}
         >
-          <Camera size={14} color="#FFFFFF" />
-          <Text style={s.addCarBtnText}>+ Add Car (8 Photos)</Text>
+          <Plus size={14} color="#FFFFFF" />
+          <Text style={s.addCarBtnText}>Add New Car</Text>
         </TouchableOpacity>
       </View>
 
@@ -217,7 +261,7 @@ export default function HostDashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0F172A" />}
       >
-        {/* ────────── CLEAN LIGHT SUMMARY CARD ────────── */}
+        {/* ────────── SUMMARY BAR ────────── */}
         <View style={s.summaryCard}>
           <View style={s.summaryCol}>
             <Text style={s.summaryLabel}>Net Host Payout (80%)</Text>
@@ -225,7 +269,7 @@ export default function HostDashboardScreen() {
           </View>
           <View style={s.summaryDivider} />
           <View style={s.summaryCol}>
-            <Text style={s.summaryLabel}>Active Cars</Text>
+            <Text style={s.summaryLabel}>Listed Cars</Text>
             <Text style={s.summaryBigVal}>{stats.fleetCount}</Text>
           </View>
           <View style={s.summaryDivider} />
@@ -235,7 +279,7 @@ export default function HostDashboardScreen() {
           </View>
         </View>
 
-        {/* ────────── CLEAN SEGMENTED TABS ────────── */}
+        {/* ────────── HOST TABS ────────── */}
         <View style={s.tabSegment}>
           {HOST_TABS.map((tab) => {
             const active = activeTab === tab.key;
@@ -252,7 +296,7 @@ export default function HostDashboardScreen() {
           })}
         </View>
 
-        {/* ────────── TAB 1: MY CARS ────────── */}
+        {/* ────────── TAB 1: MY LISTED CARS ────────── */}
         {activeTab === 'FLEET' && (
           <View style={{ gap: 12 }}>
             {loading ? (
@@ -277,7 +321,9 @@ export default function HostDashboardScreen() {
                         </Text>
                         <View style={s.statusRow}>
                           <View style={[s.dot, { backgroundColor: isOnline ? '#059669' : '#94A3B8' }]} />
-                          <Text style={s.statusLabel}>{isOnline ? 'Available' : 'Paused'}</Text>
+                          <Text style={s.statusLabel}>
+                            {isOnline ? 'Listed & Available' : 'Listing Paused'}
+                          </Text>
                         </View>
                       </View>
                     </View>
@@ -286,25 +332,24 @@ export default function HostDashboardScreen() {
                       <TouchableOpacity
                         style={s.actionBtn}
                         onPress={() => {
-                          setSelectedVehicle(car);
-                          setNewPrice(String(car.pricePerDay || 2500));
-                          setEditModalOpen(true);
+                          selectCarToManage(car);
+                          setActiveTab('MANAGE');
                         }}
                       >
-                        <Edit3 size={13} color="#0F172A" />
-                        <Text style={s.actionBtnText}>Rate</Text>
+                        <Settings size={13} color="#0F172A" />
+                        <Text style={s.actionBtnText}>Manage Car</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         style={s.actionBtn}
                         onPress={() => {
-                          setInspectBooking({ vehicle: car });
+                          setImagesTargetCar(car);
                           setInspectPhotos(car.anglePhotos || {});
-                          setInspectModalOpen(true);
+                          setImagesModalOpen(true);
                         }}
                       >
                         <Camera size={13} color="#FF6000" />
-                        <Text style={s.actionBtnText}>8-Side Photos</Text>
+                        <Text style={s.actionBtnText}>Car Images</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -326,42 +371,179 @@ export default function HostDashboardScreen() {
           </View>
         )}
 
-        {/* ────────── TAB 2: BOOKINGS ────────── */}
-        {activeTab === 'BOOKINGS' && (
-          <View style={s.emptyCard}>
-            <Calendar size={32} color="#94A3B8" />
-            <Text style={s.emptyTitle}>Pre-Trip 8-Angle Inspection</Text>
-            <Text style={s.emptySub}>
-              Use the 8-side camera checklist before handing over keys to any guest.
-            </Text>
-            <TouchableOpacity
-              style={s.primaryBtn}
-              onPress={() => {
-                setInspectBooking({ vehicle: vehicles[0] });
-                setInspectModalOpen(true);
-              }}
+        {/* ────────── TAB 2: MANAGE CAR (DEDICATED HOST CONTROL PANEL) ────────── */}
+        {activeTab === 'MANAGE' && (
+          <View style={{ gap: 14 }}>
+            {/* Vehicle Selector Strip */}
+            <Text style={s.sectionTitle}>Select Listed Car to Manage</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8 }}
             >
-              <Camera size={15} color="#FFFFFF" />
-              <Text style={s.primaryBtnText}>Open 8-Angle Inspection Camera</Text>
-            </TouchableOpacity>
+              {vehicles.map((car) => {
+                const selected = String(car.id) === String(managedCar?.id);
+                return (
+                  <TouchableOpacity
+                    key={car.id}
+                    style={[s.carSelectChip, selected && s.carSelectChipActive]}
+                    onPress={() => selectCarToManage(car)}
+                  >
+                    <Text style={[s.carSelectChipText, selected && s.carSelectChipTextActive]}>
+                      {car.make} {car.model}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {managedCar && (
+              <View style={s.managePanelCard}>
+                {/* Selected Car Header */}
+                <View style={s.manageCarTopRow}>
+                  <Image
+                    source={
+                      managedCar.imageUrl
+                        ? { uri: managedCar.imageUrl }
+                        : getVehicleImageSource(managedCar)
+                    }
+                    style={s.manageCarImg}
+                    resizeMode="cover"
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.manageCarTitle}>
+                      {managedCar.make} {managedCar.model}
+                    </Text>
+                    <Text style={s.manageCarMeta}>
+                      {managedCar.transmission || 'Automatic'} • {managedCar.fuelType || 'Diesel'} • {managedCar.seats || 5} Seats
+                    </Text>
+                    <TouchableOpacity
+                      style={s.openImagesInlineBtn}
+                      onPress={() => {
+                        setImagesTargetCar(managedCar);
+                        setInspectPhotos(managedCar.anglePhotos || {});
+                        setImagesModalOpen(true);
+                      }}
+                    >
+                      <Camera size={12} color="#FF6000" />
+                      <Text style={s.openImagesInlineText}>Update Car Images</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={s.manageDivider} />
+
+                {/* Editable Host Settings */}
+                <View style={s.inputGrid}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.inputLabel}>Daily Rental Rate (₹)</Text>
+                    <TextInput
+                      style={s.input}
+                      keyboardType="numeric"
+                      value={managePrice}
+                      onChangeText={setManagePrice}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.inputLabel}>Included KMs / Day</Text>
+                    <TextInput
+                      style={s.input}
+                      keyboardType="numeric"
+                      value={manageKmLimit}
+                      onChangeText={setManageKmLimit}
+                    />
+                  </View>
+                </View>
+
+                <View style={s.inputGrid}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.inputLabel}>Operating City</Text>
+                    <TextInput
+                      style={s.input}
+                      value={manageCity}
+                      onChangeText={setManageCity}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.inputLabel}>Registration No.</Text>
+                    <TextInput
+                      style={s.input}
+                      value={manageRegNo}
+                      onChangeText={setManageRegNo}
+                      autoCapitalize="characters"
+                    />
+                  </View>
+                </View>
+
+                <View>
+                  <Text style={s.inputLabel}>Default Pickup & Return Hub</Text>
+                  <TextInput
+                    style={s.input}
+                    value={manageHub}
+                    onChangeText={setManageHub}
+                  />
+                </View>
+
+                <View style={s.manageActionsRow}>
+                  <TouchableOpacity
+                    style={s.manageImagesBtn}
+                    onPress={() => {
+                      setImagesTargetCar(managedCar);
+                      setInspectPhotos(managedCar.anglePhotos || {});
+                      setImagesModalOpen(true);
+                    }}
+                  >
+                    <Camera size={15} color="#0F172A" />
+                    <Text style={s.manageImagesBtnText}>Car Images</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={s.saveManageBtn}
+                    onPress={handleSaveManagedCar}
+                  >
+                    <Text style={s.saveManageBtnText}>Save Car Settings</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
-        {/* ────────── TAB 3: EARNINGS ────────── */}
+        {/* ────────── TAB 3: BOOKINGS & PAYOUTS ────────── */}
         {activeTab === 'EARNINGS' && (
-          <View style={s.earningsCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <TrendingUp size={18} color="#059669" />
-              <Text style={s.earningsTitle}>80 / 20 Transparent Payout Split</Text>
+          <View style={{ gap: 12 }}>
+            <View style={s.earningsCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <TrendingUp size={18} color="#059669" />
+                <Text style={s.earningsTitle}>80 / 20 Host Revenue Share</Text>
+              </View>
+              <Text style={s.earningsSub}>
+                You receive 80% of total trip revenue directly in your bank account within 24 hours of trip completion.
+              </Text>
             </View>
-            <Text style={s.earningsSub}>
-              You receive 80% of total trip revenue directly in your bank account within 24 hours of trip completion.
-            </Text>
+
+            <View style={s.emptyCard}>
+              <Calendar size={30} color="#94A3B8" />
+              <Text style={s.emptyTitle}>Host Trip Handover</Text>
+              <Text style={s.emptySub}>
+                Upload start and return car images when handing over your vehicle to a guest.
+              </Text>
+              <TouchableOpacity
+                style={s.primaryBtn}
+                onPress={() => {
+                  setImagesTargetCar(vehicles[0]);
+                  setImagesModalOpen(true);
+                }}
+              >
+                <Camera size={15} color="#FFFFFF" />
+                <Text style={s.primaryBtnText}>Upload Car Images</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
 
-      {/* ────────── MODAL 1: ADD CAR + 8-SIDE CAMERA STUDIO ────────── */}
+      {/* ────────── MODAL 1: ADD NEW CAR + CAR IMAGES ────────── */}
       <Modal
         visible={addCarModalOpen}
         transparent
@@ -372,8 +554,8 @@ export default function HostDashboardScreen() {
           <View style={[s.modalSheet, { maxHeight: '92%' }]}>
             <View style={s.modalHeader}>
               <View>
-                <Text style={s.modalTitle}>Add Car & 8-Side Photos</Text>
-                <Text style={s.modalSub}>Capture all 8 sides with Camera or Upload ({uploadedAnglesCount}/8)</Text>
+                <Text style={s.modalTitle}>Add New Car Listing</Text>
+                <Text style={s.modalSub}>Enter vehicle details & upload Car Images ({uploadedAnglesCount}/8)</Text>
               </View>
               <TouchableOpacity onPress={() => setAddCarModalOpen(false)} style={s.closeBtn}>
                 <X size={18} color="#0F172A" />
@@ -403,27 +585,27 @@ export default function HostDashboardScreen() {
                 </View>
               </View>
 
-              <Text style={s.sectionTitle}>All 8 Vehicle Angles (Camera & Upload)</Text>
+              <Text style={s.sectionTitle}>Car Images (Camera & Upload)</Text>
 
               <View style={s.anglesGrid}>
-                {CAR_8_ANGLES.map((angle) => {
-                  const uri = carAnglePhotos[angle.key];
+                {CAR_IMAGE_SLOTS.map((slot) => {
+                  const uri = carAnglePhotos[slot.key];
                   return (
-                    <View key={angle.key} style={[s.angleCard, !!uri && s.angleCardDone]}>
+                    <View key={slot.key} style={[s.angleCard, !!uri && s.angleCardDone]}>
                       {uri ? (
                         <Image source={{ uri }} style={s.anglePreview} resizeMode="cover" />
                       ) : (
                         <View style={{ marginBottom: 6 }}>
-                          <Text style={s.angleLabel}>{angle.label}</Text>
-                          <Text style={s.angleHint}>{angle.hint}</Text>
+                          <Text style={s.angleLabel}>{slot.label}</Text>
+                          <Text style={s.angleHint}>{slot.hint}</Text>
                         </View>
                       )}
-                      {uri && <Text style={[s.angleLabel, { marginTop: 4 }]}>{angle.label}</Text>}
+                      {uri && <Text style={[s.angleLabel, { marginTop: 4 }]}>{slot.label}</Text>}
 
                       <View style={s.angleBtns}>
                         <TouchableOpacity
                           style={s.camBtn}
-                          onPress={() => captureOrPickAngle(angle.key, setCarAnglePhotos, 'camera')}
+                          onPress={() => captureOrPickAngle(slot.key, setCarAnglePhotos, 'camera')}
                         >
                           <Camera size={11} color="#FFFFFF" />
                           <Text style={s.camBtnText}>Camera</Text>
@@ -431,7 +613,7 @@ export default function HostDashboardScreen() {
 
                         <TouchableOpacity
                           style={s.upBtn}
-                          onPress={() => captureOrPickAngle(angle.key, setCarAnglePhotos, 'gallery')}
+                          onPress={() => captureOrPickAngle(slot.key, setCarAnglePhotos, 'gallery')}
                         >
                           <Upload size={11} color="#0F172A" />
                           <Text style={s.upBtnText}>Upload</Text>
@@ -443,52 +625,55 @@ export default function HostDashboardScreen() {
               </View>
 
               <TouchableOpacity style={s.submitBtn} onPress={handleCreateCarListing}>
-                <Text style={s.submitBtnText}>Publish Vehicle ({uploadedAnglesCount}/8 Photos)</Text>
+                <Text style={s.submitBtnText}>Publish Car Listing ({uploadedAnglesCount}/8 Images)</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* ────────── MODAL 2: 8-SIDE INSPECTION CAMERA ────────── */}
+      {/* ────────── MODAL 2: HOST CAR IMAGES UPLOADER ────────── */}
       <Modal
-        visible={inspectModalOpen}
+        visible={imagesModalOpen}
         transparent
         animationType="slide"
-        onRequestClose={() => setInspectModalOpen(false)}
+        onRequestClose={() => setImagesModalOpen(false)}
       >
         <View style={s.modalBackdrop}>
           <View style={[s.modalSheet, { maxHeight: '90%' }]}>
             <View style={s.modalHeader}>
               <View>
-                <Text style={s.modalTitle}>8-Side Vehicle Photo Studio</Text>
-                <Text style={s.modalSub}>{inspectAnglesCount} of 8 angles captured</Text>
+                <Text style={s.modalTitle}>Car Images</Text>
+                <Text style={s.modalSub}>
+                  {imagesTargetCar ? `${imagesTargetCar.make} ${imagesTargetCar.model} • ` : ''}
+                  {inspectAnglesCount} of 8 car images uploaded
+                </Text>
               </View>
-              <TouchableOpacity onPress={() => setInspectModalOpen(false)} style={s.closeBtn}>
+              <TouchableOpacity onPress={() => setImagesModalOpen(false)} style={s.closeBtn}>
                 <X size={18} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 20 }}>
               <View style={s.anglesGrid}>
-                {CAR_8_ANGLES.map((angle) => {
-                  const uri = inspectPhotos[angle.key];
+                {CAR_IMAGE_SLOTS.map((slot) => {
+                  const uri = inspectPhotos[slot.key];
                   return (
-                    <View key={angle.key} style={[s.angleCard, !!uri && s.angleCardDone]}>
+                    <View key={slot.key} style={[s.angleCard, !!uri && s.angleCardDone]}>
                       {uri ? (
                         <Image source={{ uri }} style={s.anglePreview} resizeMode="cover" />
                       ) : (
                         <View style={{ marginBottom: 6 }}>
-                          <Text style={s.angleLabel}>{angle.label}</Text>
-                          <Text style={s.angleHint}>{angle.hint}</Text>
+                          <Text style={s.angleLabel}>{slot.label}</Text>
+                          <Text style={s.angleHint}>{slot.hint}</Text>
                         </View>
                       )}
-                      {uri && <Text style={[s.angleLabel, { marginTop: 4 }]}>{angle.label}</Text>}
+                      {uri && <Text style={[s.angleLabel, { marginTop: 4 }]}>{slot.label}</Text>}
 
                       <View style={s.angleBtns}>
                         <TouchableOpacity
                           style={s.camBtn}
-                          onPress={() => captureOrPickAngle(angle.key, setInspectPhotos, 'camera')}
+                          onPress={() => captureOrPickAngle(slot.key, setInspectPhotos, 'camera')}
                         >
                           <Camera size={11} color="#FFFFFF" />
                           <Text style={s.camBtnText}>Camera</Text>
@@ -496,7 +681,7 @@ export default function HostDashboardScreen() {
 
                         <TouchableOpacity
                           style={s.upBtn}
-                          onPress={() => captureOrPickAngle(angle.key, setInspectPhotos, 'gallery')}
+                          onPress={() => captureOrPickAngle(slot.key, setInspectPhotos, 'gallery')}
                         >
                           <Upload size={11} color="#0F172A" />
                           <Text style={s.upBtnText}>Upload</Text>
@@ -507,66 +692,29 @@ export default function HostDashboardScreen() {
                 })}
               </View>
 
-              <View>
-                <Text style={s.inputLabel}>Current Odometer (km)</Text>
-                <TextInput
-                  style={s.input}
-                  value={inspectOdometer}
-                  onChangeText={setInspectOdometer}
-                  keyboardType="numeric"
-                />
-              </View>
-
               <TouchableOpacity
                 style={s.submitBtn}
                 onPress={() => {
-                  setInspectModalOpen(false);
-                  Alert.alert('Saved', `${inspectAnglesCount}/8 vehicle angles saved.`);
+                  if (imagesTargetCar) {
+                    setVehicles((prev) =>
+                      prev.map((v) =>
+                        v.id === imagesTargetCar.id
+                          ? {
+                              ...v,
+                              anglePhotos: inspectPhotos,
+                              imageUrl: inspectPhotos.FRONT || v.imageUrl,
+                            }
+                          : v
+                      )
+                    );
+                  }
+                  setImagesModalOpen(false);
+                  Alert.alert('Car Images Saved', `${inspectAnglesCount}/8 car images have been updated.`);
                 }}
               >
-                <Text style={s.submitBtnText}>Save 8-Side Photos ({inspectAnglesCount}/8)</Text>
+                <Text style={s.submitBtnText}>Save Car Images ({inspectAnglesCount}/8)</Text>
               </TouchableOpacity>
             </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ────────── MODAL 3: EDIT DAILY RATE ────────── */}
-      <Modal
-        visible={editModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditModalOpen(false)}
-      >
-        <View style={s.modalBackdrop}>
-          <View style={s.modalSheet}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Update Daily Price (₹)</Text>
-              <TouchableOpacity onPress={() => setEditModalOpen(false)} style={s.closeBtn}>
-                <X size={18} color="#0F172A" />
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={s.input}
-              keyboardType="numeric"
-              value={newPrice}
-              onChangeText={setNewPrice}
-            />
-            <TouchableOpacity
-              style={[s.submitBtn, { marginTop: 12 }]}
-              onPress={() => {
-                if (selectedVehicle) {
-                  setVehicles((prev) =>
-                    prev.map((v) =>
-                      v.id === selectedVehicle.id ? { ...v, pricePerDay: Number(newPrice) || 2500 } : v
-                    )
-                  );
-                }
-                setEditModalOpen(false);
-              }}
-            >
-              <Text style={s.submitBtnText}>Save Price</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -590,19 +738,24 @@ const s = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.4,
   },
+  headerSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
   addCarBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: '#FF6000',
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
   addCarBtnText: {
     color: '#FFFFFF',
@@ -611,17 +764,17 @@ const s = StyleSheet.create({
   },
 
   scrollContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
     gap: 16,
   },
 
-  /* Light Summary Card */
+  /* Summary Card */
   summaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -651,20 +804,20 @@ const s = StyleSheet.create({
   tabSegment: {
     flexDirection: 'row',
     backgroundColor: '#E2E8F0',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 3,
   },
   tabBtn: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingVertical: 9,
+    borderRadius: 8,
     alignItems: 'center',
   },
   tabBtnActive: {
     backgroundColor: '#FFFFFF',
   },
   tabBtnText: {
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -676,7 +829,7 @@ const s = StyleSheet.create({
   /* Car Item Card */
   carItemCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -688,9 +841,9 @@ const s = StyleSheet.create({
     gap: 12,
   },
   carThumb: {
-    width: 76,
-    height: 56,
-    borderRadius: 10,
+    width: 80,
+    height: 58,
+    borderRadius: 8,
     backgroundColor: '#F8FAFC',
   },
   carName: {
@@ -733,7 +886,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 8,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -744,13 +897,116 @@ const s = StyleSheet.create({
     color: '#0F172A',
   },
 
+  /* Manage Car Tab */
+  carSelectChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  carSelectChipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  carSelectChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  carSelectChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  managePanelCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  manageCarTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  manageCarImg: {
+    width: 90,
+    height: 66,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+  },
+  manageCarTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  manageCarMeta: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  openImagesInlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
+  },
+  openImagesInlineText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF6000',
+  },
+  manageDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 2,
+  },
+  manageActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  manageImagesBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  manageImagesBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  saveManageBtn: {
+    flex: 1.3,
+    backgroundColor: '#FF6000',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveManageBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
   centerBox: {
     padding: 32,
     alignItems: 'center',
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
@@ -775,7 +1031,7 @@ const s = StyleSheet.create({
     backgroundColor: '#0F172A',
     paddingHorizontal: 16,
     paddingVertical: 11,
-    borderRadius: 12,
+    borderRadius: 10,
     marginTop: 6,
   },
   primaryBtnText: {
@@ -785,7 +1041,7 @@ const s = StyleSheet.create({
   },
   earningsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 14,
     padding: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -937,7 +1193,7 @@ const s = StyleSheet.create({
   },
   submitBtn: {
     backgroundColor: '#FF6000',
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 6,

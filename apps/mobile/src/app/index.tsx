@@ -402,7 +402,7 @@ export default function HomeScreen() {
           </View>
           <View style={s.protectionVertDivider} />
           <View style={s.protectionCell}>
-            <Text style={s.protectionMetric}>8-Point Check</Text>
+            <Text style={s.protectionMetric}>Verified Fleet</Text>
             <Text style={s.protectionLabel}>Insured & Sanitized</Text>
           </View>
         </View>
@@ -578,9 +578,9 @@ export default function HomeScreen() {
                 <Text style={s.stepNumberText}>02</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.stepTitle}>8-Angle Pre-Trip Camera Walkaround</Text>
+                <Text style={s.stepTitle}>Start & End Trip Car Images</Text>
                 <Text style={s.stepDesc}>
-                  Record all 8 vehicle sides and odometer reading in the app at handover for complete transparency.
+                  Capture car images and odometer reading in My Trips when starting or ending a booked trip.
                 </Text>
               </View>
             </View>

@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import {
   apiRequest,
   getVehicleImageSource,
@@ -42,22 +41,21 @@ import {
   Camera,
   ArrowRight,
   X,
-  Upload,
 } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
 
-const DETAIL_TABS = ['8-Side Photos', 'Km Package', 'About Host', 'Reviews', 'Features'];
+const DETAIL_TABS = ['Car Images', 'Km Package', 'About Host', 'Reviews', 'Features'];
 
-const CAR_8_ANGLES = [
-  { key: 'FRONT', label: '1. Front View', sub: 'Bumper, Grille & White Plate' },
-  { key: 'REAR', label: '2. Rear View', sub: 'Boot, Tailgate & Rear Plate' },
-  { key: 'LEFT_SIDE', label: '3. Left Side Profile', sub: 'Left Doors & Alloy Wheels' },
-  { key: 'RIGHT_SIDE', label: '4. Right Side Profile', sub: 'Driver Side Doors & ORVM' },
-  { key: 'FRONT_LEFT', label: '5. Front-Left 45°', sub: 'Quarter Panel & Headlamp' },
-  { key: 'FRONT_RIGHT', label: '6. Front-Right 45°', sub: 'Fender & Tyre Tread' },
-  { key: 'ODOMETER', label: '7. Odometer & Cockpit', sub: 'Digital Cluster & Infotainment' },
-  { key: 'INTERIOR', label: '8. Cabin & Rear Seats', sub: 'Sanitized Leatherette Upholstery' },
+const CAR_IMAGE_VIEWS = [
+  { key: 'FRONT', label: 'Front View', sub: 'Exterior Front & Grille' },
+  { key: 'REAR', label: 'Rear View', sub: 'Boot & Tailgate' },
+  { key: 'LEFT_SIDE', label: 'Left Side Profile', sub: 'Left Doors & Wheels' },
+  { key: 'RIGHT_SIDE', label: 'Right Side Profile', sub: 'Driver Side Profile' },
+  { key: 'FRONT_LEFT', label: 'Front Quarter View', sub: 'Headlamp & Fender' },
+  { key: 'FRONT_RIGHT', label: 'Side Quarter View', sub: 'Alloy Wheels & Tyres' },
+  { key: 'ODOMETER', label: 'Dashboard & Cockpit', sub: 'Instrument Cluster & Screen' },
+  { key: 'INTERIOR', label: 'Cabin & Seats', sub: 'Front & Rear Seating' },
 ];
 
 const QUICK_QUESTIONS = [
@@ -93,7 +91,7 @@ export default function VehicleDetailsScreen() {
 
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('8-Side Photos');
+  const [activeTab, setActiveTab] = useState('Car Images');
   const [isFavorite, setIsFavorite] = useState(false);
 
   // Dates
@@ -107,7 +105,6 @@ export default function VehicleDetailsScreen() {
   const [endPickerOpen, setEndPickerOpen] = useState(false);
   const [breakupOpen, setBreakupOpen] = useState(false);
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
-  const [customAnglePhotos, setCustomAnglePhotos] = useState<Record<string, string>>({});
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
 
   // KM Package selection
@@ -127,46 +124,6 @@ export default function VehicleDetailsScreen() {
       Alert.alert('Error', 'Could not load vehicle details.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCaptureAnglePhoto = async (angleKey: string, mode: 'camera' | 'gallery') => {
-    try {
-      if (mode === 'camera') {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Camera Permission Needed', 'Please allow camera access to capture live car angle photos.');
-          return;
-        }
-        const res = await ImagePicker.launchCameraAsync({
-          quality: 0.85,
-          allowsEditing: true,
-          aspect: [4, 3],
-        });
-        if (!res.canceled && res.assets?.[0]?.uri) {
-          setCustomAnglePhotos((prev) => ({ ...prev, [angleKey]: res.assets[0].uri }));
-        }
-      } else {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Gallery Permission Needed', 'Please allow photo library access.');
-          return;
-        }
-        const res = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 0.85,
-          allowsEditing: true,
-          aspect: [4, 3],
-        });
-        if (!res.canceled && res.assets?.[0]?.uri) {
-          setCustomAnglePhotos((prev) => ({ ...prev, [angleKey]: res.assets[0].uri }));
-        }
-      }
-    } catch {
-      const res = await ImagePicker.launchImageLibraryAsync({ quality: 0.85 });
-      if (!res.canceled && res.assets?.[0]?.uri) {
-        setCustomAnglePhotos((prev) => ({ ...prev, [angleKey]: res.assets[0].uri }));
-      }
     }
   };
 
@@ -227,7 +184,7 @@ export default function VehicleDetailsScreen() {
 
   return (
     <View style={[s.screen, { paddingTop: topPadding }]}>
-      {/* ────────── TOP APP BAR (CLEAR OF NOTCH) ────────── */}
+      {/* ────────── TOP APP BAR ────────── */}
       <View style={s.topBar}>
         <TouchableOpacity onPress={() => router.back()} style={s.navIconBtn} activeOpacity={0.7}>
           <ArrowLeft size={19} color="#0F172A" />
@@ -286,7 +243,7 @@ export default function VehicleDetailsScreen() {
                 key={tab}
                 onPress={() => {
                   setActiveTab(tab);
-                  if (tab === '8-Side Photos') {
+                  if (tab === 'Car Images') {
                     setGalleryModalOpen(true);
                   }
                 }}
@@ -299,7 +256,7 @@ export default function VehicleDetailsScreen() {
           })}
         </ScrollView>
 
-        {/* ────────── MULTI-PHOTO 8-ANGLE GALLERY GRID ────────── */}
+        {/* ────────── CAR IMAGES GALLERY (VIEW-ONLY FOR CUSTOMERS) ────────── */}
         <TouchableOpacity
           style={s.galleryContainer}
           activeOpacity={0.9}
@@ -308,12 +265,12 @@ export default function VehicleDetailsScreen() {
           {/* Main Hero Photo (Left) */}
           <View style={s.mainPhotoWrap}>
             <Image
-              source={customAnglePhotos.FRONT ? { uri: customAnglePhotos.FRONT } : mainImageSource}
+              source={mainImageSource}
               style={s.mainPhoto}
               resizeMode="contain"
             />
             <View style={s.coverBadge}>
-              <Text style={s.coverBadgeText}>8-Side Verified Studio</Text>
+              <Text style={s.coverBadgeText}>Car Images</Text>
             </View>
           </View>
 
@@ -321,14 +278,14 @@ export default function VehicleDetailsScreen() {
           <View style={s.thumbStack}>
             <View style={s.thumbBox}>
               <Image
-                source={customAnglePhotos.REAR ? { uri: customAnglePhotos.REAR } : mainImageSource}
+                source={mainImageSource}
                 style={s.thumbImg}
                 resizeMode="cover"
               />
             </View>
             <View style={s.thumbBox}>
               <Image
-                source={customAnglePhotos.INTERIOR ? { uri: customAnglePhotos.INTERIOR } : mainImageSource}
+                source={mainImageSource}
                 style={s.thumbImg}
                 resizeMode="cover"
               />
@@ -337,7 +294,7 @@ export default function VehicleDetailsScreen() {
               <Image source={mainImageSource} style={[s.thumbImg, { opacity: 0.3 }]} resizeMode="cover" />
               <View style={s.morePhotosOverlay}>
                 <Camera size={14} color="#FFF" />
-                <Text style={s.morePhotosText}>All 8 Sides</Text>
+                <Text style={s.morePhotosText}>View All</Text>
               </View>
             </View>
           </View>
@@ -489,9 +446,9 @@ export default function VehicleDetailsScreen() {
           <View style={s.hostReliabilityHeader}>
             <ShieldCheck size={20} color="#059669" />
             <View style={{ flex: 1 }}>
-              <Text style={s.hostReliabilityTitle}>Safar Executive Verified Host</Text>
+              <Text style={s.hostReliabilityTitle}>Safar Verified Host</Text>
               <Text style={s.hostReliabilitySub}>
-                100% on-time car handover · 8-angle pre-inspected before every trip
+                100% on-time car handover · Inspected & sanitized before every trip
               </Text>
             </View>
           </View>
@@ -513,7 +470,7 @@ export default function VehicleDetailsScreen() {
             </View>
             <View style={s.promiseItem}>
               <CheckCircle2 size={14} color="#059669" />
-              <Text style={s.promiseText}>Full Comprehensive Insurance & 8-Side Walkaround</Text>
+              <Text style={s.promiseText}>Full Comprehensive Insurance Included</Text>
             </View>
             <View style={s.promiseItem}>
               <CheckCircle2 size={14} color="#059669" />
@@ -580,7 +537,7 @@ export default function VehicleDetailsScreen() {
         </Text>
       </View>
 
-      {/* ────────── 8-ANGLE VEHICLE PHOTO GALLERY & CAMERA MODAL ────────── */}
+      {/* ────────── VIEW-ONLY CAR IMAGES GALLERY MODAL ────────── */}
       <Modal
         visible={galleryModalOpen}
         transparent
@@ -588,12 +545,12 @@ export default function VehicleDetailsScreen() {
         onRequestClose={() => setGalleryModalOpen(false)}
       >
         <View style={s.breakupBackdrop}>
-          <View style={[s.breakupSheet, { maxHeight: '90%' }]}>
+          <View style={[s.breakupSheet, { maxHeight: '88%' }]}>
             <View style={s.galleryHeaderRow}>
               <View>
-                <Text style={s.breakupTitle}>8-Side Vehicle Photo Studio</Text>
+                <Text style={s.breakupTitle}>Car Images</Text>
                 <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                  Inspect all 8 angles or capture live walkaround photos with Camera
+                  {vehicle.make} {vehicle.model} • Verified Exterior & Cabin Gallery
                 </Text>
               </View>
               <TouchableOpacity
@@ -606,44 +563,19 @@ export default function VehicleDetailsScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 20 }}>
               <View style={s.angleGrid}>
-                {CAR_8_ANGLES.map((angle) => {
-                  const customUri = customAnglePhotos[angle.key];
-                  return (
-                    <View key={angle.key} style={s.angleCard}>
-                      <View style={s.anglePhotoWrap}>
-                        <Image
-                          source={customUri ? { uri: customUri } : mainImageSource}
-                          style={s.anglePhotoImg}
-                          resizeMode="cover"
-                        />
-                        {customUri && (
-                          <View style={s.liveCapturedBadge}>
-                            <Text style={s.liveCapturedBadgeText}>LIVE PHOTO</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={s.angleCardTitle}>{angle.label}</Text>
-                      <Text style={s.angleCardSub}>{angle.sub}</Text>
-
-                      <View style={s.angleBtnRow}>
-                        <TouchableOpacity
-                          style={s.angleCamBtn}
-                          onPress={() => handleCaptureAnglePhoto(angle.key, 'camera')}
-                        >
-                          <Camera size={11} color="#FFFFFF" />
-                          <Text style={s.angleCamBtnText}>Camera</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={s.angleUploadBtn}
-                          onPress={() => handleCaptureAnglePhoto(angle.key, 'gallery')}
-                        >
-                          <Upload size={11} color="#0F172A" />
-                          <Text style={s.angleUploadBtnText}>Upload</Text>
-                        </TouchableOpacity>
-                      </View>
+                {CAR_IMAGE_VIEWS.map((view) => (
+                  <View key={view.key} style={s.angleCard}>
+                    <View style={s.anglePhotoWrap}>
+                      <Image
+                        source={mainImageSource}
+                        style={s.anglePhotoImg}
+                        resizeMode="cover"
+                      />
                     </View>
-                  );
-                })}
+                    <Text style={s.angleCardTitle}>{view.label}</Text>
+                    <Text style={s.angleCardSub}>{view.sub}</Text>
+                  </View>
+                ))}
               </View>
             </ScrollView>
           </View>
@@ -1072,7 +1004,7 @@ const s = StyleSheet.create({
     color: '#0F172A',
   },
 
-  /* Ask Anything Chips */
+  /* Chips */
   chipsScroll: {
     gap: 8,
     paddingBottom: 4,
@@ -1147,7 +1079,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#ECFDF5',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -1156,7 +1088,7 @@ const s = StyleSheet.create({
   hostOfferText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#92400E',
+    color: '#065F46',
   },
 
   /* Standard Promise Card */
@@ -1260,7 +1192,7 @@ const s = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* Breakup & 8-Angle Gallery Modals */
+  /* Modals */
   breakupBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
@@ -1333,7 +1265,7 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
 
-  /* 8-Angle Gallery Grid inside Modal */
+  /* View-only Car Images Grid */
   galleryHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1365,76 +1297,24 @@ const s = StyleSheet.create({
     padding: 9,
   },
   anglePhotoWrap: {
-    height: 85,
+    height: 95,
     borderRadius: 10,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    position: 'relative',
   },
   anglePhotoImg: {
     width: '100%',
     height: '100%',
   },
-  liveCapturedBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#059669',
-    borderRadius: 5,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  liveCapturedBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 8,
-    fontWeight: '900',
-  },
   angleCardTitle: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#0F172A',
-    marginTop: 6,
-  },
-  angleCardSub: {
-    fontSize: 9.5,
-    color: '#64748B',
-    marginTop: 1,
-  },
-  angleBtnRow: {
-    flexDirection: 'row',
-    gap: 6,
     marginTop: 8,
   },
-  angleCamBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#0F172A',
-    borderRadius: 7,
-    paddingVertical: 6,
-  },
-  angleCamBtnText: {
-    color: '#FFFFFF',
-    fontSize: 9.5,
-    fontWeight: '800',
-  },
-  angleUploadBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 7,
-    paddingVertical: 6,
-  },
-  angleUploadBtnText: {
-    color: '#0F172A',
-    fontSize: 9.5,
-    fontWeight: '700',
+  angleCardSub: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
   },
 });

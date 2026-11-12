@@ -338,7 +338,7 @@ export default function AccountAndWalletScreen() {
             activeOpacity={0.7}
           >
             <FileText size={18} color="#475569" />
-            <Text style={s.menuItemText}>My Trips & 8-Side Camera Walkaround</Text>
+            <Text style={s.menuItemText}>My Trips & Bookings</Text>
             <ChevronRight size={16} color="#94A3B8" />
           </TouchableOpacity>
 
