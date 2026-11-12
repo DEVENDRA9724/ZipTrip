@@ -125,7 +125,9 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
     return response.status === 204 ? null : payload;
   } catch (error: any) {
-    console.error(`API request error on ${url}:`, error);
+    if (!cleanEndpoint.includes('/auth/profile') && !cleanEndpoint.includes('/favorites')) {
+      console.log(`API note on ${cleanEndpoint}:`, error?.message || error);
+    }
     throw error;
   }
 }

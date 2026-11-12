@@ -218,7 +218,7 @@ export default function HomeScreen() {
         >
           <View style={s.logoBox}>
             <Image
-              source={require('../../assets/images/safar-logo.jpeg')}
+              source={require('../../assets/safar-logo.png')}
               style={s.logoImg}
               resizeMode="contain"
             />
